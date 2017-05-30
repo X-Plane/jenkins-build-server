@@ -165,7 +165,7 @@ def filesExist(List expectedProducts, String platform) {
     for(def p : expectedProducts) {
         assert (!p.contains("D:") && !p.contains(".exe")) || isWindows(platform) : "Got a Windows path on platform " + platform + " in filesExist()"
         assert (!p.contains("/jenkins/") && !p.contains(".app")) || isNix(platform) : "Got a Unix path on Windows in filesExist()"
-        if(!fileExists(p, platform)) {
+        if(!fileExists(p)) {
             return false
         }
     }
