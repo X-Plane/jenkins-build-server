@@ -99,7 +99,7 @@ def doCheckout(String platform) {
 }
 
 def supportsTesting(platform) {
-    return false && isNix(platform)
+    return isNix(platform)
 }
 
 def getCheckoutDir(String platform) {
