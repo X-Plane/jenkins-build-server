@@ -1,4 +1,4 @@
-stage('Checkout') { run(this.&doCheckout) }
+//stage('Checkout') { run(this.&doCheckout) }
 stage('Test')     { run(this.&testFunnel) }
 
 
