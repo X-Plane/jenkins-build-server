@@ -62,9 +62,9 @@ def getCommitId() {
 def doAnalysis(String platform) {
     setEnvironment()
     dir(getCheckoutDir()) {
-        sh 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj clean | xcpretty'
+        sh 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj clean'
         // xcodebuild returns 1 in the event of any issues found... obviously that still means the *analysis* went correctly
-        sh(returnStatus: true, script: 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj analyze | xcpretty > analysis.txt')
+        sh(returnStatus: true, script: 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj analyze > analysis.txt')
     }
 }
 
