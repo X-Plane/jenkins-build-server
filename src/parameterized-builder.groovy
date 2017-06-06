@@ -193,7 +193,12 @@ def doTest(String platform) {
             def app = appNoExt + getAppPattern(platform).replace('*', '') + (isMac(platform) ? "/Contents/MacOS/${appNoExt}" : '')
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
-            sh "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
+            try {
+                sh "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
+            } catch(e) {
+                archiveArtifacts artifacts: "../Log.txt", fingerprint: true, onlyIfSuccessful: false
+                throw e
+            }
         }
     }
 }
