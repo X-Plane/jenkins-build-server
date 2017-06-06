@@ -51,7 +51,7 @@ def getCheckoutDir(String platform) {
 def doAnalysis(String platform) {
     setEnvironment()
     dir(getCheckoutDir(platform)) {
-        //sh 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj clean'
+        sh 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj clean'
         // xcodebuild returns 1 in the event of any issues found... obviously that still means the *analysis* went correctly
         sh(returnStatus: true, script: 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj analyze > analysis.txt')
     }
