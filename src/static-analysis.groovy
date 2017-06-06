@@ -31,7 +31,6 @@ def doCheckout(String platform) {
             echo "Checking out ${branch} on ${platform}"
             checkout([$class: 'GitSCM', branches: [[name: branch]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git']]])
             def commit_id = getCommitId()
-            assert commit_id == branch : "We didn't check out the commit you asked for."
             echo "Building commit ${commit_id} on " + platform
         } catch(e) {
             currentBuild.result = "FAILED"
