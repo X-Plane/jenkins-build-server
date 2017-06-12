@@ -148,10 +148,11 @@ def doBuild(String platform) {
                 }
 
                 def config = getBuildToolConfiguration(platform)
+                def doAll = toRealBool(build_all_apps)
                 chooseShellByPlatformMacWinLin([
                         "xcodebuild -scheme \"${config}\" -project design_xcode4.xcodeproj build",
-                        "\"${tool 'MSBuild'}\" design_vstudio/design.sln /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER}",
-                         "${config} make -j4 sim pln afl ins"
+                        "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio/" + (doAll ? "design.sln" : "X-Plane.vcxproj"),
+                         "${config} make -j4 sim " + (doAll ? "pln afl ins" : "")
                 ], platform)
 
             }
@@ -175,12 +176,17 @@ def filesExist(List expectedProducts, String platform) {
 def getBuildToolConfiguration(String platform) {
     def doSteam = toRealBool(steam_build)
     def doRelease = toRealBool(release_build)
-    if(isWindows(platform)) {
-        return doSteam ? "Steam Prod Release" : (doRelease ? "Prod Release" : "Release")
-    } else if(isMac(platform)) {
-        return doSteam ? "Build Steam Release" : (doRelease ? "Build Release" : "Build All NO-DEV-NO-OPT")
+    def doAll = toRealBool(build_all_apps)
+    if(doAll) {
+        return chooseByPlatformMacWinLin([
+                doSteam ? "Build Steam Release" : (doRelease ? "Build Release" : "Build All NO-DEV-NO-OPT"),
+                doSteam ? "Steam Prod Release"  : (doRelease ? "Prod Release"  : "Release"),
+                (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'], platform)
     } else {
-        return (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'
+        return chooseByPlatformMacWinLin([
+                "X-Plane",
+                "Release",
+                (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'], platform)
     }
 }
 
@@ -275,7 +281,10 @@ def getAppPattern(String platform) {
 def getExpectedProducts(String platform) {
     def appExt = chooseByPlatformMacWinLin([".app.zip", ".exe", "-x86_64"], platform)
     def installerAppName = chooseByPlatformMacWinLin(["X-Plane 11 Installer", "X-Plane 11 Installer", "Installer"], platform)
-    def appNames = addSuffix(["X-Plane", installerAppName, "Airfoil Maker", "Plane Maker"], getAppSuffix(platform))
+    def xplaneApp = addSuffix(["X-Plane"], getAppSuffix(platform))
+    def otherApps = addSuffix([installerAppName, "Airfoil Maker", "Plane Maker"], getAppSuffix(platform))
+    def doAll = toRealBool(build_all_apps)
+    def appNames = doAll ? xplaneApp + otherApps : xplaneApp
     def platformApps = addSuffix(appNames, appExt)
 
     if(isRelease()) {
