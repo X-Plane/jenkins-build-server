@@ -45,11 +45,11 @@ def nukePreviousBuildProducts(String platform) {
     dir(getCheckoutDir(platform)) {
         try {
             def filePattern = getAppPattern(platform)
-            chooseShellByPlatformNixWin("rm -R ${filePattern}", "del \"${filePattern}\"", platform)
+            chooseShellByPlatformNixWin("rm -Rf ${filePattern}", "del \"${filePattern}\"", platform)
         } catch(e) { } // No old build products lying around? No problem!
         try {
             // Also attempt to nuke any old X-Plane screenshots lying around
-            chooseShellByPlatformNixWin("rm *.png", "del \"*.png\"", platform)
+            chooseShellByPlatformNixWin("rm -f *.png", "del \"*.png\"", platform)
         } catch(e) { } // No old screenshots lying around? No problem!
     }
 }
@@ -144,7 +144,7 @@ def doBuild(String platform) {
             } else { // Actually build some stuff!
                 if(toRealBool(clean_build)) {
                     chooseShellByPlatformMacWinLin([
-                            'xcodebuild -project design_xcode4.xcodeproj clean',
+                            'xcodebuild -project design_xcode4.xcodeproj clean && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*',
                             "\"${tool 'MSBuild'}\" design_vstudio/design.sln /t:Clean",
                             'make clean'
                     ], platform)
