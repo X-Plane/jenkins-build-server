@@ -142,15 +142,16 @@ def doBuild(String platform) {
                     sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
                 }
             } else { // Actually build some stuff!
+                def config = getBuildToolConfiguration(platform)
+
                 if(toRealBool(clean_build)) {
                     chooseShellByPlatformMacWinLin([
-                            'xcodebuild -project design_xcode4.xcodeproj clean && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*',
+                            "xcodebuild -project design_xcode4.xcodeproj clean && xcodebuild -scheme \"${config}\" -project design_xcode4.xcodeproj clean && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                             "\"${tool 'MSBuild'}\" design_vstudio/design.sln /t:Clean",
                             'make clean'
                     ], platform)
                 }
 
-                def config = getBuildToolConfiguration(platform)
                 def doAll = toRealBool(build_all_apps)
                 chooseShellByPlatformMacWinLin([
                         "xcodebuild -scheme \"${config}\" -project design_xcode4.xcodeproj build",
