@@ -392,13 +392,15 @@ Console Log (split by machine/task/subtask): ${BUILD_URL}flowGraphTable/
 
 Console Log (plain text): ${BUILD_URL}console
 """
-    emailext attachLog: true,
-            body: body,
-            subject: subj,
-            to: recipient ? recipient : emailextrecipients([
-                    [$class: 'CulpritsRecipientProvider'],
-                    [$class: 'RequesterRecipientProvider']
-            ])
+    if(toRealBool(send_emails)) {
+        emailext attachLog: true,
+                body: body,
+                subject: subj,
+                to: recipient ? recipient : emailextrecipients([
+                        [$class: 'CulpritsRecipientProvider'],
+                        [$class: 'RequesterRecipientProvider']
+                ])
+    }
 }
 
 def ping(String platform) {
