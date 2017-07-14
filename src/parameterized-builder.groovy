@@ -143,11 +143,12 @@ def doBuild(String platform) {
                     sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
                 }
             } else { // Actually build some stuff!
+                def config = getBuildToolConfiguration(platform)
+
                 // Generate our project files
-                chooseShellByPlatformNixWin('sh cmake.sh', 'cmake.bat', platform)
+                chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmake.bat', "./cmake.sh ${config}"], platform)
 
                 def doAll = toRealBool(build_all_apps)
-                def config = getBuildToolConfiguration(platform)
                 def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
 
                 def target = doAll ? "ALL_BUILD" : "X-Plane"
@@ -162,7 +163,7 @@ def doBuild(String platform) {
                 chooseShellByPlatformMacWinLin([
                         "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build | xcpretty",
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (doAll ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
-                         "${config} make -j4 sim " + (doAll ? "pln afl ins" : "")
+                         "cd design_linux && make -j4 " + (doAll ? '' : "X-Plane")
                 ], platform)
 
             }
@@ -186,11 +187,7 @@ def filesExist(List expectedProducts, String platform) {
 def getBuildToolConfiguration(String platform) {
     def doSteam = toRealBool(steam_build)
     def doRelease = toRealBool(release_build)
-    if(isMac(platform) || isWindows(platform)) {
-        return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
-    } else {
-        return (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'
-    }
+    return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
 }
 
 def doTest(String platform) {
