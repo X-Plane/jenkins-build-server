@@ -149,14 +149,14 @@ def doBuild(String platform) {
                 chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmake.bat', "./cmake.sh ${config}"], platform)
 
                 def doAll = toRealBool(build_all_apps)
-                def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
+                def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
                 def target = doAll ? "ALL_BUILD" : "X-Plane"
                 if(toRealBool(clean_build)) {
                     chooseShellByPlatformMacWinLin([
                             "set -o pipefail && xcodebuild -project ${projectFile} clean | xcpretty && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean | xcpretty && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                             "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
-                            'make clean'
+                            'cd design_linux && make clean'
                     ], platform)
                 }
 
