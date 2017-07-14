@@ -45,12 +45,13 @@ def nukePreviousBuildProducts(String platform) {
     dir(getCheckoutDir(platform)) {
         try {
             def filePattern = getAppPattern(platform)
-            chooseShellByPlatformNixWin("rm -Rf ${filePattern}", "del \"${filePattern}\"", platform)
+            chooseShellByPlatformNixWin("rm -Rf ${filePattern} CMakeLists.txt design_xcode *.png", "del \"${filePattern}\" CMakeLists.txt \"*.png\"", platform)
         } catch(e) { } // No old build products lying around? No problem!
-        try {
-            // Also attempt to nuke any old X-Plane screenshots lying around
-            chooseShellByPlatformNixWin("rm -f *.png", "del \"*.png\"", platform)
-        } catch(e) { } // No old screenshots lying around? No problem!
+        if(isWindows(platform)) {
+            try {
+                bat "rd /s /q design_vstudio"
+            } catch(e) { }
+        }
     }
 }
 
@@ -142,20 +143,25 @@ def doBuild(String platform) {
                     sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
                 }
             } else { // Actually build some stuff!
-                def config = getBuildToolConfiguration(platform)
+                // Generate our project files
+                chooseShellByPlatformNixWin('sh cmake.sh', 'cmake.bat', platform)
 
+                def doAll = toRealBool(build_all_apps)
+                def config = getBuildToolConfiguration(platform)
+                def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
+
+                def target = doAll ? "ALL_BUILD" : "X-Plane"
                 if(toRealBool(clean_build)) {
                     chooseShellByPlatformMacWinLin([
-                            "xcodebuild -project design_xcode4.xcodeproj clean && xcodebuild -scheme \"${config}\" -project design_xcode4.xcodeproj clean && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
-                            "\"${tool 'MSBuild'}\" design_vstudio/design.sln /t:Clean",
+                            "xcodebuild -project ${projectFile} clean && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                            "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
                             'make clean'
                     ], platform)
                 }
 
-                def doAll = toRealBool(build_all_apps)
                 chooseShellByPlatformMacWinLin([
-                        "xcodebuild -scheme \"${config}\" -project design_xcode4.xcodeproj build",
-                        "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio/" + (doAll ? "design.sln" : "X-Plane.vcxproj"),
+                        "xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build",
+                        "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (doAll ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
                          "${config} make -j4 sim " + (doAll ? "pln afl ins" : "")
                 ], platform)
 
@@ -180,17 +186,10 @@ def filesExist(List expectedProducts, String platform) {
 def getBuildToolConfiguration(String platform) {
     def doSteam = toRealBool(steam_build)
     def doRelease = toRealBool(release_build)
-    def doAll = toRealBool(build_all_apps)
-    if(doAll) {
-        return chooseByPlatformMacWinLin([
-                doSteam ? "Build Steam Release" : (doRelease ? "Build Release" : "Build All NO-DEV-NO-OPT"),
-                doSteam ? "Steam Prod Release"  : (doRelease ? "Prod Release"  : "Release"),
-                (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'], platform)
+    if(isMac(platform) || isWindows(platform)) {
+        return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
     } else {
-        return chooseByPlatformMacWinLin([
-                "X-Plane",
-                "Release",
-                (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'], platform)
+        return (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'
     }
 }
 
