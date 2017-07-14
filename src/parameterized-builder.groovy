@@ -153,14 +153,14 @@ def doBuild(String platform) {
                 def target = doAll ? "ALL_BUILD" : "X-Plane"
                 if(toRealBool(clean_build)) {
                     chooseShellByPlatformMacWinLin([
-                            "xcodebuild -project ${projectFile} clean && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                            "set -o pipefail && xcodebuild -project ${projectFile} clean | xcpretty && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean | xcpretty && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                             "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
                             'make clean'
                     ], platform)
                 }
 
                 chooseShellByPlatformMacWinLin([
-                        "xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build",
+                        "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build | xcpretty",
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (doAll ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
                          "${config} make -j4 sim " + (doAll ? "pln afl ins" : "")
                 ], platform)
