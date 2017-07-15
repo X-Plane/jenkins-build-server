@@ -43,15 +43,17 @@ def runOn3Platforms(Closure c) {
 
 def nukePreviousBuildProducts(String platform) {
     dir(getCheckoutDir(platform)) {
-        try {
-            def filePattern = getAppPattern(platform)
-            chooseShellByPlatformNixWin("rm -Rf ${filePattern} CMakeLists.txt design_xcode *.png", "del \"${filePattern}\" CMakeLists.txt \"*.png\"", platform)
-        } catch(e) { } // No old build products lying around? No problem!
-        if(isWindows(platform)) {
+        for(def p : getExpectedProducts(platform)) {
             try {
-                bat "rd /s /q design_vstudio"
-            } catch(e) { }
+                chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"", platform)
+            } catch(e) { } // No old build products lying around? No problem!
         }
+        try {
+            chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
+        } catch(e) { }
+        try {
+            chooseShellByPlatformNixWin('rm *.png', 'del "*.png"', platform)
+        } catch(e) { }
     }
 }
 
@@ -196,7 +198,8 @@ def doTest(String platform) {
         echo "Running tests"
         dir(checkoutDir + "tests") {
             def appNoExt = "X-Plane" + getAppSuffix(platform)
-            def app = appNoExt + getAppPattern(platform).replace('*', '') + (isMac(platform) ? "/Contents/MacOS/${appNoExt}" : '')
+            //def app = appNoExt + getAppPattern(platform).replace('*', '') + (isMac(platform) ? "/Contents/MacOS/${appNoExt}" : '')
+            def app = ''
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
             sh "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --app ../${app}"
@@ -211,25 +214,22 @@ def doArchive(String platform) {
             def dropboxPath = getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
-            def filePattern = getAppPattern(platform)
             def symbolsPattern = chooseByPlatformMacWinLin(["*.dSYM", "*.sym", "*.sym"], platform)
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
             if(isMac(platform)) {
-                sh "find . -name '${filePattern}' -exec zip -r '{}'.zip '{}' \\;"
+                sh "find . -name '*.app' -exec zip -r '{}'.zip '{}' \\;"
                 sh "find . -name '${symbolsPattern}' -exec zip -r '{}'.zip '{}' \\;"
-                filePattern += '.zip'
                 symbolsPattern += '.zip'
             }
 
-            archiveArtifacts artifacts: filePattern, fingerprint: true, onlyIfSuccessful: true
+            def products = getExpectedProducts(platform)
             def needsSymbols = isRelease()
             if(needsSymbols) {
                 if(isWindows(platform)) {
-                    archiveArtifacts artifacts: "*.pdb", fingerprint: true, onlyIfSuccessful: true
+                    products.add('*.pdb')
                 }
-                archiveArtifacts artifacts: symbolsPattern, fingerprint: true, onlyIfSuccessful: true
+                products.add(symbolsPattern)
             }
-
             def screenshots = []
             if(supportsTesting(platform)) {
                 for(String screenshotName : getTestingScreenshotNames()) {
@@ -237,19 +237,13 @@ def doArchive(String platform) {
                     moveFilePatternToDest("${screenshotName}_1.png", newName, platform)
                     screenshots.add(newName)
                 }
-                archiveArtifacts artifacts: screenshots.join(", "), fingerprint: true, onlyIfSuccessful: false
             }
+            products += screenshots
+            archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: true
 
             def dest = escapeSlashes(dropboxPath, platform)
-            moveFilePatternToDest(filePattern, dest, platform)
-            if(needsSymbols) {
-                moveFilePatternToDest(symbolsPattern, dest, platform)
-                if(isWindows(platform)) {
-                    moveFilePatternToDest("*.pdb", dest, platform)
-                }
-            }
-            for(String screenshot : screenshots) {
-                moveFilePatternToDest(screenshot, dest, platform)
+            for(String p : products) {
+                moveFilePatternToDest(p, dest, platform)
             }
         }
     } catch (e) {
@@ -274,31 +268,24 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
     }
 }
 
-def getAppPattern(String platform) {
-    return chooseByPlatformMacWinLin(["*.app", "*.exe", "*-x86_64"], platform)
-}
-
 def getExpectedProducts(String platform) {
-    def appExt = chooseByPlatformMacWinLin([".app.zip", ".exe", "-x86_64"], platform)
-    def installerAppName = chooseByPlatformMacWinLin(["X-Plane 11 Installer", "X-Plane 11 Installer", "Installer"], platform)
-    def xplaneApp = addSuffix(["X-Plane"], getAppSuffix(platform))
-    def otherApps = addSuffix([installerAppName, "Airfoil Maker", "Plane Maker"], getAppSuffix(platform))
     def doAll = toRealBool(build_all_apps)
-    def appNames = doAll ? xplaneApp + otherApps : xplaneApp
-    def platformApps = addSuffix(appNames, appExt)
+    def appExt = chooseByPlatformMacWinLin([".app.zip", ".exe", ''], platform)
+    def appNames = addSuffix(doAll ? ["X-Plane", "X-Plane 11 Installer", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], getAppSuffix(platform))
+    def out = addSuffix(appNames, appExt)
 
     if(isRelease()) {
-        // TODO: Does only X-Plane produce a .sym?
         def platformOther = addSuffix(appNames, ".sym")
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }
-        return platformApps + platformOther
+        out += platformOther
     }
     if(supportsTesting(platform)) {
-        autoTestScreenshots = addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
+        // Screenshots from tests
+        out += addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
     }
-    return platformApps
+    return out
 }
 
 def getAppSuffix(String platform) {
