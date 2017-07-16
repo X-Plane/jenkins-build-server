@@ -193,13 +193,16 @@ def getBuildToolConfiguration(String platform) {
     def doRelease = toRealBool(release_build)
     return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
 }
+def getAppSuffix() {
+    return isRelease() ? "" : "NODEV_OPT"
+}
 
 def doTest(String platform) {
     if(supportsTesting(platform)) {
         def checkoutDir = getCheckoutDir(platform)
         echo "Running tests"
         dir(checkoutDir + "tests") {
-            def appNoExt = "X-Plane" + getAppSuffix(platform)
+            def appNoExt = "X-Plane" + getAppSuffix()
             //def app = appNoExt + getAppPattern(platform).replace('*', '') + (isMac(platform) ? "/Contents/MacOS/${appNoExt}" : '')
             def app = ''
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
@@ -273,7 +276,7 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
 def getExpectedProducts(String platform) {
     def doAll = toRealBool(build_all_apps)
     def appExt = chooseByPlatformMacWinLin([".app.zip", ".exe", ''], platform)
-    def appNames = addSuffix(doAll ? ["X-Plane", "X-Plane 11 Installer", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], getAppSuffix(platform))
+    def appNames = addSuffix(doAll ? ["X-Plane", "X-Plane 11 Installer", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], getAppSuffix())
     def out = addSuffix(appNames, appExt)
 
     if(isRelease()) {
@@ -288,10 +291,6 @@ def getExpectedProducts(String platform) {
         out += addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
     }
     return out
-}
-
-def getAppSuffix(String platform) {
-    return isRelease() ? "" : (chooseByPlatformMacWinLin(["_NODEV_NOOPT", "_NODEV_OPT", ""], platform))
 }
 
 def getTestingScreenshotNames() {
