@@ -48,9 +48,11 @@ def nukePreviousBuildProducts(String platform) {
                 chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"", platform)
             } catch(e) { } // No old build products lying around? No problem!
         }
-        try {
-            chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
-        } catch(e) { }
+        if(toRealBool(clean_build)) {
+            try {
+                chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
+            } catch (e) { }
+        }
         try {
             chooseShellByPlatformNixWin('rm *.png', 'del "*.png"', platform)
         } catch(e) { }
