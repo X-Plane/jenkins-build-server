@@ -194,7 +194,7 @@ def getBuildToolConfiguration(String platform) {
     return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
 }
 def getAppSuffix() {
-    return isRelease() ? "" : "NODEV_OPT"
+    return isRelease() ? "" : "_NODEV_OPT"
 }
 
 def doTest(String platform) {
