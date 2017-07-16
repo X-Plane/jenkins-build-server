@@ -319,7 +319,8 @@ def chooseByPlatformNixWin(nixVersion, winVersion, String platform) {
 
 def getArchiveDirAndEnsureItExists(String platform) {
     def commitId = getCommitId(platform)
-    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${commitId}/", "D:\\Docs\\Dropbox\\jenkins-archive\\${commitId}\\", platform), platform)
+    def subdir = toRealBool(steam_build) ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
+    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitId}/", "D:\\Docs\\Dropbox\\jenkins-archive\\${subdir}${commitId}\\", platform), platform)
     try {
         chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"", platform)
     } catch(e) { } // ignore errors if it already exists
