@@ -257,7 +257,7 @@ def doArchive(String platform) {
 }
 
 def moveFilePatternToDest(String filePattern, String dest, String platform) {
-    chooseShellByPlatformNixWin("mv $filePattern ${dest}",  "move /Y \"${filePattern}\" \"${dest}\"", platform)
+    chooseShellByPlatformNixWin("mv \"$filePattern\" \"${dest}\"",  "move /Y \"${filePattern}\" \"${dest}\"", platform)
 }
 
 def chooseShellByPlatformNixWin(nixCommand, winCommand, platform) {
