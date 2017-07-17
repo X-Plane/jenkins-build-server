@@ -269,7 +269,8 @@ def getExpectedProducts(String platform) {
     def out = addSuffix(appNames, appExt)
 
     if(isRelease()) {
-        def platformOther = addSuffix(appNames, chooseByPlatformMacWinLin(['.dSYM.zip', '_win.sym', '_lin.sym'], platform))
+        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, appNames], platform),
+                chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform))
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }
