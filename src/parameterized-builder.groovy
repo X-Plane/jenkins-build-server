@@ -219,31 +219,20 @@ def doArchive(String platform) {
             def dropboxPath = getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
-            def symbolsPattern = chooseByPlatformMacWinLin(["*.dSYM", "*.sym", "*.sym"], platform)
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
             if(isMac(platform)) {
                 sh "find . -name '*.app' -exec zip -r '{}'.zip '{}' \\;"
-                sh "find . -name '${symbolsPattern}' -exec zip -r '{}'.zip '{}' \\;"
-                symbolsPattern += '.zip'
+                sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
             def products = getExpectedProducts(platform)
-            def needsSymbols = isRelease()
-            if(needsSymbols) {
-                if(isWindows(platform)) {
-                    products.add('*.pdb')
-                }
-                products.add(symbolsPattern)
-            }
-            def screenshots = []
             if(supportsTesting(platform)) {
                 for(String screenshotName : getTestingScreenshotNames()) {
                     def newName = "${screenshotName}_${platform}.png"
                     moveFilePatternToDest("${screenshotName}_1.png", newName, platform)
-                    screenshots.add(newName)
+                    products.add(newName)
                 }
             }
-            products += screenshots
             archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: true
 
             def dest = escapeSlashes(dropboxPath, platform)
@@ -280,7 +269,7 @@ def getExpectedProducts(String platform) {
     def out = addSuffix(appNames, appExt)
 
     if(isRelease()) {
-        def platformOther = addSuffix(appNames, ".sym")
+        def platformOther = addSuffix(appNames, chooseByPlatformMacWinLin(['.dSYM.zip', '_win.sym', '_lin.sym'], platform))
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }
