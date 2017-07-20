@@ -150,7 +150,7 @@ def doBuild(String platform) {
                 def config = getBuildToolConfiguration(platform)
 
                 // Generate our project files
-                chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmake.bat', "./cmake.sh ${config}"], platform)
+                chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat"', "./cmake.sh ${config}"], platform)
 
                 def doAll = toRealBool(build_all_apps)
                 def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
