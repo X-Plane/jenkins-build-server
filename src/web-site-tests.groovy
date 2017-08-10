@@ -36,7 +36,7 @@ def doCheckout(String platform) {
 
 def getCheckoutDir() {
     def nix = isUnix()
-    return (nix ? '/jenkins/' : 'D:\\jenkins\\') + 'website'+ (nix ? '/' : '\\')
+    return (nix ? '/jenkins/' : 'C:\\jenkins\\') + 'website'+ (nix ? '/' : '\\')
 }
 
 def getCommitId() {

@@ -29,7 +29,7 @@ try {
         stage('Notify')                    { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
     }
 } finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'D:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
 }
 
 def runOn3Platforms(Closure c) {
@@ -111,7 +111,7 @@ def supportsTesting(platform) {
 }
 
 def getCheckoutDir(String platform) {
-    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "D:\\jenkins\\design-${directory_suffix}\\", platform)
+    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\", platform)
 }
 
 def getCommitId(String platform) {
@@ -135,7 +135,7 @@ def doBuild(String platform) {
 
             def archiveDir = getArchiveDirAndEnsureItExists(platform)
             assert archiveDir : "Got an empty archive dir"
-            assert !archiveDir.contains("D:") || isWindows(platform) : "Got a Windows path on platform " + platform + " from getArchiveDirAndEnsureItExists() in doBuild()"
+            assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform " + platform + " from getArchiveDirAndEnsureItExists() in doBuild()"
             assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from getArchiveDirAndEnsureItExists() in doBuild()"
             def toBuild = getExpectedProducts(platform)
             def archivedProductPaths = addPrefix(toBuild, archiveDir)
@@ -179,7 +179,7 @@ def doBuild(String platform) {
 
 def filesExist(List expectedProducts, String platform) {
     for(def p : expectedProducts) {
-        assert (!p.contains("D:") && !p.contains(".exe")) || isWindows(platform) : "Got a Windows path on platform " + platform + " in filesExist()"
+        assert (!p.contains("C:") && !p.contains(".exe")) || isWindows(platform) : "Got a Windows path on platform " + platform + " in filesExist()"
         assert (!p.contains("/jenkins/") && !p.contains(".app")) || isNix(platform) : "Got a Unix path on Windows in filesExist()"
         if(!fileExists(p)) {
             return false
@@ -310,7 +310,7 @@ def chooseByPlatformNixWin(nixVersion, winVersion, String platform) {
 def getArchiveDirAndEnsureItExists(String platform) {
     def commitId = getCommitId(platform)
     def subdir = toRealBool(steam_build) ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
-    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitId}/", "D:\\Docs\\Dropbox\\jenkins-archive\\${subdir}${commitId}\\", platform), platform)
+    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitId}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitId}\\", platform), platform)
     try {
         chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"", platform)
     } catch(e) { } // ignore errors if it already exists
@@ -377,10 +377,6 @@ Console Log (plain text): ${BUILD_URL}console
                         [$class: 'RequesterRecipientProvider']
                 ])
     }
-}
-
-def ping(String platform) {
-    echo "${platform} online"
 }
 
 // $&@#* Jenkins.
