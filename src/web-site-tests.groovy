@@ -53,7 +53,7 @@ def testFunnel(String platform) {
     dir(getCheckoutDir()) {
         try {
             if(platform == 'Windows') {
-                bat "virtualenv -p C:\\Python27 env"
+                bat "virtualenv -p C:\\Python27\\python.exe env"
                 bat "env\\Scripts\\activate"
                 bat "pip install -r package_requirements.txt"
                 bat "behave --tags=automated"
