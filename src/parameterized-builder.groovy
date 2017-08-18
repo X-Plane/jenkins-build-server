@@ -1,3 +1,6 @@
+// Check configuration preconditions
+assert toRealBool(build_all_apps) || (!toRealBool(release_build) && !toRealBool(steam_build)), "Release & Steam builds require all apps to be built"
+
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
 // This is where the magic happens.
@@ -26,28 +29,33 @@ try {
         stage('Notify')                    { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
     }
 } finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'D:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
 }
 
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { node('windows') { closure('Windows') } },
-            'macOS'   : { node('mac')     { closure('macOS')   } },
-            'Linux'   : { node('linux')   { closure('Linux')   } }
+            'Windows' : { node('windows') { if(toRealBool(build_windows)) { closure('Windows') } } },
+            'macOS'   : { node('mac')     { if(toRealBool(build_mac))     { closure('macOS')   } } },
+            'Linux'   : { node('linux')   { if(toRealBool(build_linux))   { closure('Linux')   } } }
     )
 }
 
 def nukePreviousBuildProducts(String platform) {
     dir(getCheckoutDir(platform)) {
+        for(def p : getExpectedProducts(platform)) {
+            try {
+                chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"", platform)
+            } catch(e) { } // No old build products lying around? No problem!
+        }
+        if(toRealBool(clean_build)) {
+            try {
+                chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
+            } catch (e) { }
+        }
         try {
-            def filePattern = getAppPattern(platform)
-            chooseShellByPlatformNixWin("rm -R ${filePattern}", "del \"${filePattern}\"", platform)
-        } catch(e) { } // No old build products lying around? No problem!
-        try {
-            // Also attempt to nuke any old X-Plane screenshots lying around
-            chooseShellByPlatformNixWin("rm *.png", "del \"*.png\"", platform)
-        } catch(e) { } // No old screenshots lying around? No problem!
+            chooseShellByPlatformNixWin('rm *.png', 'del "*.png"', platform)
+        } catch(e) { }
     }
 }
 
@@ -103,7 +111,7 @@ def supportsTesting(platform) {
 }
 
 def getCheckoutDir(String platform) {
-    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "D:\\jenkins\\design-${directory_suffix}\\", platform)
+    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\", platform)
 }
 
 def getCommitId(String platform) {
@@ -127,7 +135,7 @@ def doBuild(String platform) {
 
             def archiveDir = getArchiveDirAndEnsureItExists(platform)
             assert archiveDir : "Got an empty archive dir"
-            assert !archiveDir.contains("D:") || isWindows(platform) : "Got a Windows path on platform " + platform + " from getArchiveDirAndEnsureItExists() in doBuild()"
+            assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform " + platform + " from getArchiveDirAndEnsureItExists() in doBuild()"
             assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from getArchiveDirAndEnsureItExists() in doBuild()"
             def toBuild = getExpectedProducts(platform)
             def archivedProductPaths = addPrefix(toBuild, archiveDir)
@@ -139,19 +147,27 @@ def doBuild(String platform) {
                     sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
                 }
             } else { // Actually build some stuff!
+                def config = getBuildToolConfiguration(platform)
+
+                // Generate our project files
+                chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat"', "./cmake.sh ${config}"], platform)
+
+                def doAll = toRealBool(build_all_apps)
+                def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
+
+                def target = doAll ? "ALL_BUILD" : "X-Plane"
                 if(toRealBool(clean_build)) {
                     chooseShellByPlatformMacWinLin([
-                            'xcodebuild -project design_xcode4.xcodeproj clean',
-                            "\"${tool 'MSBuild'}\" design_vstudio/design.sln /t:Clean",
-                            'make clean'
+                            "set -o pipefail && xcodebuild -project ${projectFile} clean | xcpretty && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean | xcpretty && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                            "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
+                            'cd design_linux && make clean'
                     ], platform)
                 }
 
-                def config = getBuildToolConfiguration(platform)
                 chooseShellByPlatformMacWinLin([
-                        "xcodebuild -scheme \"${config}\" -project design_xcode4.xcodeproj build",
-                        "\"${tool 'MSBuild'}\" design_vstudio/design.sln /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER}",
-                         "${config} make -j4 sim pln afl ins"
+                        "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build | xcpretty",
+                        "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (doAll ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
+                         "cd design_linux && make -j4 " + (doAll ? '' : "X-Plane")
                 ], platform)
 
             }
@@ -163,7 +179,7 @@ def doBuild(String platform) {
 
 def filesExist(List expectedProducts, String platform) {
     for(def p : expectedProducts) {
-        assert (!p.contains("D:") && !p.contains(".exe")) || isWindows(platform) : "Got a Windows path on platform " + platform + " in filesExist()"
+        assert (!p.contains("C:") && !p.contains(".exe")) || isWindows(platform) : "Got a Windows path on platform " + platform + " in filesExist()"
         assert (!p.contains("/jenkins/") && !p.contains(".app")) || isNix(platform) : "Got a Unix path on Windows in filesExist()"
         if(!fileExists(p)) {
             return false
@@ -175,13 +191,10 @@ def filesExist(List expectedProducts, String platform) {
 def getBuildToolConfiguration(String platform) {
     def doSteam = toRealBool(steam_build)
     def doRelease = toRealBool(release_build)
-    if(isWindows(platform)) {
-        return doSteam ? "Steam Prod Release" : (doRelease ? "Prod Release" : "Release")
-    } else if(isMac(platform)) {
-        return doSteam ? "Build Steam Release" : (doRelease ? "Build Release" : "Build All NO-DEV-NO-OPT")
-    } else {
-        return (doSteam ? 'STEAM=1 ' : '') + 'REL=1 DEV=0 ARCHES="x86_64"'
-    }
+    return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
+}
+def getAppSuffix() {
+    return isRelease() ? "" : "_NODEV_OPT"
 }
 
 def doTest(String platform) {
@@ -189,8 +202,9 @@ def doTest(String platform) {
         def checkoutDir = getCheckoutDir(platform)
         echo "Running tests"
         dir(checkoutDir + "tests") {
-            def appNoExt = "X-Plane" + getAppSuffix(platform)
-            def app = appNoExt + getAppPattern(platform).replace('*', '') + (isMac(platform) ? "/Contents/MacOS/${appNoExt}" : '')
+            def appNoExt = "X-Plane" + getAppSuffix()
+            //def app = appNoExt + getAppPattern(platform).replace('*', '') + (isMac(platform) ? "/Contents/MacOS/${appNoExt}" : '')
+            def app = ''
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
             try {
@@ -210,45 +224,25 @@ def doArchive(String platform) {
             def dropboxPath = getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
-            def filePattern = getAppPattern(platform)
-            def symbolsPattern = chooseByPlatformMacWinLin(["*.dSYM", "*.sym", "*.sym"], platform)
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
             if(isMac(platform)) {
-                sh "find . -name '${filePattern}' -exec zip -r '{}'.zip '{}' \\;"
-                sh "find . -name '${symbolsPattern}' -exec zip -r '{}'.zip '{}' \\;"
-                filePattern += '.zip'
-                symbolsPattern += '.zip'
+                sh "find . -name '*.app' -exec zip -r '{}'.zip '{}' \\;"
+                sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            archiveArtifacts artifacts: filePattern, fingerprint: true, onlyIfSuccessful: true
-            def needsSymbols = isRelease()
-            if(needsSymbols) {
-                if(isWindows(platform)) {
-                    archiveArtifacts artifacts: "*.pdb", fingerprint: true, onlyIfSuccessful: true
-                }
-                archiveArtifacts artifacts: symbolsPattern, fingerprint: true, onlyIfSuccessful: true
-            }
-
-            def screenshots = []
+            def products = getExpectedProducts(platform)
             if(supportsTesting(platform)) {
                 for(String screenshotName : getTestingScreenshotNames()) {
                     def newName = "${screenshotName}_${platform}.png"
                     moveFilePatternToDest("${screenshotName}_1.png", newName, platform)
-                    screenshots.add(newName)
+                    products.add(newName)
                 }
-                archiveArtifacts artifacts: screenshots.join(", "), fingerprint: true, onlyIfSuccessful: false
             }
+            archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: true
 
             def dest = escapeSlashes(dropboxPath, platform)
-            moveFilePatternToDest(filePattern, dest, platform)
-            if(needsSymbols) {
-                moveFilePatternToDest(symbolsPattern, dest, platform)
-                if(isWindows(platform)) {
-                    moveFilePatternToDest("*.pdb", dest, platform)
-                }
-            }
-            for(String screenshot : screenshots) {
-                moveFilePatternToDest(screenshot, dest, platform)
+            for(String p : products) {
+                moveFilePatternToDest(p, dest, platform)
             }
         }
     } catch (e) {
@@ -257,7 +251,7 @@ def doArchive(String platform) {
 }
 
 def moveFilePatternToDest(String filePattern, String dest, String platform) {
-    chooseShellByPlatformNixWin("mv $filePattern ${dest}",  "move /Y \"${filePattern}\" \"${dest}\"", platform)
+    chooseShellByPlatformNixWin("mv \"$filePattern\" \"${dest}\"",  "move /Y \"${filePattern}\" \"${dest}\"", platform)
 }
 
 def chooseShellByPlatformNixWin(nixCommand, winCommand, platform) {
@@ -273,32 +267,25 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
     }
 }
 
-def getAppPattern(String platform) {
-    return chooseByPlatformMacWinLin(["*.app", "*.exe", "*-x86_64"], platform)
-}
-
 def getExpectedProducts(String platform) {
-    def appExt = chooseByPlatformMacWinLin([".app.zip", ".exe", "-x86_64"], platform)
-    def installerAppName = chooseByPlatformMacWinLin(["X-Plane 11 Installer", "X-Plane 11 Installer", "Installer"], platform)
-    def appNames = addSuffix(["X-Plane", installerAppName, "Airfoil Maker", "Plane Maker"], getAppSuffix(platform))
-    def platformApps = addSuffix(appNames, appExt)
+    def doAll = toRealBool(build_all_apps)
+    def appExt = chooseByPlatformMacWinLin([".app.zip", ".exe", ''], platform)
+    def appNames = addSuffix(doAll ? ["X-Plane", "X-Plane 11 Installer", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], getAppSuffix())
+    def out = addSuffix(appNames, appExt)
 
     if(isRelease()) {
-        // TODO: Does only X-Plane produce a .sym?
-        def platformOther = addSuffix(appNames, ".sym")
+        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, appNames], platform),
+                chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform))
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }
-        return platformApps + platformOther
+        out += platformOther
     }
     if(supportsTesting(platform)) {
-        autoTestScreenshots = addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
+        // Screenshots from tests
+        out += addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
     }
-    return platformApps
-}
-
-def getAppSuffix(String platform) {
-    return isRelease() ? "" : (chooseByPlatformMacWinLin(["_NODEV_NOOPT", "_NODEV_OPT", ""], platform))
+    return out
 }
 
 def getTestingScreenshotNames() {
@@ -327,7 +314,8 @@ def chooseByPlatformNixWin(nixVersion, winVersion, String platform) {
 
 def getArchiveDirAndEnsureItExists(String platform) {
     def commitId = getCommitId(platform)
-    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${commitId}/", "D:\\Docs\\Dropbox\\jenkins-archive\\${commitId}\\", platform), platform)
+    def subdir = toRealBool(steam_build) ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
+    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitId}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitId}\\", platform), platform)
     try {
         chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"", platform)
     } catch(e) { } // ignore errors if it already exists
@@ -385,17 +373,15 @@ Console Log (split by machine/task/subtask): ${BUILD_URL}flowGraphTable/
 
 Console Log (plain text): ${BUILD_URL}console
 """
-    emailext attachLog: true,
-            body: body,
-            subject: subj,
-            to: recipient ? recipient : emailextrecipients([
-                    [$class: 'CulpritsRecipientProvider'],
-                    [$class: 'RequesterRecipientProvider']
-            ])
-}
-
-def ping(String platform) {
-    echo "${platform} online"
+    if(toRealBool(send_emails)) {
+        emailext attachLog: true,
+                body: body,
+                subject: subj,
+                to: recipient ? recipient : emailextrecipients([
+                        [$class: 'CulpritsRecipientProvider'],
+                        [$class: 'RequesterRecipientProvider']
+                ])
+    }
 }
 
 // $&@#* Jenkins.

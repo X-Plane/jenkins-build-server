@@ -25,13 +25,12 @@ def runOnMac(Closure c) {
 
 def doCheckout(String platform) {
     setEnvironment()
-    dir(getCheckoutDir()) {
+    dir(getCheckoutDir(platform)) {
         try {
             def branch = env.subject.trim() // Subject should *just* contain the commit SHA
             echo "Checking out ${branch} on ${platform}"
             checkout([$class: 'GitSCM', branches: [[name: branch]], doGenerateSubmoduleConfigurations: false, extensions: [], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git']]])
-            def commit_id = getCommitId()
-            assert commit_id == branch : "We didn't check out the commit you asked for."
+            def commit_id = getCommitId(platform)
             echo "Building commit ${commit_id} on " + platform
         } catch(e) {
             currentBuild.result = "FAILED"
@@ -44,36 +43,26 @@ def doCheckout(String platform) {
     }
 }
 
-def getCheckoutDir() {
-    def nix = isUnix()
+def getCheckoutDir(String platform) {
+    def nix = isNix(platform)
     return (nix ? '/jenkins/' : 'D:\\jenkins\\') + 'design-' + env.directory_suffix + (nix ? '/' : '\\')
-}
-
-def getCommitId() {
-    dir(getCheckoutDir()) {
-        if(isUnix()) {
-            return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-        } else {
-            return bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")[1]
-        }
-    }
 }
 
 def doAnalysis(String platform) {
     setEnvironment()
-    dir(getCheckoutDir()) {
-        sh 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj clean | xcpretty'
+    dir(getCheckoutDir(platform)) {
+        sh 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj clean'
         // xcodebuild returns 1 in the event of any issues found... obviously that still means the *analysis* went correctly
-        sh(returnStatus: true, script: 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj analyze | xcpretty > analysis.txt')
+        sh(returnStatus: true, script: 'xcodebuild -scheme "X-Plane Debug" -project design_xcode4.xcodeproj analyze > analysis.txt')
     }
 }
 
 def doArchive(String platform) {
     setEnvironment()
     try {
-        def checkout_dir = getCheckoutDir()
+        def checkout_dir = getCheckoutDir(platform)
         dir(checkout_dir) {
-            def dropbox_path = getArchiveDirAndEnsureItExists()
+            def dropbox_path = getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkout_dir} to ${dropbox_path}"
 
             def file_pattern = "analysis.txt"
@@ -88,23 +77,6 @@ def doArchive(String platform) {
     } catch (e) {
         notifyFailedArchive(platform, e)
     }
-}
-
-def getArchiveDirAndEnsureItExists() {
-    def commit_id = getCommitId()
-    def out = ""
-    if(isUnix()) {
-        out = "/jenkins/Dropbox/X-Plane\\ non-code/Jenkins\\ archive/${env.directory_suffix}-${env.branch}-${commit_id}/"
-        try {
-            sh "mkdir ${out}"
-        } catch(e) { } // ignore errors if it already exists
-    } else {
-        out = "D:\\Docs\\Dropbox\\X-Plane non-code\\Jenkins archive\\${env.directory_suffix}-${env.branch}-${commit_id}\\"
-        try {
-            bat "mkdir \"${out}\""
-        } catch(e) { } // ignore errors if it already exists
-    }
-    return out
 }
 
 def notifyFailedArchive(String platform, Exception e) {
@@ -143,3 +115,96 @@ def ping(String platform) {
     echo "${platform} online"
 }
 
+
+// Utils from the parameterized builder
+def getCommitId(String platform) {
+    dir(getCheckoutDir(platform)) {
+        if(isWindows(platform)) {
+            def out = bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")
+            if(out.size() == 2) {
+                return out[1]
+            }
+            return ""
+        } else {
+            return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+        }
+    }
+}
+def chooseShellByPlatformNixWin(nixCommand, winCommand, platform) {
+    chooseShellByPlatformMacWinLin([nixCommand, winCommand, nixCommand], platform)
+}
+def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
+    if(isWindows(platform)) {
+        bat macWinLinCommands[1]
+    } else if(isMac(platform)) {
+        sh macWinLinCommands[0]
+    } else {
+        sh macWinLinCommands[2]
+    }
+}
+
+def chooseByPlatformMacWinLin(macWinLinOptions, String platform) {
+    assert macWinLinOptions.size() == 3 : "Got the wrong number of options to choose by platform"
+    if(isMac(platform)) {
+        return macWinLinOptions[0]
+    } else if(isWindows(platform)) {
+        return macWinLinOptions[1]
+    } else {
+        assert isNix(platform) : "Got unknown platform ${platform} in chooseByPlatformMacWinLin()"
+        return macWinLinOptions[2]
+    }
+}
+
+def chooseByPlatformNixWin(nixVersion, winVersion, String platform) {
+    return chooseByPlatformMacWinLin([nixVersion, winVersion, nixVersion], platform)
+}
+
+def getArchiveDirAndEnsureItExists(String platform) {
+    def commitId = getCommitId(platform)
+    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${commitId}/", "D:\\Docs\\Dropbox\\jenkins-archive\\${commitId}\\", platform), platform)
+    try {
+        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"", platform)
+    } catch(e) { } // ignore errors if it already exists
+    return out
+}
+
+def escapeSlashes(String path, String platform) {
+    if(isWindows(platform)) {
+        return path
+    } else {
+        assert !path.contains("\\ ")
+        return path.replace(" ", "\\ ")
+    }
+}
+def toRealBool(String fakeBool) {
+    return fakeBool == 'true'
+}
+
+def isWindows(String platform) {
+    return platform == 'Windows'
+}
+def isNix(String platform) {
+    return !isWindows(platform)
+}
+def isMac(String platform) {
+    return platform == 'macOS'
+}
+
+def addPrefix(List strings, String newPrefix) {
+    // Someday, when Jenkins supports the .collect function... (per JENKINS-26481)
+    // return strings.collect({ s + newPrefix })
+    def out = []
+    for(def s : strings) {
+        out += newPrefix + s
+    }
+    return out
+}
+def addSuffix(List strings, String newSuffix) {
+    // Someday, when Jenkins supports the .collect function... (per JENKINS-26481)
+    // return strings.collect({ newSuffix + s })
+    def out = []
+    for(def s : strings) {
+        out += s + newSuffix
+    }
+    return out
+}
