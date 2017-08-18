@@ -35,8 +35,8 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { node('windows') { if(toRealBool(build_windows)) { closure('Windows') } } },
-            'macOS'   : { node('mac')     { if(toRealBool(build_mac))     { closure('macOS')   } } },
+            //'Windows' : { node('windows') { if(toRealBool(build_windows)) { closure('Windows') } } },
+            //'macOS'   : { node('mac')     { if(toRealBool(build_mac))     { closure('macOS')   } } },
             'Linux'   : { node('linux')   { if(toRealBool(build_linux))   { closure('Linux')   } } }
     )
 }
@@ -107,7 +107,7 @@ def doCheckout(String platform) {
 }
 
 def supportsTesting(platform) {
-    return isMac(platform)
+    return platform == 'Linux'
 }
 
 def getCheckoutDir(String platform) {
@@ -203,8 +203,6 @@ def doTest(String platform) {
         echo "Running tests"
         dir(checkoutDir + "tests") {
             def appNoExt = "X-Plane" + getAppSuffix()
-            //def app = appNoExt + getAppPattern(platform).replace('*', '') + (isMac(platform) ? "/Contents/MacOS/${appNoExt}" : '')
-            def app = ''
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
             try {
