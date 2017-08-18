@@ -92,7 +92,7 @@ def doCheckout(String platform) {
                 sh(returnStdout: true, script: "find Aircraft  -type d -exec \"svn cleanup\" \\;")
                 sh(returnStdout: true, script: "find Resources -type d -exec \"svn cleanup\" \\;")
                 sshagent(['tylers-ssh']) {
-                    sh 'scripts/get_art.sh checkout tyler'
+                    sh(returnStdout: true, script: 'scripts/get_art.sh checkout tyler')
                 }
             }
         } catch(e) {
