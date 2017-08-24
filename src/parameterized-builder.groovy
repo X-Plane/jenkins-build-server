@@ -36,8 +36,8 @@ def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
             //'Windows' : { node('windows') { if(toRealBool(build_windows)) { closure('Windows') } } },
-            //'macOS'   : { node('mac')     { if(toRealBool(build_mac))     { closure('macOS')   } } },
-            'Linux'   : { node('linux')   { if(toRealBool(build_linux))   { closure('Linux')   } } }
+            'macOS'   : { node('mac')     { if(toRealBool(build_mac))     { closure('macOS')   } } },
+            //'Linux'   : { node('linux')   { if(toRealBool(build_linux))   { closure('Linux')   } } }
     )
 }
 
@@ -107,7 +107,7 @@ def doCheckout(String platform) {
 }
 
 def supportsTesting(platform) {
-    return platform == 'Linux'
+    return isMac(platform)
 }
 
 def getCheckoutDir(String platform) {
