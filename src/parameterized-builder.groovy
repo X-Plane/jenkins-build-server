@@ -202,13 +202,16 @@ def doTest(String platform) {
         def checkoutDir = getCheckoutDir(platform)
         echo "Running tests"
         dir(checkoutDir + "tests") {
-            def appNoExt = "X-Plane" + getAppSuffix()
+            def suffix = getAppSuffix()
+            def app = "X-Plane" + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", ''], platform)
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
             try {
                 sh "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
             } catch(e) {
-                archiveArtifacts artifacts: "../Log.txt", fingerprint: true, onlyIfSuccessful: false
+                dir(checkoutDir) {
+                    archiveArtifacts artifacts: "Log.txt", fingerprint: true, onlyIfSuccessful: false
+                }
                 throw e
             }
         }
