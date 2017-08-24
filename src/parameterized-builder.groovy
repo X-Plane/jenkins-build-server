@@ -234,9 +234,7 @@ def doArchive(String platform) {
             def products = getExpectedProducts(platform)
             if(supportsTesting(platform)) {
                 for(String screenshotName : getTestingScreenshotNames()) {
-                    def newName = "${screenshotName}_${platform}.png"
-                    moveFilePatternToDest("${screenshotName}_1.png", newName, platform)
-                    products.add(newName)
+                    moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png", platform)
                 }
             }
             archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: true
