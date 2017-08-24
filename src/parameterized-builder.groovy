@@ -35,9 +35,9 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            //'Windows' : { node('windows') { if(toRealBool(build_windows)) { closure('Windows') } } },
+            'Windows' : { node('windows') { if(toRealBool(build_windows)) { closure('Windows') } } },
             'macOS'   : { node('mac')     { if(toRealBool(build_mac))     { closure('macOS')   } } },
-            //'Linux'   : { node('linux')   { if(toRealBool(build_linux))   { closure('Linux')   } } }
+            'Linux'   : { node('linux')   { if(toRealBool(build_linux))   { closure('Linux')   } } }
     )
 }
 
