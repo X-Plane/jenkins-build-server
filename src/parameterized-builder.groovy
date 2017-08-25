@@ -23,8 +23,8 @@ try {
     stage('Nuke Previous Build Products')  { runOn3Platforms(this.&nukePreviousBuildProducts) }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build')                         { runOn3Platforms(this.&doBuild) }
-    stage('Test')                          { runOn3Platforms(this.&doTest) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
+    stage('Test')                          { runOn3Platforms(this.&doTest) }
     if(pmt_subject && pmt_from) {
         stage('Notify')                    { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
     }
@@ -237,7 +237,7 @@ def doArchive(String platform) {
                     moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png", platform)
                 }
             }
-            archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: true
+            archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
 
             def dest = escapeSlashes(dropboxPath, platform)
             for(String p : products) {
