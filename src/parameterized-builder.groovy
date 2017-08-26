@@ -23,8 +23,11 @@ try {
     stage('Nuke Previous Build Products')  { runOn3Platforms(this.&nukePreviousBuildProducts) }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build')                         { runOn3Platforms(this.&doBuild) }
-    stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Test')                          { runOn3Platforms(this.&doTest) }
+    try {
+        stage('Test')                      { runOn3Platforms(this.&doTest) }
+    } finally { // we want to archive regardless of whether the tests passed
+        stage('Archive')                   { runOn3Platforms(this.&doArchive) }
+    }
     if(pmt_subject && pmt_from) {
         stage('Notify')                    { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
     }
@@ -232,16 +235,20 @@ def doArchive(String platform) {
             }
 
             def products = getExpectedProducts(platform)
-            if(supportsTesting(platform)) {
-                for(String screenshotName : getTestingScreenshotNames()) {
-                    moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png", platform)
-                }
-            }
-            archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
 
-            def dest = escapeSlashes(dropboxPath, platform)
-            for(String p : products) {
-                moveFilePatternToDest(p, dest, platform)
+            try {
+                if(supportsTesting(platform)) {
+                    for(String screenshotName : getTestingScreenshotNames()) {
+                        moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png", platform)
+                    }
+                }
+            } finally {
+                archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
+
+                def dest = escapeSlashes(dropboxPath, platform)
+                for(String p : products) {
+                    moveFilePatternToDest(p, dest, platform)
+                }
             }
         }
     } catch (e) {
