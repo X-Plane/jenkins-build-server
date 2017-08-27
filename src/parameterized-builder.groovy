@@ -110,7 +110,7 @@ def doCheckout(String platform) {
 }
 
 def supportsTesting(platform) {
-    return isMac(platform)
+    return isMac(platform) && !toRealBool(steam_build)
 }
 
 def getCheckoutDir(String platform) {
