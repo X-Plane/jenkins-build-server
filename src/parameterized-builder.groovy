@@ -119,7 +119,7 @@ def doCheckout(String platform) {
 }
 
 def supportsTesting(platform) {
-    return isNix(platform) && !toRealBool(steam_build)
+    return isMac(platform) && !toRealBool(steam_build)
 }
 
 def getCheckoutDir(String platform) {
@@ -179,7 +179,7 @@ def doBuild(String platform) {
                 chooseShellByPlatformMacWinLin([
                         "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build | xcpretty",
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (doAll ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
-                        "cd design_linux && make -j4 " + (doAll ? '' : "X-Plane")
+                         "cd design_linux && make -j4 " + (doAll ? '' : "X-Plane")
                 ], platform)
 
             }
