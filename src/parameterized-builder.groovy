@@ -75,16 +75,25 @@ def doCheckout(String platform) {
         def b = getBranchName()
         try {
             echo "Checking out ${b} on ${platform}"
-            def extensions = [
-                    [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '', maximumAgeInDays: 21]]
-            ]
-            checkout(
-                    [$class: 'GitSCM', branches: [[name: b]],
-                     doGenerateSubmoduleConfigurations: false,
-                     extensions: extensions,
-                     submoduleCfg: [],
-                     userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git']]]
-            )
+            if(isMac(platform) || isWindows(platform)) {
+                def extensions = [
+                        [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '', maximumAgeInDays: 21]]
+                ]
+                checkout(
+                        [$class: 'GitSCM', branches: [[name: b]],
+                         doGenerateSubmoduleConfigurations: false,
+                         extensions: extensions,
+                         submoduleCfg: [],
+                         userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git']]]
+                )
+            } else {
+                sh "git branch"
+                sh "git fetch"
+                sh "git checkout ${b}"
+                try {
+                    sh "git pull"
+                } catch(e) { } // If we're in detached HEAD mode, pull will fail
+            }
 
             def commitId = getCommitId(platform)
             echo "Checked out commit ${commitId} on ${platform}"
