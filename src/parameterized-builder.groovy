@@ -362,10 +362,9 @@ def notifyDeadBuild(String platform, Exception e) {
 
 def notifyFailedArchive(String platform, Exception e) {
     def b = getBranchName()
-    notifyBuild('Jenkins archive step broken on ' + platform + ' [' + b + ']',
-            'Archive step failed on ' + platform + ', branch ' + b + '. We will be unable to archive builds until this is fixed.',
-            e.toString(),
-            'tyler@x-plane.com')
+    notifyBuild('Jenkins archive step failed on ' + platform + ' [' + b + ']',
+            'Archive step failed on ' + platform + ', branch ' + b + '. This is probably due to missing screenshot(s) from automated tests. (Possibly due to a crash?)',
+            e.toString())
     throw e
 }
 
