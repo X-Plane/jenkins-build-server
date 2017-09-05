@@ -215,7 +215,7 @@ def doTest(String platform) {
         echo "Running tests"
         dir(checkoutDir + "tests") {
             def suffix = getAppSuffix()
-            def app = "X-Plane" + (isMac(platform) ? "" : "-x86_64") + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", ''], platform)
+            def app = "X-Plane" + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", '-x86_64'], platform)
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
             try {
