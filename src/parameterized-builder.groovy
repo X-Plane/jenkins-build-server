@@ -215,7 +215,7 @@ def doTest(String platform) {
         echo "Running tests"
         dir(checkoutDir + "tests") {
             def suffix = getAppSuffix()
-            def app = "X-Plane" + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", ''], platform)
+            def app = "X-Plane" + (isMac(platform) ? "" : "-x86_64") + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", ''], platform)
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
             try {
@@ -285,12 +285,13 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
 def getExpectedProducts(String platform) {
     def doAll = toRealBool(build_all_apps)
     def appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
-    def appNamesNoInstaller = addSuffix(doAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], getAppSuffix())
+    def appSuffix = getAppSuffix()
+    def appNamesNoInstaller = addSuffix(doAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], appSuffix)
     def out = addSuffix(appNamesNoInstaller, appExtNormal)
     if(isMac(platform) || isWindows(platform)) {
-        out.push_back(addSuffix("X-Plane 11 Installer", appExtNormal))
+        out.push("X-Plane 11 Installer" + appSuffix + appExtNormal)
     } else {
-        out.push_back("X-Plane 11 Installer")
+        out.push("X-Plane 11 Installer" + appSuffix)
     }
 
     if(isRelease()) {
