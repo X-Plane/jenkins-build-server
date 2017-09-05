@@ -284,9 +284,14 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
 
 def getExpectedProducts(String platform) {
     def doAll = toRealBool(build_all_apps)
-    def appExt = chooseByPlatformMacWinLin([".app.zip", ".exe", ''], platform)
-    def appNames = addSuffix(doAll ? ["X-Plane", "X-Plane 11 Installer", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], getAppSuffix())
-    def out = addSuffix(appNames, appExt)
+    def appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
+    def appNamesNoInstaller = addSuffix(doAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], getAppSuffix())
+    def out = addSuffix(appNamesNoInstaller, appExtNormal)
+    if(isMac(platform) || isWindows(platform)) {
+        out.push_back(addSuffix("X-Plane 11 Installer", appExtNormal))
+    } else {
+        out.push_back("X-Plane 11 Installer")
+    }
 
     if(isRelease()) {
         def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, appNames], platform),
