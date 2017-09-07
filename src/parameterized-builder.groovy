@@ -221,9 +221,8 @@ def doTest(String platform) {
             try {
                 sh "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
             } catch(e) {
-                dir(checkoutDir) {
-                    archiveArtifacts artifacts: "Log.txt", fingerprint: true, onlyIfSuccessful: false
-                }
+                echo "Test failed on platform ${platform}... archiving Log.txt"
+                archiveArtifacts artifacts: "Log.txt", fingerprint: true, onlyIfSuccessful: false
                 throw e
             }
         }
