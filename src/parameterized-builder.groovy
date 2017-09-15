@@ -255,7 +255,12 @@ def doArchive(String platform) {
 
                 def dest = escapeSlashes(dropboxPath, platform)
                 for(String p : products) {
-                    moveFilePatternToDest(p, dest, platform)
+                    // Do *NOT* copy to Dropbox if the products already exist! We need to treat the Dropbox archives as write-once
+                    if(fileExists(p)) {
+                        echo "Skipping copy of ${p} to Dropbox, since the file already exists in ${dest}"
+                    } else {
+                        moveFilePatternToDest(p, dest, platform)
+                    }
                 }
             }
         }
@@ -333,9 +338,14 @@ def chooseByPlatformNixWin(nixVersion, winVersion, String platform) {
 }
 
 def getArchiveDirAndEnsureItExists(String platform) {
-    def commitId = getCommitId(platform)
     def subdir = toRealBool(steam_build) ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
-    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitId}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitId}\\", platform), platform)
+    def commitDir = ""
+    if(isRelease()) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
+        commitDir = getBranchName() + ' - ' + getCommitId(platform)
+    } else { // Name it by commit ID
+        commitDir = getCommitId(platform)
+    }
+    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitDir}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitDir}\\", platform), platform)
     try {
         chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"", platform)
     } catch(e) { } // ignore errors if it already exists
