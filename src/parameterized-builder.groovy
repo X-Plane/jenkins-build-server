@@ -256,7 +256,7 @@ def doArchive(String platform) {
                 def dest = escapeSlashes(dropboxPath, platform)
                 for(String p : products) {
                     // Do *NOT* copy to Dropbox if the products already exist! We need to treat the Dropbox archives as write-once
-                    if(fileExists(p)) {
+                    if(fileExists(dest + p)) {
                         echo "Skipping copy of ${p} to Dropbox, since the file already exists in ${dest}"
                     } else {
                         moveFilePatternToDest(p, dest, platform)
