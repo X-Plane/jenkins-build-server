@@ -291,6 +291,7 @@ def getExpectedProducts(String platform) {
     def appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
     def appSuffix = getAppSuffix()
     def appNamesNoInstaller = addSuffix(doAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], appSuffix)
+    def appNames = appNamesNoInstaller + ["X-Plane 11 Installer" + appSuffix]
     def out = addSuffix(appNamesNoInstaller, appExtNormal)
     if(isMac(platform) || isWindows(platform)) {
         out.push("X-Plane 11 Installer" + appSuffix + appExtNormal)
@@ -299,8 +300,8 @@ def getExpectedProducts(String platform) {
     }
 
     if(isRelease()) {
-        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, appNames], platform),
-                chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform))
+        def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
+        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, appNames], platform), symbolsSuffix)
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }
