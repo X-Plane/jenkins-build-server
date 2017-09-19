@@ -342,7 +342,7 @@ def getArchiveDirAndEnsureItExists(String platform) {
     def subdir = toRealBool(steam_build) ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
     def commitDir = ""
     if(isRelease()) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
-        commitDir = getBranchName() + ' - ' + getCommitId(platform)
+        commitDir = getBranchName() + '-' + getCommitId(platform)
     } else { // Name it by commit ID
         commitDir = getCommitId(platform)
     }
