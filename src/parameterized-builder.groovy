@@ -291,27 +291,27 @@ def getExpectedProducts(String platform) {
     def appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
     def appSuffix = getAppSuffix()
     def appNamesNoInstaller = addSuffix(doAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], appSuffix)
-    def appNames = appNamesNoInstaller + ["X-Plane 11 Installer" + appSuffix]
-    def out = addSuffix(appNamesNoInstaller, appExtNormal)
+    def appNames = appNamesNoInstaller + doAll ? ["X-Plane 11 Installer" + appSuffix] : []
+    def filesWithExt = addSuffix(appNamesNoInstaller, appExtNormal)
     if(isMac(platform) || isWindows(platform)) {
-        out.push("X-Plane 11 Installer" + appSuffix + appExtNormal)
+        filesWithExt.push("X-Plane 11 Installer" + appSuffix + appExtNormal)
     } else {
-        out.push("X-Plane 11 Installer" + appSuffix)
+        filesWithExt.push("X-Plane 11 Installer" + appSuffix)
     }
 
     if(isRelease()) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, appNames], platform), symbolsSuffix)
+        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }
-        out += platformOther
+        filesWithExt += platformOther
     }
     if(supportsTesting(platform)) {
         // Screenshots from tests
-        out += addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
+        filesWithExt += addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
     }
-    return out
+    return filesWithExt
 }
 
 def getTestingScreenshotNames() {
