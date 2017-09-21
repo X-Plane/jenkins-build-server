@@ -218,8 +218,10 @@ def doTest(String platform) {
             def app = "X-Plane" + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", '-x86_64'], platform)
             def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
+            def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
+            echo cmd
             try {
-                sh "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
+                sh cmd
             } catch(e) {
                 echo "Test failed on platform ${platform}... archiving Log.txt"
                 archiveArtifacts artifacts: "Log.txt", fingerprint: true, onlyIfSuccessful: false
