@@ -87,12 +87,14 @@ def doCheckout(String platform) {
                          userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git']]]
                 )
             } else {
-                sh "git branch"
-                sh "git fetch"
-                sh "git checkout ${b}"
-                try {
-                    sh "git pull"
-                } catch(e) { } // If we're in detached HEAD mode, pull will fail
+                sshagent(['tylers-ssh']) {
+                    sh "git branch"
+                    sh "git fetch"
+                    sh "git checkout ${b}"
+                    try {
+                        sh "git pull"
+                    } catch(e) { } // If we're in detached HEAD mode, pull will fail
+                }
             }
 
             def commitId = getCommitId(platform)
