@@ -152,6 +152,7 @@ def doBuild(String platform) {
             assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform " + platform + " from getArchiveDirAndEnsureItExists() in doBuild()"
             assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from getArchiveDirAndEnsureItExists() in doBuild()"
             def toBuild = getExpectedProducts(platform)
+            echo 'Expecting to build: ' + toBuild.join(', ')
             def archivedProductPaths = addPrefix(toBuild, archiveDir)
             if(!forceBuild && filesExist(archivedProductPaths, platform)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
@@ -295,7 +296,7 @@ def getExpectedProducts(String platform) {
     def appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
     def appSuffix = getAppSuffix()
     def appNamesNoInstaller = addSuffix(doAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], appSuffix)
-    def appNames = appNamesNoInstaller + doAll ? ["X-Plane 11 Installer" + appSuffix] : []
+    def appNames = appNamesNoInstaller + (doAll ? ["X-Plane 11 Installer" + appSuffix] : [])
     def filesWithExt = addSuffix(appNamesNoInstaller, appExtNormal)
     if(isMac(platform) || isWindows(platform)) {
         filesWithExt.push("X-Plane 11 Installer" + appSuffix + appExtNormal)
