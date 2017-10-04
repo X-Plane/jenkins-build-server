@@ -228,6 +228,7 @@ def doTest(String platform) {
             } catch(e) {
                 echo "Test failed on platform ${platform}... archiving Log.txt"
                 archiveArtifacts artifacts: "Log.txt", fingerprint: true, onlyIfSuccessful: false
+                notifyTestFailed(platform, e)
                 throw e
             }
         }
@@ -376,6 +377,20 @@ def notifyDeadBuild(String platform, Exception e) {
         def commitId = getCommitId(platform)
         notifyBuild(platform + " build is broken [" + b + "; " + commitId + "]",
                 platform + " build of X-Plane Desktop commit " + commitId + " from the branch " + b + " failed. There was a problem with one or more of X-Plane, Plane Maker, Airfoil Maker, or the installer.",
+                e.toString())
+    }
+    throw e
+}
+
+def notifyTestFailed(String platform, Exception e) {
+    currentBuild.result = "FAILED"
+    if(pmt_subject) {
+        replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
+    } else {
+        def b = getBranchName()
+        def commitId = getCommitId(platform)
+        notifyBuild("Testing failed on ${platform} [${b}; ${commitId}]",
+                "Build X-Plane Desktop commit " + commitId + " from the branch " + b + " succeeded on ${platform}, but the auto-testing failed.",
                 e.toString())
     }
     throw e
