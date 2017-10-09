@@ -45,10 +45,10 @@ def runOn3Platforms(Closure c) {
 }
 
 def nukePreviousBuildProducts(String platform) {
-    dir(getCheckoutDir(platform)) {
-        for(def p : getExpectedProducts(platform)) {
+    dir(getCheckoutDir(directory_suffix)) {
+        for(def p : getExpectedBuildPlusTestProducts(platform)) {
             try {
-                chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"", platform)
+                chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"")
             } catch(e) { } // No old build products lying around? No problem!
         }
         if(toRealBool(clean_build)) {
@@ -57,7 +57,7 @@ def nukePreviousBuildProducts(String platform) {
             } catch (e) { }
         }
         try {
-            chooseShellByPlatformNixWin('rm *.png', 'del "*.png"', platform)
+            chooseShellByPlatformNixWin('rm *.png', 'del "*.png"')
         } catch(e) { }
     }
 }
@@ -71,79 +71,11 @@ def getBranchName() {
 }
 
 def doCheckout(String platform) {
-    dir(getCheckoutDir(platform)) {
-        def b = getBranchName()
-        try {
-            echo "Checking out ${b} on ${platform}"
-            if(isMac(platform) || isWindows(platform)) {
-                def extensions = [
-                        [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '', maximumAgeInDays: 21]]
-                ]
-                checkout(
-                        [$class: 'GitSCM', branches: [[name: b]],
-                         doGenerateSubmoduleConfigurations: false,
-                         extensions: extensions,
-                         submoduleCfg: [],
-                         userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git']]]
-                )
-            } else {
-                sshagent(['tylers-ssh']) {
-                    sh "git branch"
-                    sh "git fetch"
-                    sh "git checkout ${b}"
-                    try {
-                        sh "git pull"
-                    } catch(e) { } // If we're in detached HEAD mode, pull will fail
-                }
-            }
-
-            def commitId = getCommitId(platform)
-            echo "Checked out commit ${commitId} on ${platform}"
-
-            if(supportsTesting(platform)) {
-                echo "Pulling SVN art assets too for later auto-testing"
-                // Do recursive cleanup, just in case
-                sh(returnStdout: true, script: "set +x find Aircraft  -type d -exec \"svn cleanup\" \\;")
-                sh(returnStdout: true, script: "set +x find Resources -type d -exec \"svn cleanup\" \\;")
-                sshagent(['tylers-ssh']) {
-                    sh(returnStdout: true, script: 'scripts/get_art.sh checkout tyler')
-                }
-            }
-        } catch(e) {
-            currentBuild.result = "FAILED"
-            notifyBuild('Jenkins Git checkout is broken on ' + platform + ' [' + b + ']',
-                    platform + ' Git checkout failed on branch ' + b + '. We will be unable to build until this is fixed.',
-                    e.toString(),
-                    'tyler@x-plane.com')
-            throw e
-        }
-    }
-}
-
-def supportsTesting(platform) {
-    return isNix(platform) && !toRealBool(steam_build)
-}
-
-def getCheckoutDir(String platform) {
-    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\", platform)
-}
-
-def getCommitId(String platform) {
-    dir(getCheckoutDir(platform)) {
-        if(isWindows(platform)) {
-            def out = bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")
-            if(out.size() == 2) {
-                return out[1]
-            }
-            return ""
-        } else {
-            return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-        }
-    }
+    xplaneCheckout(getBranchName(), getCheckoutDir(directory_suffix), platform)
 }
 
 def doBuild(String platform) {
-    dir(getCheckoutDir(platform)) {
+    dir(getCheckoutDir(directory_suffix)) {
         try {
             def forceBuild = toRealBool(force_build)
 
@@ -151,16 +83,10 @@ def doBuild(String platform) {
             assert archiveDir : "Got an empty archive dir"
             assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform " + platform + " from getArchiveDirAndEnsureItExists() in doBuild()"
             assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from getArchiveDirAndEnsureItExists() in doBuild()"
-            def toBuild = getExpectedProducts(platform)
+            def toBuild = getExpectedBuildPlusTestProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
-            def archivedProductPaths = addPrefix(toBuild, archiveDir)
-            if(!forceBuild && filesExist(archivedProductPaths, platform)) {
+            if(!forceBuild && copyBuildProductsFromArchive(toBuild)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
-                // Copy them back to our working directories for the sake of archiving
-                chooseShellByPlatformNixWin("cp ${archiveDir}* .", "copy \"${archiveDir}*\" .", platform)
-                if(isMac(platform)) {
-                    sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
-                }
             } else { // Actually build some stuff!
                 def config = getBuildToolConfiguration(platform)
 
@@ -168,7 +94,7 @@ def doBuild(String platform) {
                 chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat"', "./cmake.sh ${config}"], platform)
 
                 def doAll = toRealBool(build_all_apps)
-                def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
+                def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
 
                 def target = doAll ? "ALL_BUILD" : "X-Plane"
                 if(toRealBool(clean_build)) {
@@ -192,34 +118,21 @@ def doBuild(String platform) {
     }
 }
 
-def filesExist(List expectedProducts, String platform) {
-    for(def p : expectedProducts) {
-        assert (!p.contains("C:") && !p.contains(".exe")) || isWindows(platform) : "Got a Windows path on platform " + platform + " in filesExist()"
-        assert (!p.contains("/jenkins/") && !p.contains(".app")) || isNix(platform) : "Got a Unix path on Windows in filesExist()"
-        if(!fileExists(p)) {
-            return false
-        }
-    }
-    return true
-}
 
 def getBuildToolConfiguration(String platform) {
     def doSteam = toRealBool(steam_build)
     def doRelease = toRealBool(release_build)
     return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
 }
-def getAppSuffix() {
-    return isRelease() ? "" : "_NODEV_OPT"
-}
 
 def doTest(String platform) {
     if(supportsTesting(platform)) {
-        def checkoutDir = getCheckoutDir(platform)
+        def checkoutDir = getCheckoutDir(directory_suffix)
         echo "Running tests"
         dir(checkoutDir + "tests") {
-            def suffix = getAppSuffix()
+            def suffix = getAppSuffix(isRelease())
             def app = "X-Plane" + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", '-x86_64'], platform)
-            def binSubdir = chooseByPlatformNixWin("bin", "Scripts", platform)
+            def binSubdir = chooseByPlatformNixWin("bin", "Scripts")
             def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
             def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
             echo cmd
@@ -237,7 +150,7 @@ def doTest(String platform) {
 
 def doArchive(String platform) {
     try {
-        def checkoutDir = getCheckoutDir(platform)
+        def checkoutDir = getCheckoutDir(directory_suffix)
         dir(checkoutDir) {
             def dropboxPath = getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
@@ -248,24 +161,24 @@ def doArchive(String platform) {
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            def products = getExpectedProducts(platform)
+            def products = getExpectedBuildPlusTestProducts(platform)
 
             try {
                 if(supportsTesting(platform)) {
                     for(String screenshotName : getTestingScreenshotNames()) {
-                        moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png", platform)
+                        moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png")
                     }
                 }
             } finally {
                 archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
 
-                def dest = escapeSlashes(dropboxPath, platform)
+                def dest = escapeSlashes(dropboxPath)
                 for(String p : products) {
                     // Do *NOT* copy to Dropbox if the products already exist! We need to treat the Dropbox archives as write-once
                     if(fileExists(dest + p)) {
                         echo "Skipping copy of ${p} to Dropbox, since the file already exists in ${dest}"
                     } else {
-                        moveFilePatternToDest(p, dest, platform)
+                        moveFilePatternToDest(p, dest)
                     }
                 }
             }
@@ -275,49 +188,13 @@ def doArchive(String platform) {
     }
 }
 
-def moveFilePatternToDest(String filePattern, String dest, String platform) {
-    chooseShellByPlatformNixWin("mv \"$filePattern\" \"${dest}\"",  "move /Y \"${filePattern}\" \"${dest}\"", platform)
-}
-
-def chooseShellByPlatformNixWin(nixCommand, winCommand, platform) {
-    chooseShellByPlatformMacWinLin([nixCommand, winCommand, nixCommand], platform)
-}
-def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
-    if(isWindows(platform)) {
-        bat macWinLinCommands[1]
-    } else if(isMac(platform)) {
-        sh macWinLinCommands[0]
-    } else {
-        sh macWinLinCommands[2]
-    }
-}
-
-def getExpectedProducts(String platform) {
-    def doAll = toRealBool(build_all_apps)
-    def appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
-    def appSuffix = getAppSuffix()
-    def appNamesNoInstaller = addSuffix(doAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], appSuffix)
-    def appNames = appNamesNoInstaller + (doAll ? ["X-Plane 11 Installer" + appSuffix] : [])
-    def filesWithExt = addSuffix(appNamesNoInstaller, appExtNormal)
-    if(isMac(platform) || isWindows(platform)) {
-        filesWithExt.push("X-Plane 11 Installer" + appSuffix + appExtNormal)
-    } else {
-        filesWithExt.push("X-Plane 11 Installer" + appSuffix)
-    }
-
-    if(isRelease()) {
-        def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
-        if(isWindows(platform)) {
-            platformOther += addSuffix(appNames, ".pdb")
-        }
-        filesWithExt += platformOther
-    }
-    if(supportsTesting(platform)) {
+List getExpectedBuildPlusTestProducts(String platform) {
+    List executables = getExpectedProducts(platform, toRealBool(build_all_apps), isRelease())
+    if(supportsTesting(toRealBool(steam_build))) {
         // Screenshots from tests
-        filesWithExt += addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
+        return executables + addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
     }
-    return filesWithExt
+    return executables
 }
 
 def getTestingScreenshotNames() {
@@ -328,44 +205,12 @@ def isRelease() {
     return toRealBool(steam_build) || toRealBool(release_build)
 }
 
-def chooseByPlatformMacWinLin(macWinLinOptions, String platform) {
-    assert macWinLinOptions.size() == 3 : "Got the wrong number of options to choose by platform"
-    if(isMac(platform)) {
-        return macWinLinOptions[0]
-    } else if(isWindows(platform)) {
-        return macWinLinOptions[1]
-    } else {
-        assert isNix(platform) : "Got unknown platform ${platform} in chooseByPlatformMacWinLin()"
-        return macWinLinOptions[2]
-    }
-}
-
-def chooseByPlatformNixWin(nixVersion, winVersion, String platform) {
-    return chooseByPlatformMacWinLin([nixVersion, winVersion, nixVersion], platform)
-}
-
 def getArchiveDirAndEnsureItExists(String platform) {
-    def subdir = toRealBool(steam_build) ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
-    def commitDir = ""
-    if(isRelease()) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
-        commitDir = getBranchName() + '-' + getCommitId(platform)
-    } else { // Name it by commit ID
-        commitDir = getCommitId(platform)
-    }
-    def out = escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitDir}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitDir}\\", platform), platform)
+    def out = getArchiveDir(directory_suffix, toRealBool(steam_build))
     try {
-        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"", platform)
+        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
     } catch(e) { } // ignore errors if it already exists
     return out
-}
-
-def escapeSlashes(String path, String platform) {
-    if(isWindows(platform)) {
-        return path
-    } else {
-        assert !path.contains("\\ ")
-        return path.replace(" ", "\\ ")
-    }
 }
 
 def notifyDeadBuild(String platform, Exception e) {
@@ -374,7 +219,7 @@ def notifyDeadBuild(String platform, Exception e) {
         replyToTrigger("The automated build of commit ${pmt_subject} failed on ${platform}.", e.toString())
     } else {
         def b = getBranchName()
-        def commitId = getCommitId(platform)
+        def commitId = getCommitId(directory_suffix)
         notifyBuild(platform + " build is broken [" + b + "; " + commitId + "]",
                 platform + " build of X-Plane Desktop commit " + commitId + " from the branch " + b + " failed. There was a problem with one or more of X-Plane, Plane Maker, Airfoil Maker, or the installer.",
                 e.toString())
@@ -388,7 +233,7 @@ def notifyTestFailed(String platform, Exception e) {
         replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
     } else {
         def b = getBranchName()
-        def commitId = getCommitId(platform)
+        def commitId = getCommitId(directory_suffix)
         notifyBuild("Testing failed on ${platform} [${b}; ${commitId}]",
                 "Build X-Plane Desktop commit " + commitId + " from the branch " + b + " succeeded on ${platform}, but the auto-testing failed.",
                 e.toString())
@@ -432,44 +277,4 @@ Console Log (plain text): ${BUILD_URL}console
                         [$class: 'RequesterRecipientProvider']
                 ])
     }
-}
-
-// $&@#* Jenkins.
-// It passes us our BOOLEAN parameters as freaking strings. "false" and "true".
-// So, if you try to, oh I don't know, USE THEM LIKE YOU WOULD A BOOLEAN,
-// the string "false" evaluates to TRUE!!!!!
-// "But Tyler," you say, "why don't you just do foo = toRealBool(foo) at the top of the script and be done with it?"
-// Great question.
-// Because you also CAN'T CHANGE A VARIABLE'S TYPE AFTER IT'S BEEN CREATED.
-def toRealBool(String fakeBool) {
-    return fakeBool == 'true'
-}
-
-def isWindows(String platform) {
-    return platform == 'Windows'
-}
-def isNix(String platform) {
-    return !isWindows(platform)
-}
-def isMac(String platform) {
-    return platform == 'macOS'
-}
-
-def addPrefix(List strings, String newPrefix) {
-    // Someday, when Jenkins supports the .collect function... (per JENKINS-26481)
-    // return strings.collect({ s + newPrefix })
-    def out = []
-    for(def s : strings) {
-        out += newPrefix + s
-    }
-    return out
-}
-def addSuffix(List strings, String newSuffix) {
-    // Someday, when Jenkins supports the .collect function... (per JENKINS-26481)
-    // return strings.collect({ newSuffix + s })
-    def out = []
-    for(def s : strings) {
-        out += s + newSuffix
-    }
-    return out
 }
