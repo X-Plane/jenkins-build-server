@@ -79,7 +79,16 @@ def nukePreviousBuildProducts(String platform) {
 }
 
 def doCheckout(String platform) {
-    xplaneCheckout(branch_name, utils.getCheckoutDir(), platform)
+    try {
+        xplaneCheckout(branch_name, utils.getCheckoutDir(), platform)
+    } catch(e) {
+        currentBuild.result = "FAILED"
+        notifyBuild("Jenkins Git checkout is broken on ${platform} [${branchName}]",
+                "${platform} Git checkout failed on branch ${branchName}. We will be unable to continue until this is fixed.",
+                e.toString(),
+                'tyler@x-plane.com')
+        throw e
+    }
 }
 
 def doBuild(String platform) {
