@@ -6,12 +6,12 @@ def setEnvironment(environment) {
     assert environment['build_all_apps'], "Missing expected build parameters: apps"
     branch_name = environment['branch_name']
     directory_suffix = environment['directory_suffix']
-    release_build = Utils.toRealBool(environment['release_build'])
-    steam_build = Utils.toRealBool(environment['steam_build'])
-    build_windows = Utils.toRealBool(environment['build_windows'])
-    build_mac = Utils.toRealBool(environment['build_mac'])
-    build_linux = Utils.toRealBool(environment['build_linux'])
-    build_all_apps = Utils.toRealBool(environment['build_all_apps'])
+    release_build = toRealBool(environment['release_build'])
+    steam_build = toRealBool(environment['steam_build'])
+    build_windows = toRealBool(environment['build_windows'])
+    build_mac = toRealBool(environment['build_mac'])
+    build_linux = toRealBool(environment['build_linux'])
+    build_all_apps = toRealBool(environment['build_all_apps'])
     is_release = steam_build || release_build
     app_suffix = is_release ? "" : "_NODEV_OPT"
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
