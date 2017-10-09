@@ -83,8 +83,8 @@ def doCheckout(String platform) {
         xplaneCheckout(branch_name, utils.getCheckoutDir(), platform)
     } catch(e) {
         currentBuild.result = "FAILED"
-        notifyBuild("Jenkins Git checkout is broken on ${platform} [${branchName}]",
-                "${platform} Git checkout failed on branch ${branchName}. We will be unable to continue until this is fixed.",
+        notifyBuild("Jenkins Git checkout is broken on ${platform} [${branch_name}]",
+                "${platform} Git checkout failed on branch ${branch_name}. We will be unable to continue until this is fixed.",
                 e.toString(),
                 'tyler@x-plane.com')
         throw e
