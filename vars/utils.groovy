@@ -65,7 +65,7 @@ List getExpectedProducts(String platform) {
     return filesWithExt
 }
 
-boolean copyBuildProductsFromArchive(List expectedProducts) {
+boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
     String archiveDir = getArchiveDir()
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {

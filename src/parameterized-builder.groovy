@@ -100,7 +100,7 @@ def doBuild(String platform) {
             assert !archiveDir.contains("/jenkins/") || utils.isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDirAndEnsureItExists() in doBuild()"
             def toBuild = getExpectedBuildPlusTestProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
-            if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild)) {
+            if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild, platform)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
             } else { // Actually build some stuff!
                 def config = getBuildToolConfiguration(platform)
@@ -110,7 +110,7 @@ def doBuild(String platform) {
 
                 def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
 
-                def target = utils.build_all_apps ? "ALL_BUILD" : "X-Plane"
+                String target = utils.build_all_apps ? "ALL_BUILD" : "X-Plane"
                 if(utils.clean_build) {
                     utils.chooseShellByPlatformMacWinLin([
                             "set -o pipefail && xcodebuild -project ${projectFile} clean | xcpretty && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean | xcpretty && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
