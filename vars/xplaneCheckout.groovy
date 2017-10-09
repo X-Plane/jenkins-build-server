@@ -5,7 +5,7 @@ def call(String branchName='', String checkoutDir='', String platform='') {
                 echo "Checking out ${branchName} on ${platform}"
                 sh "git branch"
                 sh "git fetch"
-                sh "git checkout ${b}"
+                sh "git checkout ${branchName}"
                 try {
                     sh "git pull"
                 } catch(e) { } // If we're in detached HEAD mode, pull will fail

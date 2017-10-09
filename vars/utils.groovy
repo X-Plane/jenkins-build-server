@@ -1,9 +1,29 @@
-String getCheckoutDir(String directorySuffix) {
-    return chooseByPlatformNixWin("/jenkins/design-${directorySuffix}/", "C:\\jenkins\\design-${directorySuffix}\\")
+def setEnvironment(String directorySuffix) {
+    assert environment['branch_name'], "Missing expected build parameter: branch_name"
+    assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
+    // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
+    assert environment['build_windows'] && environment['build_mac'] && environment['build_linux'], "Missing expected build parameters: platforms"
+    assert environment['build_all_apps'], "Missing expected build parameters: apps"
+    branch_name = environment['branch_name']
+    directory_suffix = environment['directory_suffix']
+    release_build = Utils.toRealBool(environment['release_build'])
+    steam_build = Utils.toRealBool(environment['steam_build'])
+    build_windows = Utils.toRealBool(environment['build_windows'])
+    build_mac = Utils.toRealBool(environment['build_mac'])
+    build_linux = Utils.toRealBool(environment['build_linux'])
+    build_all_apps = Utils.toRealBool(environment['build_all_apps'])
+    is_release = steam_build || release_build
+    app_suffix = is_release ? "" : "_NODEV_OPT"
+    assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
 }
 
-String getCommitId(String directorySuffix) {
-    dir(getCheckoutDir(directorySuffix)) {
+
+String getCheckoutDir() {
+    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\")
+}
+
+String getCommitId() {
+    dir(getCheckoutDir()) {
         if(isUnix()) {
             return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
         } else {
@@ -14,28 +34,27 @@ String getCommitId(String directorySuffix) {
     }
 }
 
-String getArchiveDir(String directorySuffix, boolean isSteamBuild) {
-    String subdir = isSteamBuild ? chooseByPlatformNixWin("steam/", "steam\\") : ""
-    String commitDir = getCommitId(directorySuffix)
-    if(isRelease()) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
-        commitDir = getBranchName() + '-' + commitDir
+String getArchiveDir() {
+    String subdir = steam_build ? chooseByPlatformNixWin("steam/", "steam\\") : ""
+    String commitDir = getCommitId()
+    if(is_release) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
+        commitDir = branch_name + '-' + commitDir
     }
     return escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitDir}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitDir}\\"))
 }
 
-def getExpectedProducts(String platform, boolean buildAll, boolean releaseBuild) {
+List getExpectedProducts(String platform) {
     String appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
-    String appSuffix = getAppSuffix(releaseBuild)
-    List appNamesNoInstaller = addSuffix(buildAll ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], appSuffix)
-    List appNames = appNamesNoInstaller + (buildAll ? ["X-Plane 11 Installer" + appSuffix] : [])
+    List appNamesNoInstaller = addSuffix(build_all_apps ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], app_suffix)
+    List appNames = appNamesNoInstaller + (build_all_apps ? ["X-Plane 11 Installer" + app_suffix] : [])
     List filesWithExt = addSuffix(appNamesNoInstaller, appExtNormal)
     if(isMac(platform) || isWindows(platform)) {
-        filesWithExt.push("X-Plane 11 Installer" + appSuffix + appExtNormal)
+        filesWithExt.push("X-Plane 11 Installer" + app_suffix + appExtNormal)
     } else {
-        filesWithExt.push("X-Plane 11 Installer" + appSuffix)
+        filesWithExt.push("X-Plane 11 Installer" + app_suffix)
     }
 
-    if(releaseBuild) {
+    if(is_release) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
         def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
         if(isWindows(platform)) {
@@ -45,11 +64,9 @@ def getExpectedProducts(String platform, boolean buildAll, boolean releaseBuild)
     }
     return filesWithExt
 }
-def getAppSuffix(boolean releaseBuild) {
-    return releaseBuild ? "" : "_NODEV_OPT"
-}
 
-boolean copyBuildProductsFromArchive(String archiveDir, List expectedProducts) {
+boolean copyBuildProductsFromArchive(List expectedProducts) {
+    String archiveDir = getArchiveDir()
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
         // Copy them back to our working directories for the sake of working with them
@@ -78,8 +95,8 @@ boolean toRealBool(String fakeBool) {
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 // PLATFORM UTILS
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
-def supportsTesting(boolean isSteamBuild) {
-    return isUnix() && !isSteamBuild
+def supportsTesting() {
+    return isUnix() && !steam_build
 }
 
 def isWindows(String platform) {
