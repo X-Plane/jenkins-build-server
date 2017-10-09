@@ -129,7 +129,7 @@ def getBuildToolConfiguration(String platform) {
 }
 
 def doTest(String platform) {
-    if(utils.supportsTesting(platform)) {
+    if(utils.supportsTesting()) {
         def checkoutDir = utils.getCheckoutDir()
         echo "Running tests"
         dir(checkoutDir + "tests") {
@@ -166,7 +166,7 @@ def doArchive(String platform) {
             def products = getExpectedBuildPlusTestProducts(platform)
 
             try {
-                if(utils.supportsTesting(platform)) {
+                if(utils.supportsTesting()) {
                     for(String screenshotName : getTestingScreenshotNames()) {
                         utils.moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png")
                     }
@@ -192,7 +192,7 @@ def doArchive(String platform) {
 
 List getExpectedBuildPlusTestProducts(String platform) {
     List executables = utils.getExpectedProducts(platform)
-    if(utils.supportsTesting(utils.steam_build)) {
+    if(utils.supportsTesting()) {
         // Screenshots from tests
         return executables + utils.addSuffix(utils.addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
     }
