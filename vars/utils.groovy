@@ -1,4 +1,4 @@
-def setEnvironment(String directorySuffix) {
+def setEnvironment() {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
     assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
