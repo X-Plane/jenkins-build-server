@@ -94,7 +94,7 @@ def doCheckout(String platform) {
 def doBuild(String platform) {
     dir(utils.getCheckoutDir()) {
         try {
-            def archiveDir = utils.getArchiveDirAndEnsureItExists()
+            def archiveDir = getArchiveDirAndEnsureItExists()
             assert archiveDir : "Got an empty archive dir"
             assert !archiveDir.contains("C:") || utils.isWindows(platform) : "Got a Windows path on platform " + platform + " from utils.getArchiveDirAndEnsureItExists() in doBuild()"
             assert !archiveDir.contains("/jenkins/") || utils.isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDirAndEnsureItExists() in doBuild()"
