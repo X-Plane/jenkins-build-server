@@ -1,4 +1,4 @@
-@Library('build-utils') _
+library 'build-utils'
 
 // Check configuration preconditions
 assert toRealBool(build_all_apps) || (!toRealBool(release_build) && !toRealBool(steam_build)), "Release & Steam builds require all apps to be built"

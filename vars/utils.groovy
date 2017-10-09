@@ -70,7 +70,7 @@ boolean copyBuildProductsFromArchive(String archiveDir, List expectedProducts) {
 // "But Tyler," you say, "why don't you just do foo = toRealBool(foo) at the top of the script and be done with it?"
 // Great question.
 // Because you also CAN'T CHANGE A VARIABLE'S TYPE AFTER IT'S BEEN CREATED.
-def toRealBool(String fakeBool) {
+boolean toRealBool(String fakeBool) {
     return fakeBool == 'true'
 }
 
