@@ -100,7 +100,7 @@ def doBuild(String platform) {
             assert !archiveDir.contains("/jenkins/") || utils.isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDirAndEnsureItExists() in doBuild()"
             def toBuild = getExpectedBuildPlusTestProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
-            if(!toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild)) {
+            if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
             } else { // Actually build some stuff!
                 def config = getBuildToolConfiguration(platform)
