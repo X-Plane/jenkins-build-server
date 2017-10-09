@@ -1,7 +1,7 @@
 library 'build-utils'
 
 // Check configuration preconditions
-assert toRealBool(build_all_apps) || (!toRealBool(release_build) && !toRealBool(steam_build)), "Release & Steam builds require all apps to be built"
+assert utils.toRealBool(build_all_apps) || (!utils.toRealBool(release_build) && !utils.toRealBool(steam_build)), "Release & Steam builds require all apps to be built"
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -40,26 +40,26 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { node('windows') { if(toRealBool(build_windows)) { closure('Windows') } } },
-            'macOS'   : { node('mac')     { if(toRealBool(build_mac))     { closure('macOS')   } } },
-            'Linux'   : { node('linux')   { if(toRealBool(build_linux))   { closure('Linux')   } } }
+            'Windows' : { node('windows') { if(utils.toRealBool(build_windows)) { closure('Windows') } } },
+            'macOS'   : { node('mac')     { if(utils.toRealBool(build_mac))     { closure('macOS')   } } },
+            'Linux'   : { node('linux')   { if(utils.toRealBool(build_linux))   { closure('Linux')   } } }
     )
 }
 
 def nukePreviousBuildProducts(String platform) {
-    dir(getCheckoutDir(directory_suffix)) {
+    dir(utils.getCheckoutDir(directory_suffix)) {
         for(def p : getExpectedBuildPlusTestProducts(platform)) {
             try {
-                chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"")
+                utils.chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"")
             } catch(e) { } // No old build products lying around? No problem!
         }
-        if(toRealBool(clean_build)) {
+        if(utils.toRealBool(clean_build)) {
             try {
-                chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
+                utils.chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
             } catch (e) { }
         }
         try {
-            chooseShellByPlatformNixWin('rm *.png', 'del "*.png"')
+            utils.chooseShellByPlatformNixWin('rm *.png', 'del "*.png"')
         } catch(e) { }
     }
 }
@@ -73,41 +73,41 @@ def getBranchName() {
 }
 
 def doCheckout(String platform) {
-    xplaneCheckout(getBranchName(), getCheckoutDir(directory_suffix), platform)
+    xplaneCheckout(getBranchName(), utils.getCheckoutDir(directory_suffix), platform)
 }
 
 def doBuild(String platform) {
-    dir(getCheckoutDir(directory_suffix)) {
+    dir(utils.getCheckoutDir(directory_suffix)) {
         try {
-            def forceBuild = toRealBool(force_build)
+            def forceBuild = utils.toRealBool(force_build)
 
-            def archiveDir = getArchiveDirAndEnsureItExists(platform)
+            def archiveDir = utils.getArchiveDirAndEnsureItExists(platform)
             assert archiveDir : "Got an empty archive dir"
-            assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform " + platform + " from getArchiveDirAndEnsureItExists() in doBuild()"
-            assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from getArchiveDirAndEnsureItExists() in doBuild()"
+            assert !archiveDir.contains("C:") || utils.isWindows(platform) : "Got a Windows path on platform " + platform + " from utils.getArchiveDirAndEnsureItExists() in doBuild()"
+            assert !archiveDir.contains("/jenkins/") || utils.isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDirAndEnsureItExists() in doBuild()"
             def toBuild = getExpectedBuildPlusTestProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
-            if(!forceBuild && copyBuildProductsFromArchive(toBuild)) {
+            if(!forceBuild && utils.copyBuildProductsFromArchive(toBuild)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
             } else { // Actually build some stuff!
                 def config = getBuildToolConfiguration(platform)
 
                 // Generate our project files
-                chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat"', "./cmake.sh ${config}"], platform)
+                utils.chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat"', "./cmake.sh ${config}"], platform)
 
-                def doAll = toRealBool(build_all_apps)
-                def projectFile = chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
+                def doAll = utils.toRealBool(build_all_apps)
+                def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
 
                 def target = doAll ? "ALL_BUILD" : "X-Plane"
-                if(toRealBool(clean_build)) {
-                    chooseShellByPlatformMacWinLin([
+                if(utils.toRealBool(clean_build)) {
+                    utils.chooseShellByPlatformMacWinLin([
                             "set -o pipefail && xcodebuild -project ${projectFile} clean | xcpretty && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean | xcpretty && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                             "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
                             'cd design_linux && make clean'
                     ], platform)
                 }
 
-                chooseShellByPlatformMacWinLin([
+                utils.chooseShellByPlatformMacWinLin([
                         "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build | xcpretty",
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (doAll ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
                         "cd design_linux && make -j4 " + (doAll ? '' : "X-Plane")
@@ -122,20 +122,20 @@ def doBuild(String platform) {
 
 
 def getBuildToolConfiguration(String platform) {
-    def doSteam = toRealBool(steam_build)
-    def doRelease = toRealBool(release_build)
+    def doSteam = utils.toRealBool(steam_build)
+    def doRelease = utils.toRealBool(release_build)
     return doSteam ? "NODEV_OPT_Prod_Steam" : (doRelease ? "NODEV_OPT_Prod" : "NODEV_OPT")
 }
 
 def doTest(String platform) {
-    if(supportsTesting(platform)) {
-        def checkoutDir = getCheckoutDir(directory_suffix)
+    if(utils.supportsTesting(platform)) {
+        def checkoutDir = utils.getCheckoutDir(directory_suffix)
         echo "Running tests"
         dir(checkoutDir + "tests") {
-            def suffix = getAppSuffix(isRelease())
-            def app = "X-Plane" + suffix + chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", '-x86_64'], platform)
-            def binSubdir = chooseByPlatformNixWin("bin", "Scripts")
-            def venvPath = isMac(platform) ? '/usr/local/bin/' : ''
+            def suffix = utils.getAppSuffix(isRelease())
+            def app = "X-Plane" + suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + suffix, ".exe", '-x86_64'], platform)
+            def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts")
+            def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
             def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
             echo cmd
             try {
@@ -152,13 +152,13 @@ def doTest(String platform) {
 
 def doArchive(String platform) {
     try {
-        def checkoutDir = getCheckoutDir(directory_suffix)
+        def checkoutDir = utils.getCheckoutDir(directory_suffix)
         dir(checkoutDir) {
-            def dropboxPath = getArchiveDirAndEnsureItExists(platform)
+            def dropboxPath = utils.getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
-            if(isMac(platform)) {
+            if(utils.isMac(platform)) {
                 sh "find . -name '*.app' -exec zip -r '{}'.zip '{}' \\;"
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
@@ -166,21 +166,21 @@ def doArchive(String platform) {
             def products = getExpectedBuildPlusTestProducts(platform)
 
             try {
-                if(supportsTesting(platform)) {
+                if(utils.supportsTesting(platform)) {
                     for(String screenshotName : getTestingScreenshotNames()) {
-                        moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png")
+                        utils.moveFilePatternToDest("${screenshotName}_1.png", "${screenshotName}_${platform}.png")
                     }
                 }
             } finally {
                 archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
 
-                def dest = escapeSlashes(dropboxPath)
+                def dest = utils.escapeSlashes(dropboxPath)
                 for(String p : products) {
                     // Do *NOT* copy to Dropbox if the products already exist! We need to treat the Dropbox archives as write-once
                     if(fileExists(dest + p)) {
                         echo "Skipping copy of ${p} to Dropbox, since the file already exists in ${dest}"
                     } else {
-                        moveFilePatternToDest(p, dest)
+                        utils.moveFilePatternToDest(p, dest)
                     }
                 }
             }
@@ -191,10 +191,10 @@ def doArchive(String platform) {
 }
 
 List getExpectedBuildPlusTestProducts(String platform) {
-    List executables = getExpectedProducts(platform, toRealBool(build_all_apps), isRelease())
-    if(supportsTesting(toRealBool(steam_build))) {
+    List executables = utils.getExpectedProducts(platform, utils.toRealBool(build_all_apps), isRelease())
+    if(utils.supportsTesting(utils.toRealBool(steam_build))) {
         // Screenshots from tests
-        return executables + addSuffix(addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
+        return executables + utils.addSuffix(utils.addSuffix(getTestingScreenshotNames(), "_" + platform), ".png")
     }
     return executables
 }
@@ -204,13 +204,13 @@ def getTestingScreenshotNames() {
 }
 
 def isRelease() {
-    return toRealBool(steam_build) || toRealBool(release_build)
+    return utils.toRealBool(steam_build) || utils.toRealBool(release_build)
 }
 
 def getArchiveDirAndEnsureItExists(String platform) {
-    def out = getArchiveDir(directory_suffix, toRealBool(steam_build))
+    def out = utils.getArchiveDir(directory_suffix, utils.toRealBool(steam_build))
     try {
-        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
+        utils.chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
     } catch(e) { } // ignore errors if it already exists
     return out
 }
@@ -221,7 +221,7 @@ def notifyDeadBuild(String platform, Exception e) {
         replyToTrigger("The automated build of commit ${pmt_subject} failed on ${platform}.", e.toString())
     } else {
         def b = getBranchName()
-        def commitId = getCommitId(directory_suffix)
+        def commitId = utils.getCommitId(directory_suffix)
         notifyBuild(platform + " build is broken [" + b + "; " + commitId + "]",
                 platform + " build of X-Plane Desktop commit " + commitId + " from the branch " + b + " failed. There was a problem with one or more of X-Plane, Plane Maker, Airfoil Maker, or the installer.",
                 e.toString())
@@ -235,7 +235,7 @@ def notifyTestFailed(String platform, Exception e) {
         replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
     } else {
         def b = getBranchName()
-        def commitId = getCommitId(directory_suffix)
+        def commitId = utils.getCommitId(directory_suffix)
         notifyBuild("Testing failed on ${platform} [${b}; ${commitId}]",
                 "Build X-Plane Desktop commit " + commitId + " from the branch " + b + " succeeded on ${platform}, but the auto-testing failed.",
                 e.toString())
@@ -270,7 +270,7 @@ Console Log (split by machine/task/subtask): ${BUILD_URL}flowGraphTable/
 
 Console Log (plain text): ${BUILD_URL}console
 """
-    if(toRealBool(send_emails)) {
+    if(utils.toRealBool(send_emails)) {
         emailext attachLog: true,
                 body: body,
                 subject: subj,
