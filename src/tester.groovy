@@ -43,7 +43,7 @@ def doCheckout() {
     }
 
     try {
-        xplaneCheckout(branch_name, utils.getCheckoutDir(), platform)
+        xplaneCheckout(branch_name, utils.getCheckoutDir(), true, platform)
     } catch(e) {
         notifyTestFailed("Jenkins Git checkout is broken on tester ${platform} [${branch_name}]",
                 "${platform} Git checkout failed on branch ${branch_name}. We will be unable to test until this is fixed.",

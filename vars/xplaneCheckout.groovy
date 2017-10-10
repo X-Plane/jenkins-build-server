@@ -1,4 +1,4 @@
-def call(String branchName='', String checkoutDir='', String platform='') {
+def call(String branchName='', String checkoutDir='', boolean getArt=false, String platform='') {
     dir(checkoutDir) {
         echo "Checking out ${branchName} on ${platform}"
         if(platform == 'Linux') {
@@ -30,7 +30,7 @@ def call(String branchName='', String checkoutDir='', String platform='') {
         }
         echo "Checked out commit ${commitId}"
 
-        if(isUnix()) {
+        if(getArt && isUnix()) {
             sshagent(['tylers-ssh']) {
                 echo "Pulling SVN art assets too for later auto-testing"
                 // Do recursive cleanup, just in case
