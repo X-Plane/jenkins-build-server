@@ -7,7 +7,7 @@ expected_screenshot_names = ["sunset_scattered_clouds", "evening", "stormy"]
 
 def environment = [:]
 environment['branch_name'] = branch_name
-environment['directory_suffix'] = 'testing'
+environment['directory_suffix'] = directory_suffix
 environment['release_build'] = release_build
 environment['steam_build'] = 'false'
 environment['build_windows'] = 'true'
