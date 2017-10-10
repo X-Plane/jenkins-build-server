@@ -57,7 +57,7 @@ def doCheckout(String platform) {
     // Nuke previous products
     dir(utils.getCheckoutDir()) {
         utils.nukeExpectedProductsIfExist(platform)
-        if(toRealBool(clean_build)) {
+        if(utils.toRealBool(clean_build)) {
             try {
                 utils.chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
             } catch (e) { }
@@ -96,7 +96,7 @@ def doBuild(String platform) {
                 def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
                 String target = utils.build_all_apps ? "ALL_BUILD" : "X-Plane"
-                if(toRealBool(clean_build)) {
+                if(utils.toRealBool(clean_build)) {
                     utils.chooseShellByPlatformMacWinLin([
                             "set -o pipefail && xcodebuild -project ${projectFile} clean | xcpretty && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean | xcpretty && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                             "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
