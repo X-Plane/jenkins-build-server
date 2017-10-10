@@ -66,13 +66,14 @@ List getExpectedProducts(String platform) {
 }
 
 def nukeExpectedProductsIfExist(String platform) {
-    for(def p : getExpectedProducts(platform)) {
+    def products = getExpectedProducts(platform)
+    for(def p : products) {
         try {
-            chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"")
+            chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"", platform)
         } catch(e) { } // No old executables lying around? No problem!
     }
     try {
-        chooseShellByPlatformNixWin('rm *.png', 'del "*.png"')
+        chooseShellByPlatformNixWin('rm *.png', 'del "*.png"', platform)
     } catch(e) { }
 }
 
@@ -81,7 +82,7 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
         // Copy them back to our working directories for the sake of working with them
-        chooseShellByPlatformNixWin("cp ${archiveDir}* .", "copy \"${archiveDir}*\" .")
+        chooseShellByPlatformNixWin("cp ${archiveDir}* .", "copy \"${archiveDir}*\" .", platform)
         if(isMac(platform)) {
             sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
         }
@@ -123,8 +124,10 @@ def isMac(String platform) {
     return platform == 'macOS'
 }
 
-def chooseByPlatformNixWin(nixVersion, winVersion) {
-    if(isUnix()) {
+def chooseByPlatformNixWin(nixVersion, winVersion, String platform='') {
+    if(platform) {
+        return chooseByPlatformMacWinLin([nixVersion, winVersion, nixVersion], platform)
+    } else if(isUnix()) {
         return nixVersion
     } else {
         return winVersion
@@ -194,14 +197,16 @@ def moveFilePatternToDest(String filePattern, String dest) {
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 // SHELLS
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
-def chooseShellByPlatformNixWin(nixCommand, winCommand) {
-    if(isUnix()) {
+def chooseShellByPlatformNixWin(String nixCommand, String winCommand, String platform='') {
+    if(platform) {
+        chooseShellByPlatformMacWinLin([nixCommand, winCommand, nixCommand], platform)
+    } else if(isUnix()) {
         sh nixCommand
     } else {
         bat winCommand
     }
 }
-def chooseShellByPlatformMacWinLin(List macWinLinCommands, platform) {
+def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
     if(isWindows(platform)) {
         bat macWinLinCommands[1]
     } else if(isMac(platform)) {

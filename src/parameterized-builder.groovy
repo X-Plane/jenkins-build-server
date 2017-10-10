@@ -95,7 +95,7 @@ def doBuild(String platform) {
                 // Generate our project files
                 utils.chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat"', "./cmake.sh ${config}"], platform)
 
-                def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln")
+                def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
                 String target = utils.build_all_apps ? "ALL_BUILD" : "X-Plane"
                 if(toRealBool(clean_build)) {
