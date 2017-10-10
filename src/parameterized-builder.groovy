@@ -1,5 +1,3 @@
-library 'build-utils'
-
 // If this is an email-triggered build, the branch/tag/commit to build is in the email's subject line
 branch_name = pmt_subject ? pmt_subject.trim() : branch_name
 
