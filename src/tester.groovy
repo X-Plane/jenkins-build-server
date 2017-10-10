@@ -99,8 +99,10 @@ def doArchive() {
             try {
                 for(String screenshotName : expected_screenshot_names) {
                     def dest = "${screenshotName}_${platform}.png"
-                    utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
-                    products.push(dest)
+                    try {
+                        utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
+                        products.push(dest)
+                    } catch(e) { } // No error if it doesn't exist
                 }
                 def logDest = "Log_${platform}.txt"
                 utils.moveFilePatternToDest("Log.txt", logDest)
