@@ -32,8 +32,8 @@ stage('Checkout')            { node(nodeType) { doCheckout() } }
 try {
     stage('Test')            { node(nodeType) { doTest() } }
 } finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')         { node(nodeType) { doArchive() } }
 }
+    stage('Archive')         { node(nodeType) { doArchive() } }
 if(pmt_subject && pmt_from) {
     stage('Notify')          { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
 }
@@ -72,16 +72,15 @@ def doTest() {
     String testDir = checkoutDir + "tests"
     echo "Running tests in ${testDir}"
     dir(testDir) {
-        def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
-        def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts", platform)
-        def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
-        String testToRun = isFpsTest ? "fps_test_runner.py" : "test_runner.py jenkins_smoke_test.test --nodelete"
-        def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python ${testToRun} --app ../${app}"
-        echo cmd
         try {
+            def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
+            def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts", platform)
+            def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
+            String testToRun = isFpsTest ? "fps_test_runner.py" : "test_runner.py jenkins_smoke_test.test --nodelete"
+            def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python ${testToRun} --app ../${app}"
+            echo cmd
             sh cmd
         } catch(e) {
-            echo "Test failed on platform ${platform}... archiving Log.txt"
             if(pmt_subject) {
                 replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
             } else {
