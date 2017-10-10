@@ -152,7 +152,7 @@ def doArchive(String platform) {
     }
 }
 
-def getArchiveDirAndEnsureItExists() {
+String getArchiveDirAndEnsureItExists(String platform) {
     def out = utils.getArchiveDir(platform)
     try {
         utils.chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
