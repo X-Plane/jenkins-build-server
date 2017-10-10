@@ -66,13 +66,13 @@ List getExpectedProducts(String platform) {
 }
 
 def nukeExpectedProductsIfExist(String platform) {
-    for(def p : utils.getExpectedProducts(platform)) {
+    for(def p : getExpectedProducts(platform)) {
         try {
-            utils.chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"")
+            chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"")
         } catch(e) { } // No old executables lying around? No problem!
     }
     try {
-        utils.chooseShellByPlatformNixWin('rm *.png', 'del "*.png"')
+        chooseShellByPlatformNixWin('rm *.png', 'del "*.png"')
     } catch(e) { }
 }
 
