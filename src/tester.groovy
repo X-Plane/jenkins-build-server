@@ -16,6 +16,8 @@ utils.setEnvironment(environment)
 boolean isFpsTest = utils.toRealBool(fps_test)
 expected_screenshot_names = isFpsTest ? [] : ["sunset_scattered_clouds", "evening", "stormy"]
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
+String checkoutDir = utils.getCheckoutDir(platform)
+String archiveDir = utils.getArchiveDir(platform)
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE TESTS
@@ -39,12 +41,12 @@ if(pmt_subject && pmt_from) {
 // IMPLEMENTATION
 //--------------------------------------------------------------------------------------------------------------------------------
 def doCheckout() {
-    dir(utils.getCheckoutDir()) {
+    dir(checkoutDir) {
         utils.nukeExpectedProductsIfExist(platform)
     }
 
     try {
-        xplaneCheckout(branch_name, utils.getCheckoutDir(), true, platform)
+        xplaneCheckout(branch_name, checkoutDir, true, platform)
     } catch(e) {
         notifyTestFailed("Jenkins Git checkout is broken on tester ${platform} [${branch_name}]",
                 "${platform} Git checkout failed on branch ${branch_name}. We will be unable to test until this is fixed.",
@@ -54,9 +56,8 @@ def doCheckout() {
     }
 
     // Copy pre-built executables to our working dir as well
-    dir(utils.getCheckoutDir()) {
+    dir(checkoutDir) {
         if(utils.copyBuildProductsFromArchive(utils.getExpectedProducts(platform), platform)) {
-            def archiveDir = utils.getArchiveDir()
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {
             notifyTestFailed("Missing executables to test on ${platform} [${branch_name}]",
@@ -66,11 +67,11 @@ def doCheckout() {
 }
 
 def doTest() {
-    String checkoutDir = utils.getCheckoutDir() + "tests"
-    echo "Running tests in ${$checkoutDir}"
-    dir(checkoutDir) {
+    String testDir = checkoutDir + "tests"
+    echo "Running tests in ${testDir}"
+    dir(testDir) {
         def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
-        def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts")
+        def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts", platform)
         def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
         String testToRun = isFpsTest ? "fps_test_runner.py" : "test_runner.py jenkins_smoke_test.test --nodelete"
         def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python ${testToRun} --app ../${app}"
@@ -82,7 +83,7 @@ def doTest() {
             if(pmt_subject) {
                 replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
             } else {
-                def commitId = utils.getCommitId()
+                def commitId = utils.getCommitId(platform)
                 notifyTestFailed("Testing failed on ${platform} [${branch_name}; ${commitId}]",
                         "Auto-testing of commit ${commitId} from the branch ${branch_name} succeeded on ${platform}, but the auto-testing failed.",
                         e.toString(), "tyler@x-plane.com")
@@ -94,7 +95,7 @@ def doTest() {
 
 def doArchive() {
     try {
-        dir(utils.getCheckoutDir()) {
+        dir(checkoutDir) {
             List products = []
             try {
                 for(String screenshotName : expected_screenshot_names) {
@@ -109,7 +110,7 @@ def doArchive() {
                 products.push(logDest)
             } finally {
                 archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
-                def dest = utils.escapeSlashes(utils.getArchiveDir())
+                def dest = utils.escapeSlashes(archiveDir())
                 for(String p : products) {
                     // Unlike in the builder, we don't need to treat test products as write-once
                     utils.moveFilePatternToDest(p, dest)

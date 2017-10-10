@@ -18,13 +18,13 @@ def setEnvironment(environment) {
 }
 
 
-String getCheckoutDir() {
-    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\")
+String getCheckoutDir(String platform='') {
+    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\", platform)
 }
 
-String getCommitId() {
-    dir(getCheckoutDir()) {
-        if(isUnix()) {
+String getCommitId(String platform='') {
+    dir(getCheckoutDir(platform)) {
+        if((platform && !isWindows(platform)) || isUnix()) {
             return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
         } else {
             def out = bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")
@@ -34,13 +34,13 @@ String getCommitId() {
     }
 }
 
-String getArchiveDir() {
-    String subdir = steam_build ? chooseByPlatformNixWin("steam/", "steam\\") : ""
-    String commitDir = getCommitId()
+String getArchiveDir(String platform='') {
+    String subdir = steam_build ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
+    String commitDir = getCommitId(platform)
     if(is_release) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
         commitDir = branch_name + '-' + commitDir
     }
-    return escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitDir}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitDir}\\"))
+    return escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitDir}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitDir}\\", platform))
 }
 
 List getExpectedProducts(String platform) {
