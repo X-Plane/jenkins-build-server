@@ -65,6 +65,17 @@ List getExpectedProducts(String platform) {
     return filesWithExt
 }
 
+def nukeExpectedProductsIfExist(String platform) {
+    for(def p : utils.getExpectedProducts(platform)) {
+        try {
+            utils.chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"")
+        } catch(e) { } // No old executables lying around? No problem!
+    }
+    try {
+        utils.chooseShellByPlatformNixWin('rm *.png', 'del "*.png"')
+    } catch(e) { }
+}
+
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
     String archiveDir = getArchiveDir()
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
@@ -79,6 +90,9 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
     return false
 }
 
+def getBuildToolConfiguration() {
+    return steam_build ? "NODEV_OPT_Prod_Steam" : (release_build ? "NODEV_OPT_Prod" : "NODEV_OPT")
+}
 
 // $&@#* Jenkins.
 // It passes us our BOOLEAN parameters as freaking strings. "false" and "true".
