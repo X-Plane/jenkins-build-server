@@ -78,14 +78,13 @@ def doTest() {
             sh cmd
         } catch(e) {
             echo "Test failed on platform ${platform}... archiving Log.txt"
-            archiveArtifacts artifacts: "Log.txt", fingerprint: true, onlyIfSuccessful: false
             if(pmt_subject) {
                 replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
             } else {
                 def commitId = utils.getCommitId()
-                notifyBuild("Testing failed on ${platform} [${branch_name}; ${commitId}]",
+                notifyTestFailed("Testing failed on ${platform} [${branch_name}; ${commitId}]",
                         "Auto-testing of commit ${commitId} from the branch ${branch_name} succeeded on ${platform}, but the auto-testing failed.",
-                        e.toString())
+                        e.toString(), "tyler@x-plane.com")
             }
             throw e
         }
@@ -115,9 +114,9 @@ def doArchive() {
             }
         }
     } catch (e) {
-        notify("Jenkins archive step failed for test on ${platform} [${branch_name}]",
+        notifyTestFailed("Jenkins archive step failed for test on ${platform} [${branch_name}]",
                 "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing screenshot(s) from the automated tests. (Possibly due to a crash?)",
-                e.toString())
+                e.toString(), "tyler@x-plane.com")
         throw e
     }
 }
