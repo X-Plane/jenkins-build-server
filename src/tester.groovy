@@ -13,7 +13,7 @@ environment['build_linux'] = 'true'
 environment['build_all_apps'] = 'false'
 utils.setEnvironment(environment)
 
-boolean isFpsTest = utils.toRealBool(fps_test)
+isFpsTest = utils.toRealBool(fps_test)
 expected_screenshot_names = isFpsTest ? [] : ["sunset_scattered_clouds", "evening", "stormy"]
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node('mac') {
