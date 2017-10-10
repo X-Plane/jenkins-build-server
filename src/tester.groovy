@@ -14,6 +14,7 @@ environment['build_linux'] = 'true'
 environment['build_all_apps'] = 'false'
 utils.setEnvironment(environment)
 
+boolean isFpsTest = utils.toRealBool(fps_test)
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -70,7 +71,8 @@ def doTest() {
         def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
         def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts")
         def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
-        def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python test_runner.py jenkins_smoke_test.test --nodelete --app ../${app}"
+        String testToRun = isFpsTest ? "fps_test_runner.py" : "test_runner.py jenkins_smoke_test.test --nodelete"
+        def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python ${testToRun} --app ../${app}"
         echo cmd
         try {
             sh cmd
