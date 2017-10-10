@@ -112,7 +112,7 @@ def doArchive() {
                 products.push(logDest)
             } finally {
                 archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
-                def dest = utils.escapeSlashes(archiveDir())
+                def dest = utils.escapeSlashes(archiveDir)
                 for(String p : products) {
                     // Unlike in the builder, we don't need to treat test products as write-once
                     utils.moveFilePatternToDest(p, dest)
