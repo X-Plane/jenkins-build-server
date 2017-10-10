@@ -16,27 +16,29 @@ environment['build_linux'] = 'true'
 environment['build_all_apps'] = 'false'
 utils.setEnvironment(environment)
 
+String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
+
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE TESTS
 // This is where the magic happens.
 //--------------------------------------------------------------------------------------------------------------------------------
+if(pmt_subject && pmt_from) {
+    stage('Respond')         { replyToTrigger('Automated testing of commit ' + pmt_subject + ' is in progress.') }
+}
+stage('Checkout')            { node(nodeType) { doCheckout() } }
 try {
-    if(pmt_subject && pmt_from) {
-        stage('Respond')                   { replyToTrigger('Automated testing of commit ' + pmt_subject + ' is in progress.') }
-    }
-    stage('Checkout')                      { doCheckout() }
-    try {
-        stage('Test')                      { doTest() }
-    } finally { // we want to archive regardless of whether the tests passed
-        stage('Archive')                   { doArchive() }
-    }
-    if(pmt_subject && pmt_from) {
-        stage('Notify')                    { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
-    }
-} finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    stage('Test')            { node(nodeType) { doTest() } }
+} finally { // we want to archive regardless of whether the tests passed
+    stage('Archive')         { node(nodeType) { doArchive() } }
+}
+if(pmt_subject && pmt_from) {
+    stage('Notify')          { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
 }
 
+
+//--------------------------------------------------------------------------------------------------------------------------------
+// IMPLEMENTATION
+//--------------------------------------------------------------------------------------------------------------------------------
 def doCheckout() {
     dir(utils.getCheckoutDir()) {
         utils.nukeExpectedProductsIfExist(platform)
