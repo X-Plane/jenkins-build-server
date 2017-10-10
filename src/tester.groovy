@@ -1,7 +1,6 @@
 // If this is an email-triggered test, the branch/tag/commit to test is in the email's subject line
 branch_name = pmt_subject ? pmt_subject.trim() : branch_name
 
-expected_screenshot_names = ["sunset_scattered_clouds", "evening", "stormy"]
 
 def environment = [:]
 environment['branch_name'] = branch_name
@@ -15,6 +14,7 @@ environment['build_all_apps'] = 'false'
 utils.setEnvironment(environment)
 
 boolean isFpsTest = utils.toRealBool(fps_test)
+expected_screenshot_names = isFpsTest ? [] : ["sunset_scattered_clouds", "evening", "stormy"]
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 
 //--------------------------------------------------------------------------------------------------------------------------------
