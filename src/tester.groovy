@@ -66,8 +66,9 @@ def doCheckout() {
 }
 
 def doTest() {
-    echo "Running tests"
-    dir(utils.getCheckoutDir() + "tests") {
+    String checkoutDir = utils.getCheckoutDir() + "tests"
+    echo "Running tests in ${$checkoutDir}"
+    dir(checkoutDir) {
         def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
         def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts")
         def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
