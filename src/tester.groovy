@@ -16,8 +16,10 @@ utils.setEnvironment(environment)
 boolean isFpsTest = utils.toRealBool(fps_test)
 expected_screenshot_names = isFpsTest ? [] : ["sunset_scattered_clouds", "evening", "stormy"]
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
-String checkoutDir = utils.getCheckoutDir(platform)
-String archiveDir = utils.getArchiveDir(platform)
+node('mac') {
+    checkoutDir = utils.getCheckoutDir(platform)
+    archiveDir = utils.getArchiveDir(platform)
+}
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE TESTS
