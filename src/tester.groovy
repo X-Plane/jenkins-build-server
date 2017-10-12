@@ -16,7 +16,7 @@ utils.setEnvironment(environment)
 isFpsTest = utils.toRealBool(fps_test)
 expected_screenshot_names = isFpsTest ? [] : ["sunset_scattered_clouds", "evening", "stormy"]
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
-node('mac') {
+node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
     archiveDir = utils.getArchiveDir(platform)
 }
@@ -26,7 +26,7 @@ node('mac') {
 // This is where the magic happens.
 //--------------------------------------------------------------------------------------------------------------------------------
 if(pmt_subject && pmt_from) {
-    stage('Respond')         { replyToTrigger('Automated testing of commit ' + pmt_subject + ' is in progress.') }
+    stage('Respond')         { replyToTrigger("Automated testing of commit ${pmt_subject} is in progress on ${platform}.") }
 }
 stage('Checkout')            { node(nodeType) { doCheckout() } }
 try {
@@ -35,7 +35,7 @@ try {
 }
     stage('Archive')         { node(nodeType) { doArchive() } }
 if(pmt_subject && pmt_from) {
-    stage('Notify')          { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
+    stage('Notify')          { replyToTrigger("SUCCESS!\n\nThe automated build of commit ${pmt_subject} succeeded on ${platform}.") }
 }
 
 
