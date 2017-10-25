@@ -54,10 +54,12 @@ List getExpectedProducts(String platform) {
     List appNamesNoInstaller = addSuffix(build_all_apps ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], app_suffix)
     List appNames = appNamesNoInstaller + (build_all_apps ? ["X-Plane 11 Installer" + app_suffix] : [])
     List filesWithExt = addSuffix(appNamesNoInstaller, appExtNormal)
-    if(isMac(platform) || isWindows(platform)) {
-        filesWithExt.push("X-Plane 11 Installer" + app_suffix + appExtNormal)
-    } else {
-        filesWithExt.push("X-Plane 11 Installer" + app_suffix)
+    if(build_all_apps) {
+        if(isMac(platform) || isWindows(platform)) {
+            filesWithExt.push("X-Plane 11 Installer" + app_suffix + appExtNormal)
+        } else {
+            filesWithExt.push("X-Plane 11 Installer" + app_suffix)
+        }
     }
 
     if(is_release) {
