@@ -39,8 +39,8 @@ stage('Checkout')            { node(nodeType) { doCheckout() } }
 try {
     stage('Test')            { node(nodeType) { doTest() } }
 } finally { // we want to archive regardless of whether the tests passed
-}
     stage('Archive')         { node(nodeType) { doArchive() } }
+}
 if(pmt_subject && pmt_from) {
     stage('Notify')          { replyToTrigger("SUCCESS!\n\nThe automated build of commit ${pmt_subject} succeeded on ${platform}.") }
 }
@@ -101,7 +101,6 @@ def doTest() {
             echo cmd
             sh cmd
         } catch(e) {
-            archiveArtifacts artifacts: 'Log.txt', fingerprint: true, onlyIfSuccessful: false
             if(pmt_subject) {
                 replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
             } else {
