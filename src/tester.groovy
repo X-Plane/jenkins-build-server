@@ -97,9 +97,12 @@ def doTest() {
                 String testFile = isRenderingRegression ? 'rendering_regression.test' : 'jenkins_smoke_test.test'
                 testToRun = "test_runner.py ${testFile} --nodelete"
             }
-            def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python ${testToRun} --app ../${app}"
-            echo cmd
-            sh cmd
+            String setupVenv = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt"
+            echo setupVenv
+            sh setupVenv
+            String runTest = "env/${binSubdir}/python ${testToRun} --app ../${app}"
+            echo runTest
+            sh runTest
         } catch(e) {
             if(pmt_subject) {
                 replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
