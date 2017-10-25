@@ -101,6 +101,7 @@ def doTest() {
             echo cmd
             sh cmd
         } catch(e) {
+            archiveArtifacts artifacts: 'Log.txt', fingerprint: true, onlyIfSuccessful: false
             if(pmt_subject) {
                 replyToTrigger("Automated testing of commit ${pmt_subject} failed on ${platform}.", e.toString())
             } else {
