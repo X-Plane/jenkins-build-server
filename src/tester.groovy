@@ -13,12 +13,19 @@ environment['build_linux'] = 'true'
 environment['build_all_apps'] = 'false'
 utils.setEnvironment(environment)
 
-isFpsTest = utils.toRealBool(fps_test)
-expected_screenshot_names = isFpsTest ? [] : ["sunset_scattered_clouds", "evening", "stormy"]
+isFpsTest = test_type == 'fps_test'
+isSmokeTest = test_type == 'smoke_test'
+isRenderingRegressionMaster = test_type == 'rendering_regression_new_master'
+isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
+isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionComparison
+expectedScreenshotNames = isSmokeTest ? ["sunset_scattered_clouds", "evening", "stormy"] : []
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
-    archiveDir = utils.getArchiveDir(platform)
+    renderingRegressionMaster = utils.getArchiveRoot(platform) + 'rendering-master/'
+    archiveDir = isRenderingRegressionMaster ?
+            renderingRegressionMaster :
+            utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -79,7 +86,13 @@ def doTest() {
             def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
             def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
-            String testToRun = isFpsTest ? "fps_test_runner.py" : "test_runner.py jenkins_smoke_test.test --nodelete"
+            String testToRun = ''
+            if(isFpsTest) {
+                testToRun = 'fps_test_runner.py'
+            } else {
+                String testFile = isRenderingRegression ? 'rendering_regression.test' : 'jenkins_smoke_test.test'
+                testToRun = "test_runner.py ${testFile} --nodelete"
+            }
             def cmd = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt && env/${binSubdir}/python ${testToRun} --app ../${app}"
             echo cmd
             sh cmd
@@ -89,10 +102,27 @@ def doTest() {
             } else {
                 def commitId = utils.getCommitId(platform)
                 notifyTestFailed("Testing failed on ${platform} [${branch_name}; ${commitId}]",
-                        "Auto-testing of commit ${commitId} from the branch ${branch_name} succeeded on ${platform}, but the auto-testing failed.",
+                        "Auto-testing of commit ${commitId} from the branch ${branch_name} failed.",
                         e.toString(), "tyler@x-plane.com")
             }
             throw e
+        }
+    }
+
+    if(isRenderingRegression) { // Post-test, we need to run the golden image comparison
+        dir(checkoutDir) {
+            try {
+                // TODO: Do the image analysis
+            } catch(e) {
+                if(pmt_subject) {
+                    replyToTrigger("Rendering regression image analysis of commit ${pmt_subject} failed on ${platform}.", e.toString())
+                } else {
+                    def commitId = utils.getCommitId(platform)
+                    notifyTestFailed("Rendering regression image analysis failed on ${platform} [${branch_name}; ${commitId}]",
+                            "Running the rendering regression of commit ${commitId} from the branch ${branch_name} succeeded on ${platform}, but the image analysis failed.",
+                            e.toString(), "tyler@x-plane.com")
+                }
+            }
         }
     }
 }
@@ -102,13 +132,22 @@ def doArchive() {
         dir(checkoutDir) {
             List products = []
             try {
-                for(String screenshotName : expected_screenshot_names) {
+                for(String screenshotName : expectedScreenshotNames) {
                     def dest = "${screenshotName}_${platform}.png"
                     try {
                         utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
                         products.push(dest)
                     } catch(e) { } // No error if it doesn't exist
                 }
+
+                if(isRenderingRegression) {
+                    String zipName = "regression_images.zip"
+                    String cmd = "zip -r ${zipName} regression_images/*"
+                    echo cmd
+                    sh cmd
+                    products.push(zipName)
+                }
+
                 def logDest = "Log_${platform}.txt"
                 utils.moveFilePatternToDest("Log.txt", logDest)
                 products.push(logDest)

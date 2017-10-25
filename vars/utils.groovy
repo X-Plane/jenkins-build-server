@@ -36,13 +36,17 @@ String getCommitId(String platform='') {
     }
 }
 
+String getArchiveRoot(String platform='') {
+    return chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/", "D:\\Dropbox\\jenkins-archive\\", platform)
+}
 String getArchiveDir(String platform='') {
+    String archiveRoot = getArchiveRoot(platform)
     String subdir = steam_build ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
     String commitDir = getCommitId(platform)
     if(is_release) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
         commitDir = branch_name + '-' + commitDir
     }
-    return escapeSlashes(chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/${subdir}${commitDir}/", "D:\\Dropbox\\jenkins-archive\\${subdir}${commitDir}\\", platform))
+    return chooseByPlatformNixWin("${archiveRoot}${subdir}${commitDir}/", "${archiveRoot}${subdir}${commitDir}\\", platform)
 }
 
 List getExpectedProducts(String platform) {
