@@ -69,6 +69,7 @@ def doCheckout() {
         if(utils.copyBuildProductsFromArchive(utils.getExpectedProducts(platform), platform)) {
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {
+            def commitId = utils.getCommitId(platform)
             notifyTestFailed(
                     "Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Missing executables to test on ${platform} [${branch_name}]",
