@@ -62,8 +62,11 @@ def doCheckout() {
         if(utils.copyBuildProductsFromArchive(utils.getExpectedProducts(platform), platform)) {
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {
-            notifyTestFailed("Missing executables to test on ${platform} [${branch_name}]",
-                    "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name}. We will be unable to test until this is fixed.")
+            notifyTestFailed(
+                    "Testing failed on ${platform} [${branch_name}; ${commitId}]",
+                    "Missing executables to test on ${platform} [${branch_name}]",
+                    "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name}. We will be unable to test until this is fixed.",
+                    'tyler@x-plane.com')
         }
     }
 }
