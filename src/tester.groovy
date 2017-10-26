@@ -147,7 +147,11 @@ def doArchive() {
                     } catch(e) { } // No error if it doesn't exist
                 }
 
-                if(isRenderingRegression) {
+                if(isFpsTest) {
+                    String dest = "fps_test_results_${platform}.txt"
+                    utils.moveFilePatternToDest("fps_test_results.txt", dest)
+                    products.push(dest)
+                } else if(isRenderingRegression) {
                     String zipName = "regression_images.zip"
                     String cmd = "zip -r ${zipName} regression_images/*"
                     echo cmd
