@@ -100,7 +100,7 @@ def doTest() {
             String setupVenv = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt"
             echo setupVenv
             sh setupVenv
-            String runTest = "env/${binSubdir}/python ${testToRun} --app ../${app}"
+            String runTest = override_test_cmd ? override_test_cmd : "env/${binSubdir}/python ${testToRun} --app ../${app}"
             echo runTest
             sh runTest
         } catch(e) {
