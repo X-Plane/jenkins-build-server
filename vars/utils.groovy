@@ -34,9 +34,9 @@ def do3PlatformStage(String stageName, Closure c) {
     def closure = c
     stage(stageName) {
         parallel(
-                'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
-                'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
-                'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+                'Windows' : { if(build_windows) { node('windows') { closure('Windows') } } },
+                'macOS'   : { if(build_mac)     { node('mac')     { closure('macOS')   } } },
+                'Linux'   : { if(build_linux)   { node('linux')   { closure('Linux')   } } }
         )
     }
 }
