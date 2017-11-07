@@ -19,8 +19,8 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     app_suffix = is_release ? "" : "_NODEV_OPT"
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
 
-    node = globalSteps ? globalSteps.node : null
-    parallel = globalSteps ? globalSteps.parallel : null
+    node = globalSteps ? globalSteps.&node : null
+    parallel = globalSteps ? globalSteps.&parallel : null
 }
 
 def replyToTrigger(String msg, String errorMsg='') {
