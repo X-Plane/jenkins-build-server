@@ -49,7 +49,7 @@ String getArchiveDir(String platform='') {
     return chooseByPlatformNixWin("${archiveRoot}${subdir}${commitDir}/", "${archiveRoot}${subdir}${commitDir}\\", platform)
 }
 
-List getExpectedProducts(String platform) {
+List getExpectedXPlaneProducts(String platform) {
     String appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
     List appNamesNoInstaller = addSuffix(build_all_apps ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], app_suffix)
     List appNames = appNamesNoInstaller + (build_all_apps ? ["X-Plane 11 Installer" + app_suffix] : [])
@@ -73,16 +73,12 @@ List getExpectedProducts(String platform) {
     return filesWithExt
 }
 
-def nukeExpectedProductsIfExist(String platform) {
-    def products = getExpectedProducts(platform)
-    for(def p : products) {
+def nukeIfExist(List<String> files, String platform) {
+    for(def f : files) {
         try {
-            chooseShellByPlatformNixWin("rm -Rf ${p}", "del \"${p}\"", platform)
+            chooseShellByPlatformNixWin("rm -Rf ${f}", "del \"${f}\"", platform)
         } catch(e) { } // No old executables lying around? No problem!
     }
-    try {
-        chooseShellByPlatformNixWin('rm *.png', 'del "*.png"', platform)
-    } catch(e) { }
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {

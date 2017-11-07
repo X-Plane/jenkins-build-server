@@ -50,12 +50,13 @@ if(pmt_subject && pmt_from) {
 // IMPLEMENTATION
 //--------------------------------------------------------------------------------------------------------------------------------
 def doCheckout() {
-    dir(checkoutDir) {
-        utils.nukeExpectedProductsIfExist(platform)
-    }
+    // Nuke previous products
+    cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
+    clean(utils.getExpectedXPlaneProducts(platform) + ['*.png'], cleanCommand, platform, utils)
 
     try {
-        xplaneCheckout(branch_name, checkoutDir, true, platform)
+        xplaneCheckout(branch_name, checkoutDir, platform)
+        getArt()
     } catch(e) {
         notifyTestFailed("Jenkins Git checkout is broken on tester ${platform} [${branch_name}]",
                 "${platform} Git checkout failed on branch ${branch_name}. We will be unable to test until this is fixed.",
@@ -66,7 +67,7 @@ def doCheckout() {
 
     // Copy pre-built executables to our working dir as well
     dir(checkoutDir) {
-        def products = utils.getExpectedProducts(platform)
+        def products = utils.getExpectedXPlaneProducts(platform)
         if(utils.copyBuildProductsFromArchive(products, platform)) {
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {

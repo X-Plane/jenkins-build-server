@@ -55,17 +55,11 @@ def runOn3Platforms(Closure c) {
 
 def doCheckout(String platform) {
     // Nuke previous products
-    dir(utils.getCheckoutDir(platform)) {
-        utils.nukeExpectedProductsIfExist(platform)
-        if(utils.toRealBool(clean_build)) {
-            try {
-                utils.chooseShellByPlatformMacWinLin(['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'], platform)
-            } catch (e) { }
-        }
-    }
+    cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
+    clean(utils.getExpectedXPlaneProducts(platform), cleanCommand, platform, utils)
 
     try {
-        xplaneCheckout(branch_name, utils.getCheckoutDir(platform), false, platform)
+        xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
     } catch(e) {
         currentBuild.result = "FAILED"
         notifyBuild("Jenkins Git checkout is broken on ${platform} [${branch_name}]",
@@ -83,7 +77,7 @@ def doBuild(String platform) {
             assert archiveDir : "Got an empty archive dir"
             assert !archiveDir.contains("C:") || utils.isWindows(platform) : "Got a Windows path on platform " + platform + " from utils.getArchiveDirAndEnsureItExists() in doBuild()"
             assert !archiveDir.contains("/jenkins/") || utils.isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDirAndEnsureItExists() in doBuild()"
-            def toBuild = utils.getExpectedProducts(platform)
+            def toBuild = utils.getExpectedXPlaneProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
             if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild, platform)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
@@ -134,7 +128,7 @@ def doArchive(String platform) {
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            def products = utils.getExpectedProducts(platform)
+            def products = utils.getExpectedXPlaneProducts(platform)
             archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
 
             def dest = utils.escapeSlashes(dropboxPath)
