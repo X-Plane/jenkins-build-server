@@ -2,7 +2,6 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
     assert environment['build_windows'] && environment['build_mac'] && environment['build_linux'], "Missing expected build parameters: platforms"
-    assert environment['build_all_apps'], "Missing expected build parameters: apps"
     assert environment['release_build'], "Missing expected build parameters: release_build"
     notify = notifyStep
     branch_name = environment['branch_name']
