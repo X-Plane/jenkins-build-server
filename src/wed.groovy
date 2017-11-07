@@ -31,7 +31,7 @@ def doBuild(String platform) {
     dir(getWedCheckoutDir(platform)) {
         try {
             def projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
-            def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
+            def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target WED -config Release -project ${projectFile}"
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} clean | xcpretty",
                     "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
@@ -40,7 +40,7 @@ def doBuild(String platform) {
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} build | xcpretty",
-                    "\"${tool 'MSBuild'}\" /t:Build /m /p:Platform=\"x64\" msvc\\XPTools.sln",
+                    "\"${tool 'MSBuild'}\" /t:WorldEditor /m /p:Configuration=\"Release\" msvc\\XPTools.sln",
                     "make -s -C . conf=release_opt WED"
             ], platform)
         } catch (e) {
@@ -56,7 +56,8 @@ def doArchive(String platform) {
             if(utils.isMac(platform)) {
                 sh 'zip -r WED.app.zip WED.xcarchive/Products/Applications/WED.app'
             }
-            archiveWithDropbox(getExpectedWedProducts(platform), getArchiveDirAndEnsureItExists(platform), true, utils)
+            def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\', 'build/Linux/release_opt/'], platform))
+            archiveWithDropbox(productPaths, utils.getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
         }
     } catch (e) {
         utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
@@ -67,19 +68,11 @@ def doArchive(String platform) {
 }
 
 List<String> getExpectedWedProducts(String platform) {
-    return [utils.chooseByPlatformMacWinLin('WED.app.zip', 'WED.exe', 'WED', platform)]
+    return [utils.chooseByPlatformMacWinLin(['WED.app.zip', 'WorldEditor.exe', 'WED'], platform)]
 }
 String getWedCheckoutDir(String platform) {
     return utils.chooseByPlatformNixWin("/jenkins/xptools/", "C:\\jenkins\\xptools\\", platform)
 }
 
-String getArchiveDirAndEnsureItExists(String platform) {
-    def dirChar = chooseByPlatformNixWin('/', '\\', platform)
-    def out = utils.getArchiveDir(platform) + dirChar + 'WED' + dirChar
-    try {
-        utils.chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
-    } catch(e) { } // ignore errors if it already exists
-    return out
-}
 
 

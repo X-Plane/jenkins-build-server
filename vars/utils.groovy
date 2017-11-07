@@ -71,14 +71,31 @@ String getCommitId(String platform='') {
 String getArchiveRoot(String platform='') {
     return chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/", "D:\\Dropbox\\jenkins-archive\\", platform)
 }
-String getArchiveDir(String platform='') {
+
+String getArchiveDir(String platform='', String optionalSubdir='') {
     String archiveRoot = getArchiveRoot(platform)
-    String subdir = steam_build ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
+    def dirChar = chooseByPlatformNixWin('/', '\\', platform)
+    String steamSubdir = steam_build ? "steam${dirChar}" : ""
+    if(optionalSubdir) {
+        optionalSubdir += dirChar
+    }
     String commitDir = getCommitId(platform)
     if(is_release) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
         commitDir = branch_name + '-' + commitDir
     }
-    return chooseByPlatformNixWin("${archiveRoot}${subdir}${commitDir}/", "${archiveRoot}${subdir}${commitDir}\\", platform)
+    String archiveDir = chooseByPlatformNixWin("${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}/", "${archiveRoot}${subdir}${commitDir}\\", platform)
+    assert archiveDir : "Got an empty archive dir"
+    assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform ${platform} from getArchiveDir()"
+    assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDir()"
+    return archiveDir
+}
+
+String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
+    String out = getArchiveDir(platform, optionalSubdir)
+    try {
+        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
+    } catch(e) { } // ignore errors if it already exists
+    return out
 }
 
 List getExpectedXPlaneProducts(String platform) {
