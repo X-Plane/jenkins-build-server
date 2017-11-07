@@ -13,7 +13,7 @@ environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['build_all_apps'] = build_all_apps
-utils.setEnvironment(environment)
+utils.setEnvironment(environment, steps)
 
 // Check configuration preconditions
 assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Release & Steam builds require all apps to be built"

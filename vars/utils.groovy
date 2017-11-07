@@ -1,4 +1,4 @@
-def setEnvironment(environment) {
+def setEnvironment(environment, steps) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
     assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
@@ -26,17 +26,18 @@ def setEnvironment(environment) {
     if(send_emails) {
         if(pmt_subject && pmt_from) {
             sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' ->
-                notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
+                steps.notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
             }
             replyToTriggerF = { String msg, String errorMsg='' ->
                 sendEmailF("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
             }
         } else {
             sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' ->
-                notify(subj, msg, errorMsg, recipient)
+                steps.notify(subj, msg, errorMsg, recipient)
             }
         }
     }
+    replyToTriggerF('testing')
 }
 
 
