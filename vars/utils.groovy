@@ -1,4 +1,4 @@
-def setEnvironment(environment, notifyStep) {
+def setEnvironment(environment, notifyStep, globalSteps=null) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
     assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
@@ -21,11 +21,26 @@ def setEnvironment(environment, notifyStep) {
     is_release = steam_build || release_build
     app_suffix = is_release ? "" : "_NODEV_OPT"
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
+
+    node = globalSteps ? globalSteps.node : null
+    parallel = globalSteps ? globalSteps.parallel : null
 }
 
 def replyToTrigger(String msg, String errorMsg='') {
     if(send_emails && pmt_subject && pmt_from) {
         sendEmail("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
+    }
+}
+
+def do3PlatformStage(String stageName, Closure c) {
+    assert node && parallel, 'Failed to pass global steps into utils.setEnvironment()'
+    def closure = c
+    stage(stageName) {
+        parallel(
+                'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
+                'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
+                'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+        )
     }
 }
 
