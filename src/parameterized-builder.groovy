@@ -34,7 +34,9 @@ assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Re
 // For failures in any other stage, the person to email is Tyler, the build farm maintainer.
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
-    stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
+    stage('Respond')                       {
+        steps.notify('Testing', '123', '', 'tyler@x-plane.com')
+        utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build')                         { runOn3Platforms(this.&doBuild) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
