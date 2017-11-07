@@ -2,6 +2,7 @@ def environment = [:]
 environment['branch_name'] = branch_name
 environment['send_emails'] = send_emails
 environment['pmt_subject'] = ''
+environment['directory_suffix'] = ''
 environment['pmt_from'] = ''
 environment['release_build'] = release_build
 environment['build_windows'] = build_windows

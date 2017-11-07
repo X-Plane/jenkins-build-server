@@ -1,10 +1,8 @@
 def setEnvironment(environment, notifyStep, globalSteps=null) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
-    assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
     assert environment['build_windows'] && environment['build_mac'] && environment['build_linux'], "Missing expected build parameters: platforms"
     assert environment['build_all_apps'], "Missing expected build parameters: apps"
-    assert environment['steam_build'], "Missing expected build parameters: steam_build"
     assert environment['release_build'], "Missing expected build parameters: release_build"
     notify = notifyStep
     branch_name = environment['branch_name']
@@ -141,7 +139,7 @@ def getBuildToolConfiguration() {
 // "But Tyler," you say, "why don't you just do foo = toRealBool(foo) at the top of the script and be done with it?"
 // Great question.
 // Because you also CAN'T CHANGE A VARIABLE'S TYPE AFTER IT'S BEEN CREATED.
-boolean toRealBool(String fakeBool) {
+boolean toRealBool(fakeBool) {
     return fakeBool == 'true'
 }
 
