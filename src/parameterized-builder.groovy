@@ -35,7 +35,7 @@ assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Re
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
     stage('Respond')                       {
-        steps.notify('Testing', '123', '', 'tyler@x-plane.com')
+        notify('Testing', '123', '', 'tyler@x-plane.com')
         utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build')                         { runOn3Platforms(this.&doBuild) }
