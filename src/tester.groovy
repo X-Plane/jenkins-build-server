@@ -14,7 +14,7 @@ environment['build_windows'] = 'true'
 environment['build_mac'] = 'true'
 environment['build_linux'] = 'true'
 environment['build_all_apps'] = 'false'
-utils.setEnvironment(environment, steps)
+utils.setEnvironment(environment, this.&notify)
 
 isFpsTest = test_type == 'fps_test'
 isSmokeTest = test_type == 'smoke_test'

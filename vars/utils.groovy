@@ -1,4 +1,4 @@
-def setEnvironment(environment, globalSteps) {
+def setEnvironment(environment, notifyStep) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
     assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
@@ -6,7 +6,7 @@ def setEnvironment(environment, globalSteps) {
     assert environment['build_all_apps'], "Missing expected build parameters: apps"
     assert environment['steam_build'], "Missing expected build parameters: steam_build"
     assert environment['release_build'], "Missing expected build parameters: release_build"
-    steps = globalSteps
+    notify = notifyStep
     branch_name = environment['branch_name']
     send_emails = toRealBool(environment['send_emails'])
     pmt_subject = environment['pmt_subject']
@@ -32,9 +32,9 @@ def replyToTrigger(String msg, String errorMsg='') {
 def sendEmail(String subj, String msg, String errorMsg='', String recipient='') {
     if(send_emails) {
         if(pmt_subject && pmt_from) {
-            steps.notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
+            notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
         } else {
-            steps.notify(subj, msg, errorMsg, recipient)
+            notify(subj, msg, errorMsg, recipient)
         }
     }
 }
