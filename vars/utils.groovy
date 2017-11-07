@@ -57,14 +57,12 @@ String getCheckoutDir(String platform='') {
 }
 
 String getCommitId(String platform='') {
-    dir(getCheckoutDir(platform)) {
-        if((platform && !isWindows(platform)) || isUnix()) {
-            return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-        } else {
-            def out = bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")
-            assert out.size() == 2
-            return out[1]
-        }
+    if((platform && !isWindows(platform)) || isUnix()) {
+        return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+    } else {
+        def out = bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")
+        assert out.size() == 2
+        return out[1]
     }
 }
 
