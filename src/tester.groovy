@@ -35,14 +35,14 @@ node(nodeType) {
 // RUN THE TESTS
 // This is where the magic happens.
 //--------------------------------------------------------------------------------------------------------------------------------
-stage('Respond')             { utils.replyToTriggerF("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
+stage('Respond')             { utils.replyToTrigger("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
 stage('Checkout')            { node(nodeType) { doCheckout() } }
 try {
     stage('Test')            { node(nodeType) { doTest() } }
 } finally { // we want to archive regardless of whether the tests passed
     stage('Archive')         { node(nodeType) { doArchive() } }
 }
-stage('Notify')              { utils.replyToTriggerF("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
+stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
 
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ def doCheckout() {
         xplaneCheckout(branch_name, checkoutDir, platform)
         getArt()
     } catch(e) {
-        notifyBrokenCheckout(utils.sendEmailF, 'autotesting', branch_name, platform, e)
+        notifyBrokenCheckout(utils.&sendEmail, 'autotesting', branch_name, platform, e)
     }
 
     // Copy pre-built executables to our working dir as well
@@ -68,7 +68,7 @@ def doCheckout() {
         } else {
             def commitId = utils.getCommitId(platform)
             def prodStr = products.join(', ')
-            utils.sendEmailF(
+            utils.sendEmail(
                     "Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Missing executables to test on ${platform} [${branch_name}]",
                     "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name}.\r\n\r\nWe were looking for:\r\n${prodStr}\r\nin directory:\r\n${archiveDir}\r\n\r\nWe will be unable to test until this is fixed.",
@@ -101,7 +101,7 @@ def doTest() {
             sh runTest
         } catch(e) {
             def commitId = utils.getCommitId(platform)
-            utils.sendEmailF("Testing failed on ${platform} [${branch_name}; ${commitId}]",
+            utils.sendEmail("Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Auto-testing of commit ${commitId} from the branch ${branch_name} failed.",
                     e.toString())
             throw e
@@ -113,14 +113,11 @@ def doTest() {
             try {
                 // TODO: Do the image analysis
             } catch(e) {
-                if(pmt_subject) {
-                    replyToTrigger("Rendering regression image analysis of commit ${pmt_subject} failed on ${platform}.", e.toString())
-                } else if(utils.send_emails) {
-                    def commitId = utils.getCommitId(platform)
-                    notify("Rendering regression image analysis failed on ${platform} [${branch_name}; ${commitId}]",
-                            "Running the rendering regression of commit ${commitId} from the branch ${branch_name} succeeded on ${platform}, but the image analysis failed.",
-                            e.toString(), "tyler@x-plane.com")
-                }
+                def commitId = utils.getCommitId(platform)
+                utils.sendEmail("Rendering regression image analysis failed on ${platform} [${branch_name}; ${commitId}]",
+                        "Running the rendering regression of commit ${commitId} from the branch ${branch_name} succeeded on ${platform}, but the image analysis failed.",
+                        e.toString(), "tyler@x-plane.com")
+                throw e
             }
         }
     }
@@ -168,10 +165,5 @@ def doArchive() {
     }
 }
 
-def replyToTrigger(String msg, String errorMsg='') {
-    if(utils.send_emails) {
-        notify("Re: " + pmt_subject, msg, errorMsg, pmt_from)
-    }
-}
 
 

@@ -1,4 +1,4 @@
-def setEnvironment(environment, steps) {
+def setEnvironment(environment, globalSteps) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
     assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
@@ -6,6 +6,7 @@ def setEnvironment(environment, steps) {
     assert environment['build_all_apps'], "Missing expected build parameters: apps"
     assert environment['steam_build'], "Missing expected build parameters: steam_build"
     assert environment['release_build'], "Missing expected build parameters: release_build"
+    steps = globalSteps
     branch_name = environment['branch_name']
     send_emails = toRealBool(environment['send_emails'])
     pmt_subject = environment['pmt_subject']
@@ -20,24 +21,22 @@ def setEnvironment(environment, steps) {
     is_release = steam_build || release_build
     app_suffix = is_release ? "" : "_NODEV_OPT"
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
+}
 
-    sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' -> }
-    replyToTriggerF = { String msg, String errorMsg='' -> }
+def replyToTrigger(String msg, String errorMsg='') {
+    if(send_emails && pmt_subject && pmt_from) {
+        sendEmail("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
+    }
+}
+
+def sendEmail(String subj, String msg, String errorMsg='', String recipient='') {
     if(send_emails) {
         if(pmt_subject && pmt_from) {
-            sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' ->
-                steps.notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
-            }
-            replyToTriggerF = { String msg, String errorMsg='' ->
-                sendEmailF("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
-            }
+            steps.notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
         } else {
-            sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' ->
-                steps.notify(subj, msg, errorMsg, recipient)
-            }
+            steps.notify(subj, msg, errorMsg, recipient)
         }
     }
-    replyToTriggerF('testing')
 }
 
 

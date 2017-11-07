@@ -34,11 +34,11 @@ assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Re
 // For failures in any other stage, the person to email is Tyler, the build farm maintainer.
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
-    stage('Respond')                       { utils.replyToTriggerF("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
+    stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build')                         { runOn3Platforms(this.&doBuild) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify')                        { utils.replyToTriggerF("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
+    stage('Notify')                        { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
 }
@@ -60,7 +60,7 @@ def doCheckout(String platform) {
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
     } catch(e) {
-        notifyBrokenCheckout(utils.sendEmailF, 'X-Plane', branch_name, platform, e)
+        notifyBrokenCheckout(utils.&sendEmail, 'X-Plane', branch_name, platform, e)
     }
 }
 
@@ -99,7 +99,7 @@ def doBuild(String platform) {
                 ], platform)
             }
         } catch (e) {
-            notifyDeadBuild(utils.sendEmailF, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
+            notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
     }
 }
@@ -125,7 +125,7 @@ def doArchive(String platform) {
             archiveWithDropbox(utils.getExpectedXPlaneProducts(platform), dropboxPath, true, utils)
         }
     } catch (e) {
-        utils.sendEmailF("Jenkins archive step failed on ${platform} [${branch_name}]",
+        utils.sendEmail("Jenkins archive step failed on ${platform} [${branch_name}]",
                 "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing build products.",
                 e.toString())
         throw e
