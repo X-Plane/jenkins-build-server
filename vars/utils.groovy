@@ -7,6 +7,9 @@ def setEnvironment(environment) {
     assert environment['steam_build'], "Missing expected build parameters: steam_build"
     assert environment['release_build'], "Missing expected build parameters: release_build"
     branch_name = environment['branch_name']
+    send_emails = toRealBool(environment['send_emails'])
+    pmt_subject = environment['pmt_subject']
+    pmt_from = environment['pmt_from']
     directory_suffix = environment['directory_suffix']
     release_build = toRealBool(environment['release_build'])
     steam_build = toRealBool(environment['steam_build'])
@@ -17,6 +20,23 @@ def setEnvironment(environment) {
     is_release = steam_build || release_build
     app_suffix = is_release ? "" : "_NODEV_OPT"
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
+
+    sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' -> }
+    replyToTriggerF = { String msg, String errorMsg='' -> }
+    if(send_emails) {
+        if(pmt_subject && pmt_from) {
+            sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' ->
+                notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
+            }
+            replyToTriggerF = { String msg, String errorMsg='' ->
+                sendEmailF("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
+            }
+        } else {
+            sendEmailF = { String subj, String msg, String errorMsg='', String recipient='' ->
+                notify(subj, msg, errorMsg, recipient)
+            }
+        }
+    }
 }
 
 

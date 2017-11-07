@@ -3,6 +3,9 @@ branch_name = pmt_subject ? pmt_subject.trim() : branch_name
 
 def environment = [:]
 environment['branch_name'] = branch_name
+environment['send_emails'] = send_emails
+environment['pmt_subject'] = pmt_subject
+environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
 environment['release_build'] = release_build
 environment['steam_build'] = steam_build
@@ -31,15 +34,11 @@ assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Re
 // For failures in any other stage, the person to email is Tyler, the build farm maintainer.
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
-    if(pmt_subject && pmt_from) {
-        stage('Respond')                   { replyToTrigger('Build started.\n\nThe automated build of commit ' + pmt_subject + ' is in progress.') }
-    }
+    stage('Respond')                       { utils.replyToTriggerF("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build')                         { runOn3Platforms(this.&doBuild) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    if(pmt_subject && pmt_from) {
-        stage('Notify')                    { replyToTrigger('SUCCESS!\n\nThe automated build of commit ' + pmt_subject + ' succeeded.') }
-    }
+    stage('Notify')                        { utils.replyToTriggerF("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
 }
@@ -61,12 +60,7 @@ def doCheckout(String platform) {
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
     } catch(e) {
-        currentBuild.result = "FAILED"
-        notifyBuild("Jenkins Git checkout is broken on ${platform} [${branch_name}]",
-                "${platform} Git checkout failed on branch ${branch_name}. We will be unable to continue until this is fixed.",
-                e.toString(),
-                'tyler@x-plane.com')
-        throw e
+        notifyBrokenCheckout(utils.sendEmailF, 'X-Plane', branch_name, platform, e)
     }
 }
 
@@ -105,7 +99,7 @@ def doBuild(String platform) {
                 ], platform)
             }
         } catch (e) {
-            notifyDeadBuild(platform, e)
+            notifyDeadBuild(utils.sendEmailF, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
     }
 }
@@ -128,21 +122,13 @@ def doArchive(String platform) {
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            def products = utils.getExpectedXPlaneProducts(platform)
-            archiveArtifacts artifacts: products.join(', '), fingerprint: true, onlyIfSuccessful: false
-
-            def dest = utils.escapeSlashes(dropboxPath)
-            for(String p : products) {
-                // Do *NOT* copy to Dropbox if the products already exist! We need to treat the Dropbox archives as write-once
-                if(fileExists(dest + p)) {
-                    echo "Skipping copy of ${p} to Dropbox, since the file already exists in ${dest}"
-                } else {
-                    utils.moveFilePatternToDest(p, dest)
-                }
-            }
+            archiveWithDropbox(utils.getExpectedXPlaneProducts(platform), dropboxPath, true, utils)
         }
     } catch (e) {
-        notifyFailedArchive(platform, e)
+        utils.sendEmailF("Jenkins archive step failed on ${platform} [${branch_name}]",
+                "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing build products.",
+                e.toString())
+        throw e
     }
 }
 
@@ -152,54 +138,4 @@ String getArchiveDirAndEnsureItExists(String platform) {
         utils.chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
     } catch(e) { } // ignore errors if it already exists
     return out
-}
-
-def notifyDeadBuild(String platform, Exception e) {
-    currentBuild.result = "FAILED"
-    if(pmt_subject) {
-        replyToTrigger("The automated build of commit ${pmt_subject} failed on ${platform}.", e.toString())
-    } else {
-        def commitId = utils.getCommitId(platform)
-        notifyBuild(platform + " build is broken [" + branch_name + "; " + commitId + "]",
-                platform + " build of X-Plane Desktop commit " + commitId + " from the branch " + branch_name + " failed. There was a problem with one or more of X-Plane, Plane Maker, Airfoil Maker, or the installer.",
-                e.toString())
-    }
-    throw e
-}
-
-def notifyFailedArchive(String platform, Exception e) {
-    notifyBuild("Jenkins archive step failed on ${platform} [${branch_name}]",
-            "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing build products.",
-            e.toString())
-    throw e
-}
-
-def replyToTrigger(String msg, String errorMsg='') {
-    notifyBuild("Re: " + pmt_subject, msg, errorMsg, pmt_from)
-}
-
-def notifyBuild(String subj, String msg, String errorMsg, String recipient="") { // empty recipient means we'll send to the most likely suspects
-    def summary = errorMsg.isEmpty() ?
-            "Download the build products: ${BUILD_URL}artifact/*zip*/archive.zip" :
-            "The error was: ${errorMsg}"
-
-    def body = """${msg}
-    
-${summary}
-        
-Build URL: ${BUILD_URL}
-
-Console Log (split by machine/task/subtask): ${BUILD_URL}flowGraphTable/
-
-Console Log (plain text): ${BUILD_URL}console
-"""
-    if(utils.toRealBool(send_emails)) {
-        emailext attachLog: true,
-                body: body,
-                subject: subj,
-                to: recipient ? recipient : emailextrecipients([
-                        [$class: 'CulpritsRecipientProvider'],
-                        [$class: 'RequesterRecipientProvider']
-                ])
-    }
 }
