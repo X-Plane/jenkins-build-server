@@ -28,7 +28,7 @@ def doCheckout(String platform) {
 }
 
 def doBuild(String platform) {
-    String buildDir = utils.chooseShellByPlatformMacWinLin(['Build/Mac/', "Build\\Win", 'Build/Linux/'], platform)
+    String buildDir = utils.chooseByPlatformMacWinLin(['Build/Mac/', "Build\\Win", 'Build/Linux/'], platform)
     dir(getSdkCheckoutDir(platform) + buildDir) {
         try {
             def projectFile = utils.chooseByPlatformNixWin("XPLM.xcodeproj", "msvc\\XPTools.sln", platform)
