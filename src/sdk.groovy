@@ -31,7 +31,7 @@ def doBuild(String platform) {
     String buildDir = utils.chooseByPlatformMacWinLin(['Build/Mac/', "Build\\Win", 'Build/Linux/'], platform)
     dir(getSdkCheckoutDir(platform) + buildDir) {
         try {
-            def projectFile = utils.chooseByPlatformNixWin("XPLM.xcodeproj", "msvc\\XPTools.sln", platform)
+            def projectFile = utils.chooseByPlatformNixWin("XPLM.xcodeproj", "XPLM.sln", platform)
             def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target XPLM -config Release -project ${projectFile}"
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} clean | xcpretty",
