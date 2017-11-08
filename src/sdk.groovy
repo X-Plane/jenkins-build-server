@@ -55,9 +55,9 @@ def doArchive(String platform) {
         dir(getSdkCheckoutDir(platform)) {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
-                sh 'zip -r XPLM.framework.zip Build/Mac/build/Release/XPLM.framework'
+                sh 'cd Build/Mac/build/Release/ && zip -r XPLM.framework.zip XPLM.framework'
             }
-            def productPaths = utils.addPrefix(getExpectedSdkProducts(platform), utils.chooseByPlatformMacWinLin(['', 'Build\\Win\\Release\\Plugins\\', 'Build/Linux/build/'], platform))
+            def productPaths = utils.addPrefix(getExpectedSdkProducts(platform), utils.chooseByPlatformMacWinLin(['Build/Mac/build/Release/', 'Build\\Win\\Release\\Plugins\\', 'Build/Linux/build/'], platform))
             archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform), true, utils)
         }
     } catch (e) {
