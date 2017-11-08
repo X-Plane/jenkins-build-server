@@ -41,7 +41,7 @@ def doBuild(String platform) {
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} build | xcpretty",
-                    "\"${tool 'MSBuild'}\" /t:XPLM /m /p:Configuration=\"Release\" msvc\\XPTools.sln",
+                    "\"${tool 'MSBuild'}\" /t:XPLM /m /p:Configuration=\"Release\" ${projectFile}",
                     "make XPLM"
             ], platform)
         } catch (e) {
