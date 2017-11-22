@@ -1,4 +1,4 @@
-//stage('Checkout') { run(this.&doCheckout) }
+stage('Checkout') { run(this.&doCheckout) }
 stage('Test')     { run(this.&testFunnel) }
 
 
@@ -8,29 +8,15 @@ def run(Closure c) {
 }
 
 def doCheckout(String platform) {
-    dir(getCheckoutDir()) {
-        try {
-            checkout(
-                    [$class: 'GitSCM', branches: [[name: 'origin/master']],
-                     doGenerateSubmoduleConfigurations: false,
-                     extensions: [
-                             //[$class: 'CleanCheckout'],
-                             //[$class: 'CleanBeforeCheckout'],
-                             [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '', maximumAgeInDays: 21]]
-                     ],
-                     submoduleCfg: [],
-                     userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git']]]
-            )
-            def commit_id = getCommitId()
-            echo "Building commit ${commit_id} on " + platform
-        } catch(e) {
-            currentBuild.result = "FAILED"
-            notifyBuild('Sales funnel Git checkout is broken on ' + platform,
-                    'Sales funnel Git checkout failed. We will be unable to continuously check the web site until this is fixed.',
-                    e.toString(),
-                    'tyler@x-plane.com')
-            throw e
-        }
+    try {
+        xplaneCheckout('master', getCheckoutDir(), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
+    } catch(e) {
+        currentBuild.result = "FAILED"
+        notifyBuild('Sales funnel Git checkout is broken on ' + platform,
+                'Sales funnel Git checkout failed. We will be unable to continuously check the web site until this is fixed.',
+                e.toString(),
+                'tyler@x-plane.com')
+        throw e
     }
 }
 
