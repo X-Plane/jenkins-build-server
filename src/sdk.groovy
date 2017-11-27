@@ -57,7 +57,7 @@ def doArchive(String platform) {
             if(utils.isMac(platform)) {
                 sh 'cd Build/Mac/build/Release/ && zip -r XPLM.framework.zip XPLM.framework'
             }
-            def productPaths = utils.addPrefix(getExpectedSdkProducts(platform), utils.chooseByPlatformMacWinLin(['Build/Mac/build/Release/', 'Build\\Win\\Release\\Plugins\\', 'Build/Linux/build/'], platform))
+            def productPaths = utils.addPrefix(getExpectedSdkProducts(platform), utils.chooseByPlatformMacWinLin(['Build/Mac/build/Release/', 'Build\\Win\\Release\\plugins\\', 'Build/Linux/build/'], platform))
             archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform), true, utils)
         }
     } catch (e) {
