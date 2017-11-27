@@ -8,6 +8,7 @@ environment['release_build'] = release_build
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
+environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 try {

@@ -13,6 +13,7 @@ environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['build_all_apps'] = build_all_apps
+environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify)
 
 // Check configuration preconditions
