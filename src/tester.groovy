@@ -25,8 +25,8 @@ isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionComp
 expectedScreenshotNames = isSmokeTest ? ["sunset_scattered_clouds", "evening", "stormy"] : []
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
+    checkoutDir = utils.getCheckoutDir(platform)
     dir(checkoutDir) {
-        checkoutDir = utils.getCheckoutDir(platform)
         renderingRegressionMaster = utils.getArchiveRoot(platform) + 'rendering-master/'
         archiveDir = isRenderingRegressionMaster ?
                 renderingRegressionMaster :
