@@ -58,7 +58,7 @@ def doCheckout() {
 
     try {
         xplaneCheckout(branch_name, checkoutDir, platform)
-        getArt()
+        getArt(checkoutDir)
     } catch(e) {
         notifyBrokenCheckout(utils.&sendEmail, 'autotesting', branch_name, platform, e)
     }
