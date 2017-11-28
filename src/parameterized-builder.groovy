@@ -104,7 +104,7 @@ def doBuild(String platform) {
 
 
 def getBuildToolConfiguration() {
-    return utils.steam_build ? "NODEV_OPT_Prod_Steam" : (utils.release_build ? "NODEV_OPT_Prod" : "NODEV_OPT")
+    return utils.steam_build ? "NODEV_OPT_Prod_Steam" : (utils.release_build ? "NODEV_OPT_Prod" : (utils.is_dev ? "DEV_OPT" : "NODEV_OPT"))
 }
 
 def doArchive(String platform) {

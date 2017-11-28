@@ -16,8 +16,9 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     build_linux = toRealBool(environment['build_linux'])
     build_all_apps = toRealBool(environment['build_all_apps'])
     is_release = steam_build || release_build
-    assert environment['dev_build'] == 'false' || !is_release, "Dev and release options are mutually exlusive"
-    app_suffix = is_release ? "" : (toRealBool(environment['dev_build']) ? "_DEV_OPT" : "_NODEV_OPT")
+    is_dev = toRealBool(environment['dev_build'])
+    assert !(is_dev && is_release), "Dev and release options are mutually exlusive"
+    app_suffix = is_release ? "" : (is_dev ? "_DEV_OPT" : "_NODEV_OPT")
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
 
     node = globalSteps ? globalSteps.&node : null
