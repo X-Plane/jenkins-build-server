@@ -1,10 +1,7 @@
-def setEnvironment(environment, notifyStep) {
+def setEnvironment(environment, notifyStep, globalSteps=null) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
-    assert environment['directory_suffix'], "Missing expected build parameter: directory_suffix"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
     assert environment['build_windows'] && environment['build_mac'] && environment['build_linux'], "Missing expected build parameters: platforms"
-    assert environment['build_all_apps'], "Missing expected build parameters: apps"
-    assert environment['steam_build'], "Missing expected build parameters: steam_build"
     assert environment['release_build'], "Missing expected build parameters: release_build"
     notify = notifyStep
     branch_name = environment['branch_name']
@@ -19,13 +16,30 @@ def setEnvironment(environment, notifyStep) {
     build_linux = toRealBool(environment['build_linux'])
     build_all_apps = toRealBool(environment['build_all_apps'])
     is_release = steam_build || release_build
-    app_suffix = is_release ? "" : "_NODEV_OPT"
+    is_dev = toRealBool(environment['dev_build'])
+    assert !(is_dev && is_release), "Dev and release options are mutually exlusive"
+    app_suffix = is_release ? "" : (is_dev ? "_DEV_OPT" : "_NODEV_OPT")
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
+
+    node = globalSteps ? globalSteps.&node : null
+    parallel = globalSteps ? globalSteps.&parallel : null
 }
 
 def replyToTrigger(String msg, String errorMsg='') {
     if(send_emails && pmt_subject && pmt_from) {
         sendEmail("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
+    }
+}
+
+def do3PlatformStage(String stageName, Closure c) {
+    assert node && parallel, 'Failed to pass global steps into utils.setEnvironment()'
+    def closure = c
+    stage(stageName) {
+        parallel(
+                'Windows' : { if(build_windows) { node('windows') { closure('Windows') } } },
+                'macOS'   : { if(build_mac)     { node('mac')     { closure('macOS')   } } },
+                'Linux'   : { if(build_linux)   { node('linux')   { closure('Linux')   } } }
+        )
     }
 }
 
@@ -45,28 +59,43 @@ String getCheckoutDir(String platform='') {
 }
 
 String getCommitId(String platform='') {
-    dir(getCheckoutDir(platform)) {
-        if((platform && !isWindows(platform)) || isUnix()) {
-            return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-        } else {
-            def out = bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")
-            assert out.size() == 2
-            return out[1]
-        }
+    if((platform && !isWindows(platform)) || isUnix()) {
+        return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
+    } else {
+        def out = bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")
+        assert out.size() == 2
+        return out[1]
     }
 }
 
 String getArchiveRoot(String platform='') {
     return chooseByPlatformNixWin("/jenkins/Dropbox/jenkins-archive/", "D:\\Dropbox\\jenkins-archive\\", platform)
 }
-String getArchiveDir(String platform='') {
+
+String getArchiveDir(String platform='', String optionalSubdir='') {
     String archiveRoot = getArchiveRoot(platform)
-    String subdir = steam_build ? chooseByPlatformNixWin("steam/", "steam\\", platform) : ""
+    def dirChar = chooseByPlatformNixWin('/', '\\', platform)
+    String steamSubdir = steam_build ? "steam${dirChar}" : ""
+    if(optionalSubdir) {
+        optionalSubdir += dirChar
+    }
     String commitDir = getCommitId(platform)
     if(is_release) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
         commitDir = branch_name + '-' + commitDir
     }
-    return chooseByPlatformNixWin("${archiveRoot}${subdir}${commitDir}/", "${archiveRoot}${subdir}${commitDir}\\", platform)
+    String archiveDir = chooseByPlatformNixWin("${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}/", "${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}\\", platform)
+    assert archiveDir : "Got an empty archive dir"
+    assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform ${platform} from getArchiveDir()"
+    assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDir()"
+    return archiveDir
+}
+
+String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
+    String out = getArchiveDir(platform, optionalSubdir)
+    try {
+        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
+    } catch(e) { } // ignore errors if it already exists
+    return out
 }
 
 List getExpectedXPlaneProducts(String platform) {
@@ -126,7 +155,7 @@ def getBuildToolConfiguration() {
 // "But Tyler," you say, "why don't you just do foo = toRealBool(foo) at the top of the script and be done with it?"
 // Great question.
 // Because you also CAN'T CHANGE A VARIABLE'S TYPE AFTER IT'S BEEN CREATED.
-boolean toRealBool(String fakeBool) {
+boolean toRealBool(fakeBool) {
     return fakeBool == 'true'
 }
 

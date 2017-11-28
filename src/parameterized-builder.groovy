@@ -13,6 +13,7 @@ environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['build_all_apps'] = build_all_apps
+environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify)
 
 // Check configuration preconditions
@@ -67,10 +68,7 @@ def doCheckout(String platform) {
 def doBuild(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
-            def archiveDir = getArchiveDirAndEnsureItExists(platform)
-            assert archiveDir : "Got an empty archive dir"
-            assert !archiveDir.contains("C:") || utils.isWindows(platform) : "Got a Windows path on platform " + platform + " from utils.getArchiveDirAndEnsureItExists() in doBuild()"
-            assert !archiveDir.contains("/jenkins/") || utils.isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDirAndEnsureItExists() in doBuild()"
+            def archiveDir = utils.getArchiveDirAndEnsureItExists(platform)
             def toBuild = utils.getExpectedXPlaneProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
             if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild, platform)) {
@@ -105,14 +103,14 @@ def doBuild(String platform) {
 }
 
 def getBuildToolConfiguration() {
-    return utils.steam_build ? "NODEV_OPT_Prod_Steam" : (utils.release_build ? "NODEV_OPT_Prod" : "NODEV_OPT")
+    return utils.steam_build ? "NODEV_OPT_Prod_Steam" : (utils.release_build ? "NODEV_OPT_Prod" : (utils.is_dev ? "DEV_OPT" : "NODEV_OPT"))
 }
 
 def doArchive(String platform) {
     try {
         def checkoutDir = utils.getCheckoutDir(platform)
         dir(checkoutDir) {
-            def dropboxPath = getArchiveDirAndEnsureItExists(platform)
+            def dropboxPath = utils.getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
@@ -129,12 +127,4 @@ def doArchive(String platform) {
                 e.toString())
         throw e
     }
-}
-
-String getArchiveDirAndEnsureItExists(String platform) {
-    def out = utils.getArchiveDir(platform)
-    try {
-        utils.chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
-    } catch(e) { } // ignore errors if it already exists
-    return out
 }
