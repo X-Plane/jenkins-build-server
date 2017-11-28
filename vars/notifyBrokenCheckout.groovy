@@ -3,5 +3,5 @@ def call(sendEmailF=null, String app = '', String branchName = '', String platfo
             "${platform} Git checkout for ${app} failed on branch ${branchName}. We will be unable to continue until this is fixed.",
             err.toString(),
             'tyler@x-plane.com')
-    throw e
+    throw err
 }
