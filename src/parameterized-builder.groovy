@@ -41,15 +41,17 @@ try {
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
     stage('Notify')                        { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
 } finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    if(utils.build_windows) {
+        node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    }
 }
 
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { node('windows') { if(utils.build_windows) { closure('Windows') } } },
-            'macOS'   : { node('mac')     { if(utils.build_mac)     { closure('macOS')   } } },
-            'Linux'   : { node('linux')   { if(utils.build_linux)   { closure('Linux')   } } }
+            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
     )
 }
 
