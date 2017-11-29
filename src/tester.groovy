@@ -26,12 +26,6 @@ expectedScreenshotNames = isSmokeTest ? ["sunset_scattered_clouds", "evening", "
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
-    dir(checkoutDir) {
-        renderingRegressionMaster = utils.getArchiveRoot(platform) + 'rendering-master/'
-        archiveDir = isRenderingRegressionMaster ?
-                renderingRegressionMaster :
-                utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
-    }
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -66,6 +60,7 @@ def doCheckout() {
     // Copy pre-built executables to our working dir as well
     dir(checkoutDir) {
         def products = utils.getExpectedXPlaneProducts(platform)
+        archiveDir = getArchiveDir()
         if(utils.copyBuildProductsFromArchive(products, platform)) {
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {
@@ -79,6 +74,13 @@ def doCheckout() {
             throw new java.io.FileNotFoundException()
         }
     }
+}
+
+def getArchiveDir() {
+    renderingRegressionMaster = utils.getArchiveRoot(platform) + 'rendering-master/'
+    return isRenderingRegressionMaster ?
+            renderingRegressionMaster :
+            utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
 }
 
 def doTest() {
@@ -155,7 +157,7 @@ def doArchive() {
                 utils.moveFilePatternToDest("Log.txt", logDest)
                 products.push(logDest)
             } finally {
-                archiveWithDropbox(products, archiveDir, false, utils)
+                archiveWithDropbox(products, getArchiveDir(), false, utils)
             }
         }
     } catch (e) {
