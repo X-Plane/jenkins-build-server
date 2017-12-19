@@ -99,27 +99,38 @@ def doTest() {
             } else if(isRenderingRegression) {
                 testsToRun.push('test_runner.py rendering_regression.test --nodelete')
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
-                readFile('jenkins_tests.list').eachLine { line ->
-                    line = line.trim()
-                    if(line && !line.startsWith('#')) {
-                        testsToRun << line
-                    }
+                def testFiles = readListFile('jenkins_tests.list')
+                for(String testFile : testFiles) {
+                    testsToRun << "test_runner.py ${testFile} --nodelete"
                 }
+                echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
             String setupVenv = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt"
             echo setupVenv
             sh setupVenv
 
+            def errorToThrow = null
             for(String testToRun : testsToRun) {
-                String completeCommand = "env/${binSubdir}/python test_runner.py ${testToRun} --nodelete --app ../${app}"
-                echo completeCommand
-                sh completeCommand
+                String completeCommand = "env/${binSubdir}/python ${testToRun} --app ../${app}"
+                echo "Running: ${completeCommand}"
+                try {
+                    sh completeCommand
+                } except(e) {
+                    errorToThrow = e // Continue running the rest of the tests!
+                }
+            }
+
+            if(errorToThrow) {
+                throw errorToThrow
             }
         } catch(e) {
+            echo "Caught error: ${e}"
             try {
-                String logDest = "Log_${platform}_failed.txt"
-                utils.moveFilePatternToDest("Log.txt", logDest)
-                logFilesToArchive.push(logDest)
+                dir(checkoutDir) {
+                    String logDest = "Log_${platform}_failed.txt"
+                    utils.moveFilePatternToDest("Log.txt", logDest)
+                    logFilesToArchive.push(logDest)
+                }
             } catch(e2) { }
 
             def commitId = utils.getCommitId(platform)
@@ -161,15 +172,7 @@ def doArchive() {
                     sh cmd
                     products.push(zipName)
                 } else { // Need to read the list of all screenshots to check for
-                    expectedScreenshotNames = []
-                    readFile('tests/jenkins_screenshots.list').eachLine { line ->
-                        line = line.trim()
-                        if(line && !line.startsWith('#')) {
-                            expectedScreenshotNames << line.trim()
-                        }
-                    }
-
-                    for(String screenshotName : expectedScreenshotNames) {
+                    for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
                         def dest = "${screenshotName}_${platform}.png"
                         try {
                             utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
@@ -189,6 +192,18 @@ def doArchive() {
         }
         throw e
     }
+}
+
+List<String> readListFile(fileName) {
+    def completeFile = readFile(fileName).normalize() // Turn Windows-style line feeds into plain \n
+    def out = []
+    for(String line : completeFile.split('\n')) {
+        line = line.trim()
+        if(line && !line.startsWith('#')) {
+            out << line
+        }
+    }
+    return out
 }
 
 
