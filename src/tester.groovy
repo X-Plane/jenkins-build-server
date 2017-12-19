@@ -99,7 +99,7 @@ def doTest() {
             } else if(isRenderingRegression) {
                 testsToRun.push('test_runner.py rendering_regression.test --nodelete')
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
-                new File('jenkins_tests.list').eachLine { line ->
+                readFile('jenkins_tests.list').eachLine { line ->
                     line = line.trim()
                     if(line && !line.startsWith('#')) {
                         testsToRun << line.trim()
@@ -160,7 +160,7 @@ def doArchive() {
                     products.push(zipName)
                 } else { // Need to read the list of all screenshots to check for
                     expectedScreenshotNames = []
-                    new File('jenkins_screenshots.list').eachLine { line ->
+                    readFile('jenkins_screenshots.list').eachLine { line ->
                         line = line.trim()
                         if(line && !line.startsWith('#')) {
                             expectedScreenshotNames << line.trim()
