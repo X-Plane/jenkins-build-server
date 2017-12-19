@@ -22,11 +22,11 @@ isSmokeTest = test_type == 'smoke_test'
 isRenderingRegressionMaster = test_type == 'rendering_regression_new_master'
 isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
 isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionComparison
-expectedScreenshotNames = isSmokeTest ? ["sunset_scattered_clouds", "evening", "stormy"] : []
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
 }
+logFilesToArchive = []
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE TESTS
@@ -91,19 +91,34 @@ def doTest() {
             def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
             def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
-            String testToRun = ''
-            if(isFpsTest) {
-                testToRun = 'fps_test_runner.py'
-            } else {
-                String testFile = isRenderingRegression ? 'rendering_regression.test' : 'jenkins_smoke_test.test'
-                testToRun = "test_runner.py ${testFile} --nodelete"
+            List testsToRun = []
+            if(override_test_cmd) {
+                testsToRun.push(override_test_cmd)
+            } else if(isFpsTest) {
+                testsToRun.push('fps_test_runner.py')
+            } else if(isRenderingRegression) {
+                testsToRun.push('test_runner.py rendering_regression.test --nodelete')
+            } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
+                new File('jenkins_tests.list').eachLine { line ->
+                    line = line.trim()
+                    if(line && !line.startsWith('#')) {
+                        testsToRun << line.trim()
+                    }
+                }
             }
             String setupVenv = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt"
             echo setupVenv
             sh setupVenv
-            String runTest = override_test_cmd ? override_test_cmd : "env/${binSubdir}/python ${testToRun} --app ../${app}"
-            echo runTest
-            sh runTest
+
+            for(String testToRun : testsToRun) {
+                String completeCommand = "env/${binSubdir}/python ${testToRun} --app ../${app}"
+                echo completeCommand
+                sh completeCommand
+
+                String logDest = "Log_${platform} - ${testToRun}.txt"
+                utils.moveFilePatternToDest("Log.txt", logDest)
+                logFilesToArchive.push(logDest)
+            }
         } catch(e) {
             def commitId = utils.getCommitId(platform)
             utils.sendEmail("Testing failed on ${platform} [${branch_name}; ${commitId}]",
@@ -131,16 +146,8 @@ def doTest() {
 def doArchive() {
     try {
         dir(checkoutDir) {
-            List products = []
+            List products = logFilesToArchive
             try {
-                for(String screenshotName : expectedScreenshotNames) {
-                    def dest = "${screenshotName}_${platform}.png"
-                    try {
-                        utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
-                        products.push(dest)
-                    } catch(e) { } // No error if it doesn't exist
-                }
-
                 if(isFpsTest) {
                     String dest = "fps_test_results_${platform}.txt"
                     utils.moveFilePatternToDest("fps_test_results.txt", dest)
@@ -151,11 +158,23 @@ def doArchive() {
                     echo cmd
                     sh cmd
                     products.push(zipName)
-                }
+                } else { // Need to read the list of all screenshots to check for
+                    expectedScreenshotNames = []
+                    new File('jenkins_screenshots.list').eachLine { line ->
+                        line = line.trim()
+                        if(line && !line.startsWith('#')) {
+                            expectedScreenshotNames << line.trim()
+                        }
+                    }
 
-                def logDest = "Log_${platform}.txt"
-                utils.moveFilePatternToDest("Log.txt", logDest)
-                products.push(logDest)
+                    for(String screenshotName : expectedScreenshotNames) {
+                        def dest = "${screenshotName}_${platform}.png"
+                        try {
+                            utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
+                            products.push(dest)
+                        } catch(e) { } // No error if it doesn't exist
+                    }
+                }
             } finally {
                 archiveWithDropbox(products, getArchiveDir(), false, utils)
             }
