@@ -102,7 +102,7 @@ def doTest() {
                 readFile('jenkins_tests.list').eachLine { line ->
                     line = line.trim()
                     if(line && !line.startsWith('#')) {
-                        testsToRun << line.trim()
+                        testsToRun << line
                     }
                 }
             }
@@ -111,15 +111,17 @@ def doTest() {
             sh setupVenv
 
             for(String testToRun : testsToRun) {
-                String completeCommand = "env/${binSubdir}/python ${testToRun} --app ../${app}"
+                String completeCommand = "env/${binSubdir}/python test_runner.py ${testToRun} --nodelete --app ../${app}"
                 echo completeCommand
                 sh completeCommand
-
-                String logDest = "Log_${platform} - ${testToRun}.txt"
-                utils.moveFilePatternToDest("Log.txt", logDest)
-                logFilesToArchive.push(logDest)
             }
         } catch(e) {
+            try {
+                String logDest = "Log_${platform}_failed.txt"
+                utils.moveFilePatternToDest("Log.txt", logDest)
+                logFilesToArchive.push(logDest)
+            } catch(e2) { }
+
             def commitId = utils.getCommitId(platform)
             utils.sendEmail("Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Auto-testing of commit ${commitId} from the branch ${branch_name} failed.",
@@ -160,7 +162,7 @@ def doArchive() {
                     products.push(zipName)
                 } else { // Need to read the list of all screenshots to check for
                     expectedScreenshotNames = []
-                    readFile('jenkins_screenshots.list').eachLine { line ->
+                    readFile('tests/jenkins_screenshots.list').eachLine { line ->
                         line = line.trim()
                         if(line && !line.startsWith('#')) {
                             expectedScreenshotNames << line.trim()
