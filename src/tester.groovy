@@ -115,7 +115,7 @@ def doTest() {
                 echo "Running: ${completeCommand}"
                 try {
                     sh completeCommand
-                } except(e) {
+                } catch(e) {
                     errorToThrow = e // Continue running the rest of the tests!
                 }
             }
