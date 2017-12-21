@@ -20,8 +20,9 @@ utils.setEnvironment(environment, this.&notify)
 isFpsTest = test_type == 'fps_test'
 isSmokeTest = test_type == 'smoke_test'
 isRenderingRegressionMaster = test_type == 'rendering_regression_new_master'
+isRenderingRegressionRelease = test_type == 'rendering_regression_new_release'
 isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
-isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionComparison
+isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionRelease || isRenderingRegressionComparison
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
@@ -76,11 +77,17 @@ def doCheckout() {
     }
 }
 
+regressionMasterArchive = utils.getArchiveRoot(platform) + 'rendering-master/'
+regressionReleaseArchive = utils.getArchiveRoot(platform) + 'rendering-release/'
+
 def getArchiveDir() {
-    renderingRegressionMaster = utils.getArchiveRoot(platform) + 'rendering-master/'
-    return isRenderingRegressionMaster ?
-            renderingRegressionMaster :
-            utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
+    if(isRenderingRegressionMaster) {
+        return regressionMasterArchive
+    } else if(isRenderingRegressionRelease) {
+        return regressionReleaseArchive
+    } else {
+        return utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
+    }
 }
 
 def doTest() {
@@ -141,10 +148,11 @@ def doTest() {
         }
     }
 
-    if(isRenderingRegression) { // Post-test, we need to run the golden image comparison
-        dir(checkoutDir) {
+    if(isRenderingRegressionComparison) { // Post-test, we need to run the golden image comparison
+        dir(checkoutDir + 'scripts') {
             try {
-                // TODO: Do the image analysis
+                sh "python golden_image_regression.py ${regressionMasterArchive} ../regression_images ../master_comparison.txt"
+                sh "python golden_image_regression.py ${regressionReleaseArchive} ../regression_images ../release_comparison.txt"
             } catch(e) {
                 def commitId = utils.getCommitId(platform)
                 utils.sendEmail("Rendering regression image analysis failed on ${platform} [${branch_name}; ${commitId}]",
@@ -171,6 +179,11 @@ def doArchive() {
                     echo cmd
                     sh cmd
                     products.push(zipName)
+
+                    if(isRenderingRegressionComparison) {
+                        products.push('master_comparison.txt')
+                        products.push('release_comparison.txt')
+                    }
                 } else { // Need to read the list of all screenshots to check for
                     for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
                         def dest = "${screenshotName}_${platform}.png"
