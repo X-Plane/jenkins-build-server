@@ -23,6 +23,8 @@ isRenderingRegressionMaster = test_type == 'rendering_regression_new_master'
 isRenderingRegressionRelease = test_type == 'rendering_regression_new_release'
 isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
 isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionRelease || isRenderingRegressionComparison
+regressionMasterArchive = utils.getArchiveRoot(platform) + 'rendering-master/'
+regressionReleaseArchive = utils.getArchiveRoot(platform) + 'rendering-release/'
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
@@ -76,9 +78,6 @@ def doCheckout() {
         }
     }
 }
-
-regressionMasterArchive = utils.getArchiveRoot(platform) + 'rendering-master/'
-regressionReleaseArchive = utils.getArchiveRoot(platform) + 'rendering-release/'
 
 def getArchiveDir() {
     if(isRenderingRegressionMaster) {
