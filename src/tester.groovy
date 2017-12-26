@@ -25,6 +25,7 @@ isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
 isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionRelease || isRenderingRegressionComparison
 regressionMasterArchive = utils.getArchiveRoot(platform) + 'rendering-master/'
 regressionReleaseArchive = utils.getArchiveRoot(platform) + 'rendering-release/'
+isTimeTest = test_type == 'load_time'
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
@@ -104,6 +105,8 @@ def doTest() {
                 testsToRun.push('fps_test_runner.py')
             } else if(isRenderingRegression) {
                 testsToRun.push('test_runner.py rendering_regression.test --nodelete')
+            } else if(isTimeTest) {
+                testsToRun.push("load_time_test_runner.py")
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
                 def testFiles = readListFile('jenkins_tests.list')
                 for(String testFile : testFiles) {
@@ -183,6 +186,8 @@ def doArchive() {
                         products.push('master_comparison.txt')
                         products.push('release_comparison.txt')
                     }
+                } else if(isTimeTest) {
+                    products.push('load_test_results.txt')
                 } else { // Need to read the list of all screenshots to check for
                     for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
                         def dest = "${screenshotName}_${platform}.png"
