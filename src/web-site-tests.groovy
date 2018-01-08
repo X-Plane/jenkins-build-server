@@ -47,7 +47,7 @@ def testFunnel(String platform) {
                 sh "virtualenv env"
                 sh "source env/bin/activate"
                 sh "pip install -r package_requirements.txt"
-                sh "behave --tags=automated"
+                sh "behave --tags=${tag}"
             }
         } catch(e) {
             notifyBuild("Web site test failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
