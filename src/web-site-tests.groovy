@@ -42,7 +42,7 @@ def testFunnel(String platform) {
                 bat "virtualenv env"
                 bat "env\\Scripts\\activate"
                 bat "pip install -r package_requirements.txt"
-                bat "behave --tags=automated"
+                bat "behave --tags=${tag}"
             } else {
                 sh "virtualenv env"
                 sh "source env/bin/activate"
