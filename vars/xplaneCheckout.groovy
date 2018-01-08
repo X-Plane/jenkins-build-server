@@ -15,7 +15,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                     [$class: 'GitSCM', branches: [[name: branchName]],
                      doGenerateSubmoduleConfigurations: false,
                      extensions: [
-                             [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '', maximumAgeInDays: 120]]
+                             [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '']]
                      ],
                      submoduleCfg: [],
                      userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
