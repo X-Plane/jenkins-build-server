@@ -16,8 +16,6 @@ environment['build_all_apps'] = build_all_apps
 environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify)
 
-use_xcpretty = false
-
 // Check configuration preconditions
 assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Release & Steam builds require all apps to be built"
 
@@ -83,7 +81,7 @@ def doBuild(String platform) {
 
                 def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
-                def pipe_to_xcpretty = use_xcpretty ? '| xcpretty' : ''
+                def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
 
                 String target = utils.build_all_apps ? "ALL_BUILD" : "X-Plane"
                 if(utils.toRealBool(clean_build)) {
