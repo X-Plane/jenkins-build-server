@@ -34,14 +34,15 @@ def doBuild(String platform) {
         try {
             def projectFile = utils.chooseByPlatformNixWin("XPLM.xcodeproj", "XPLM.sln", platform)
             def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target XPLM -config Release -project ${projectFile}"
+            def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
             utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} clean | xcpretty",
+                    "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}",
                     "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
                     'make clean'
             ], platform)
 
             utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} build | xcpretty",
+                    "${xcodebuildBoilerplate} build ${pipe_to_xcpretty}",
                     "\"${tool 'MSBuild'}\" /t:XPLM /m /p:Configuration=\"Release\" ${projectFile}",
                     "make XPLM"
             ], platform)
