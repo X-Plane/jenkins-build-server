@@ -111,7 +111,7 @@ def archiveRelease(String platform) {
 List<String> getExpectedSdkProducts(String platform) {
     return utils.chooseByPlatformMacWinLin([
             ['XPLM.framework.zip', 'XPWidgets.framework.zip'],
-            ['XPLM_64.dll', 'XPLM_64.pdb'] + getWindowsLibs(),
+            ['XPLM_64.dll', 'XPLM_64.pdb', 'XPWidgets_64.dll', 'XPWidgets_64.pdb'] + getWindowsLibs(),
             ['XPLM_64.so', 'XPWidgets_64.so']
     ], platform)
 }
