@@ -39,7 +39,7 @@ def doCheckout(String platform) {
 }
 
 def doAnalysis(String platform) {
-    dir(utils.getCheckoutDir(platform)(platform)) {
+    dir(utils.getCheckoutDir(platform)) {
         sh './cmake.sh'
         sh 'xcodebuild -scheme "X-Plane Debug" -project design_xcode/X-System.xcodeproj clean'
         // xcodebuild returns 1 in the event of any issues found... obviously that still means the *analysis* went correctly
