@@ -14,7 +14,6 @@ environment['dev_build'] = 'false'
 utils.setEnvironment(environment, this.&notify)
 
 try {
-    setEnvironment()
     stage('Respond')                       { utils.replyToTrigger('Analysis started.\n\nThe static analysis of commit ' + env.subject + ' is in progress.') }
     stage('Checkout')                      { runOnMac(this.&doCheckout) }
     stage('Analyze')                       { runOnMac(this.&doAnalysis) }
