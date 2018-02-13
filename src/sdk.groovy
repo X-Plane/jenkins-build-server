@@ -61,7 +61,7 @@ def doBuild(String platform) {
 def packageRelease(String platform) {
     dir(getSdkCheckoutDir(platform) + 'Src') {
         def copyFrom = getArchiveDirAndEnsureItExists(platform)
-        sh "MakeSDK.sh ${copyFrom}"
+        sh "./MakeSDK.sh ${copyFrom}"
     }
 }
 
