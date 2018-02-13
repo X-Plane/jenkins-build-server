@@ -26,7 +26,8 @@ try {
 
 
 def runOnMac(Closure c) {
-    node('mac') { c('macOS') }
+    def closure = c
+    node('mac') { closure('macOS') }
 }
 
 def doCheckout(String platform) {
