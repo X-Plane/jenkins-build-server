@@ -105,6 +105,7 @@ def archiveBuild(String platform) {
 def archiveRelease(String platform) {
     dir(getSdkCheckoutDir(platform)) {
         sh 'zip -r XPLM.zip SDK'
+        archiveWithDropbox('XPLM.zip', getArchiveDirAndEnsureItExists(platform), true, utils)
     }
 }
 
