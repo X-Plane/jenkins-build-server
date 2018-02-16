@@ -16,9 +16,6 @@ environment['build_all_apps'] = build_all_apps
 environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify)
 
-// Check configuration preconditions
-assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Release & Steam builds require all apps to be built"
-
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
 // This is where the magic happens.
