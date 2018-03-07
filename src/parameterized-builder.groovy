@@ -16,9 +16,6 @@ environment['build_all_apps'] = build_all_apps
 environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify)
 
-// Check configuration preconditions
-assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Release & Steam builds require all apps to be built"
-
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
 // This is where the magic happens.
@@ -83,17 +80,19 @@ def doBuild(String platform) {
 
                 def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
+                def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+
                 String target = utils.build_all_apps ? "ALL_BUILD" : "X-Plane"
                 if(utils.toRealBool(clean_build)) {
                     utils.chooseShellByPlatformMacWinLin([
-                            "set -o pipefail && xcodebuild -project ${projectFile} clean | xcpretty && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean | xcpretty && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                            "set -o pipefail && xcodebuild -project ${projectFile} clean ${pipe_to_xcpretty} && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                             "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
                             'cd design_linux && make clean'
                     ], platform)
                 }
 
                 utils.chooseShellByPlatformMacWinLin([
-                        "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build | xcpretty",
+                        "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build ${pipe_to_xcpretty}",
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (utils.build_all_apps ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
                         "cd design_linux && make -j4 " + (utils.build_all_apps ? '' : "X-Plane")
                 ], platform)
