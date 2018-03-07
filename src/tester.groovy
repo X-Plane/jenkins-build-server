@@ -211,13 +211,20 @@ def doArchive() {
     }
 }
 
-List<String> readListFile(fileName) {
+List<String> readListFile(String fileName) {
     def completeFile = readFile(fileName).normalize() // Turn Windows-style line feeds into plain \n
     def out = []
     for(String line : completeFile.split('\n')) {
         line = line.trim()
         if(line && !line.startsWith('#')) {
-            out << line
+            if(line.contains(':')) {
+                platformAndTest = line.split(':')
+                if(platformAndTest[0] == platform) {
+                    out << platformAndTest[1].trim()
+                }
+            } else { // this is an unqualified test
+                out << line
+            }
         }
     }
     return out
