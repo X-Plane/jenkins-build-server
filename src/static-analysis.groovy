@@ -27,7 +27,7 @@ try {
 
 def runOnMac(Closure c) {
     def closure = c
-    node('macanalysis') { closure('macOS') }
+    node('mac') { closure('macOS') }
 }
 
 def doCheckout(String platform) {
