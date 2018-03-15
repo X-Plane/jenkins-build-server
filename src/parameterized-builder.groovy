@@ -16,8 +16,6 @@ environment['build_all_apps'] = build_all_apps
 environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify)
 
-// Check configuration preconditions
-assert utils.build_all_apps || (!utils.release_build && !utils.steam_build), "Release & Steam builds require all apps to be built"
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -105,7 +103,7 @@ def doBuild(String platform) {
 }
 
 def getBuildToolConfiguration() {
-    return utils.steam_build ? "NODEV_OPT_Prod_Steam" : (utils.release_build ? "NODEV_OPT_Prod" : (utils.is_dev ? "DEV_OPT" : "NODEV_OPT"))
+    return utils.getBuildToolConfiguration()
 }
 
 def doArchive(String platform) {
