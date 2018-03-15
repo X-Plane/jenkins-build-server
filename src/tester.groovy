@@ -57,7 +57,7 @@ def doCheckout() {
 
     // Copy pre-built executables to our working dir as well
     dir(checkoutDir) {
-        def products = utils.getExpectedXPlaneProducts(platform)
+        def products = utils.getExpectedXPlaneProducts(platform, true)
         archiveDir = getArchiveDir()
         if(utils.copyBuildProductsFromArchive(products, platform)) {
             echo "Copied executables for ${platform} in ${archiveDir}"

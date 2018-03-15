@@ -105,7 +105,7 @@ String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir=
     return out
 }
 
-List getExpectedXPlaneProducts(String platform) {
+List getExpectedXPlaneProducts(String platform, boolean ignoreSymbols=false) {
     String appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
     List appNamesNoInstaller = addSuffix(build_all_apps ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], app_suffix)
     List appNames = appNamesNoInstaller + (build_all_apps ? ["X-Plane 11 Installer" + app_suffix] : [])
@@ -118,7 +118,7 @@ List getExpectedXPlaneProducts(String platform) {
         }
     }
 
-    if(isOptimizedBuild()) {
+    if(isOptimizedBuild() && !ignoreSymbols) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
         def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
         if(isWindows(platform)) {
