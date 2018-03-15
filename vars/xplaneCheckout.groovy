@@ -4,7 +4,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         if(platform == 'Linux') {
             sshagent(['tylers-ssh']) {
                 sh "git branch"
-                sh "git fetch"
+                sh "git fetch --tags"
                 sh "git checkout ${branchName}"
                 sh "git submodule update --init"
                 try {
