@@ -9,17 +9,29 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     pmt_subject = environment['pmt_subject']
     pmt_from = environment['pmt_from']
     directory_suffix = environment['directory_suffix']
-    release_build = toRealBool(environment['release_build'])
-    steam_build = toRealBool(environment['steam_build'])
     build_windows = toRealBool(environment['build_windows'])
     build_mac = toRealBool(environment['build_mac'])
     build_linux = toRealBool(environment['build_linux'])
     build_all_apps = toRealBool(environment['build_all_apps'])
-    is_release = steam_build || release_build
-    is_dev = toRealBool(environment['dev_build'])
-    assert !(is_dev && is_release), "Dev and release options are mutually exlusive"
-    app_suffix = is_release ? "" : (is_dev ? "_DEV_OPT" : "_NODEV_OPT")
+    // Switch between compatibility with old style and new style
+    if(environment.containsKey('dev_build')) {
+        steam_build = toRealBool(environment['steam_build'])
+        release_build = toRealBool(environment['release_build'])
+        is_dev = toRealBool(environment['dev_build'])
+        optimized_build = release_build || steam_build
+        app_suffix = (steam_build || release_build) ? "" : (is_dev ? "_DEV_OPT" : "_NODEV_OPT")
+        build_type = steam_build ? "NODEV_OPT_Prod_Steam" : (release_build ? "NODEV_OPT_Prod" : "NODEV_OPT")
+    } else {
+        assert environment.containsKey('build_type')
+        build_type = environment['build_type']
+        optimized_build = build_type.contains('_OPT')
+        steam_build = build_type.contains('_Steam')
+        release_build = build_type.contains('_Prod')
+        app_suffix = release_build ? '' : '_' + build_type
+    }
+    assert !(is_dev && release_build), "Dev and release options are mutually exlusive"
     assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
+
 
     node = globalSteps ? globalSteps.&node : null
     parallel = globalSteps ? globalSteps.&parallel : null
@@ -80,7 +92,7 @@ String getArchiveDir(String platform='', String optionalSubdir='') {
         optionalSubdir += dirChar
     }
     String commitDir = getCommitId(platform)
-    if(is_release) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
+    if(release_build) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
         commitDir = branch_name + '-' + commitDir
     }
     String archiveDir = chooseByPlatformNixWin("${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}/", "${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}\\", platform)
@@ -111,7 +123,7 @@ List getExpectedXPlaneProducts(String platform) {
         }
     }
 
-    if(is_release) {
+    if(optimized_build) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
         def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
         if(isWindows(platform)) {
@@ -145,7 +157,7 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
 }
 
 def getBuildToolConfiguration() {
-    return steam_build ? "NODEV_OPT_Prod_Steam" : (release_build ? "NODEV_OPT_Prod" : "NODEV_OPT")
+    return build_type
 }
 
 // $&@#* Jenkins.
