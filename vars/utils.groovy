@@ -27,8 +27,6 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
         build_type = environment['build_type']
     }
     app_suffix = build_type.contains('_Prod') ? '' : '_' + build_type
-    assert build_all_apps || (!isReleaseBuild() && !isSteamBuild()), "Release & Steam builds require all apps to be built"
-
 
     node = globalSteps ? globalSteps.&node : null
     parallel = globalSteps ? globalSteps.&parallel : null
