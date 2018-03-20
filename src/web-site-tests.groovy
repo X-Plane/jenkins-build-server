@@ -42,12 +42,12 @@ def testFunnel(String platform) {
                 bat "virtualenv env"
                 bat "env\\Scripts\\activate"
                 bat "pip install -r package_requirements.txt"
-                bat "behave --tags=automated"
+                bat "behave --tags=${tag}"
             } else {
                 sh "virtualenv env"
                 sh "source env/bin/activate"
                 sh "pip install -r package_requirements.txt"
-                sh "behave --tags=automated"
+                sh "behave --tags=${tag}"
             }
         } catch(e) {
             notifyBuild("Web site test failed", "Check the logs.", e.toString(), "tyler@x-plane.com")

@@ -17,10 +17,13 @@ utils.setEnvironment(environment, this.&notify)
 
 isFpsTest = test_type == 'fps_test'
 isSmokeTest = test_type == 'smoke_test'
-isLoadTime = test_type == 'load_time'
 isRenderingRegressionMaster = test_type == 'rendering_regression_new_master'
+isRenderingRegressionRelease = test_type == 'rendering_regression_new_release'
 isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
-isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionComparison
+isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionRelease || isRenderingRegressionComparison
+regressionMasterArchive = utils.getArchiveRoot(platform) + 'rendering-master/'
+regressionReleaseArchive = utils.getArchiveRoot(platform) + 'rendering-release/'
+isTimeTest = test_type == 'load_time'
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
@@ -76,10 +79,13 @@ def doCheckout() {
 }
 
 def getArchiveDir() {
-    renderingRegressionMaster = utils.getArchiveRoot(platform) + 'rendering-master/'
-    return isRenderingRegressionMaster ?
-            renderingRegressionMaster :
-            utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
+    if(isRenderingRegressionMaster) {
+        return regressionMasterArchive
+    } else if(isRenderingRegressionRelease) {
+        return regressionReleaseArchive
+    } else {
+        return utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
+    }
 }
 
 def doTest() {
@@ -97,8 +103,8 @@ def doTest() {
                 testsToRun.push('fps_test_runner.py')
             } else if(isRenderingRegression) {
                 testsToRun.push('test_runner.py rendering_regression.test --nodelete')
-            } else if(isLoadTime) {
-                testsToRun.push('load_time_test_runner.py')
+            } else if(isTimeTest) {
+                testsToRun.push("load_time_test_runner.py")
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
                 def testFiles = readListFile('jenkins_tests.list')
                 for(String testFile : testFiles) {
@@ -142,10 +148,11 @@ def doTest() {
         }
     }
 
-    if(isRenderingRegression) { // Post-test, we need to run the golden image comparison
-        dir(checkoutDir) {
+    if(isRenderingRegressionComparison) { // Post-test, we need to run the golden image comparison
+        dir(checkoutDir + 'scripts') {
             try {
-                // TODO: Do the image analysis
+                sh "python golden_image_regression.py ${regressionMasterArchive} ../regression_images ../master_comparison.txt"
+                sh "python golden_image_regression.py ${regressionReleaseArchive} ../regression_images ../release_comparison.txt"
             } catch(e) {
                 def commitId = utils.getCommitId(platform)
                 utils.sendEmail("Rendering regression image analysis failed on ${platform} [${branch_name}; ${commitId}]",
@@ -172,7 +179,11 @@ def doArchive() {
                     echo cmd
                     sh cmd
                     products.push(zipName)
-                } else if(isLoadTime) {
+                    if(isRenderingRegressionComparison) {
+                        products.push('master_comparison.txt')
+                        products.push('release_comparison.txt')
+                    }
+                } else if(isTimeTest) {
                     products.push('load_test_results.txt')
                 } else { // Need to read the list of all screenshots to check for
                     for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
@@ -197,13 +208,20 @@ def doArchive() {
     }
 }
 
-List<String> readListFile(fileName) {
+List<String> readListFile(String fileName) {
     def completeFile = readFile(fileName).normalize() // Turn Windows-style line feeds into plain \n
     def out = []
     for(String line : completeFile.split('\n')) {
         line = line.trim()
         if(line && !line.startsWith('#')) {
-            out << line
+            if(line.contains(':')) {
+                platformAndTest = line.split(':')
+                if(platformAndTest[0] == platform) {
+                    out << platformAndTest[1].trim()
+                }
+            } else { // this is an unqualified test
+                out << line
+            }
         }
     }
     return out

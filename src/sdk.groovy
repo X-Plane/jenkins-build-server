@@ -10,11 +10,17 @@ environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['dev_build'] = dev_build
 utils.setEnvironment(environment, this.&notify, this.steps)
+assert build_mac == 'true' || build_type != 'build_dlls'
 
 try {
     utils.do3PlatformStage('Checkout', this.&doCheckout)
-    utils.do3PlatformStage('Build',    this.&doBuild)
-    utils.do3PlatformStage('Archive',  this.&doArchive)
+    if(build_type == 'build_dlls') {
+        utils.do3PlatformStage('Build',    this.&doBuild)
+        utils.do3PlatformStage('Archive',  this.&archiveBuild)
+    } else {
+        stage('Build')   { node('mac') { packageRelease('macOS') } }
+        stage('Archive') { node('mac') { archiveRelease('macOS') } }
+    }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
 }
@@ -32,33 +38,60 @@ def doBuild(String platform) {
     String buildDir = utils.chooseByPlatformMacWinLin(['Build/Mac/', "Build\\Win", 'Build/Linux/'], platform)
     dir(getSdkCheckoutDir(platform) + buildDir) {
         try {
-            def projectFile = utils.chooseByPlatformNixWin("XPLM.xcodeproj", "XPLM.sln", platform)
-            def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target XPLM -config Release -project ${projectFile}"
-            utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} clean | xcpretty",
-                    "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
-                    'make clean'
-            ], platform)
-
-            utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} build | xcpretty",
-                    "\"${tool 'MSBuild'}\" /t:XPLM /m /p:Configuration=\"Release\" ${projectFile}",
-                    "make XPLM"
-            ], platform)
+            if(utils.isWindows(platform)) { // Windows needs *two* solutions cleaned & built
+                bat "\"${tool 'MSBuild'}\" XPLM.sln      /t:Clean"
+                bat "\"${tool 'MSBuild'}\" XPWidgets.sln /t:Clean"
+                bat "\"${tool 'MSBuild'}\" /t:XPLM      /m /p:Configuration=\"Release\" XPLM.sln"
+                bat "\"${tool 'MSBuild'}\" /t:XPWidgets /m /p:Configuration=\"Release\" XPWidgets.sln"
+            } else if(utils.isMac(platform)) {
+                def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target \"Build All\" -config Release -project XPLM.xcodeproj"
+                def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+                sh "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}"
+                sh "${xcodebuildBoilerplate} build ${pipe_to_xcpretty}"
+            } else {
+                sh 'make clean'
+                sh 'make XPLM XPWidgets'
+            }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'XPLM', branch_name, utils.getCommitId(platform), platform, e)
         }
     }
 }
 
-def doArchive(String platform) {
+def packageRelease(String platform) {
+    dir(getSdkCheckoutDir(platform) + 'Src') {
+        def copyFrom = getArchiveDirAndEnsureItExists(platform)
+        sh "./MakeSDK.sh ${copyFrom}"
+    }
+}
+
+def archiveBuild(String platform) {
     try {
-        dir(getSdkCheckoutDir(platform)) {
+        def checkoutDir = getSdkCheckoutDir(platform)
+        dir(checkoutDir) {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
-                sh 'cd Build/Mac/build/Release/ && zip -r XPLM.framework.zip XPLM.framework'
+                dir(checkoutDir + 'Build/Mac/build/Release/') {
+                    sh 'zip -r XPLM.framework.zip XPLM.framework'
+                    sh 'zip -r XPWidgets.framework.zip XPWidgets.framework'
+                }
             }
-            def productPaths = utils.addPrefix(getExpectedSdkProducts(platform), utils.chooseByPlatformMacWinLin(['Build/Mac/build/Release/', 'Build\\Win\\Release\\plugins\\', 'Build/Linux/build/'], platform))
+            def productPaths = []
+            if(utils.isNix(platform)) {
+                productPaths = utils.addPrefix(getExpectedSdkProducts(platform), utils.chooseByPlatformMacWinLin(['Build/Mac/build/Release/', 'N/A!', 'Build/Linux/build/'], platform))
+            } else {
+                // Irritatingly, Windows products go into *two* different directories
+                def products = getExpectedSdkProducts(platform)
+                def libs = getWindowsLibs()
+                for(String p : products) {
+                    if(libs.contains(p)) {
+                        productPaths.push('Build\\Win\\Release\\' + p)
+                    } else {
+                        productPaths.push('Build\\Win\\Release\\plugins\\' + p)
+                    }
+                }
+            }
+
             archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform), true, utils)
         }
     } catch (e) {
@@ -69,12 +102,22 @@ def doArchive(String platform) {
     }
 }
 
-List<String> getExpectedSdkProducts(String platform) {
-    List<String> out = [utils.chooseByPlatformMacWinLin(['XPLM.framework.zip', 'XPLM_64.dll', 'XPLM_64.so'], platform)]
-    if(utils.isWindows(platform)) {
-        out.push('XPLM_64.pdb')
+def archiveRelease(String platform) {
+    dir(getSdkCheckoutDir(platform)) {
+        sh 'zip -r XPLM.zip SDK'
+        archiveWithDropbox(['XPLM.zip'], getArchiveDirAndEnsureItExists(platform), true, utils)
     }
-    return out
+}
+
+List<String> getExpectedSdkProducts(String platform) {
+    return utils.chooseByPlatformMacWinLin([
+            ['XPLM.framework.zip', 'XPWidgets.framework.zip'],
+            ['XPLM_64.dll', 'XPLM_64.pdb', 'XPWidgets_64.dll', 'XPWidgets_64.pdb'] + getWindowsLibs(),
+            ['XPLM_64.so', 'XPWidgets_64.so']
+    ], platform)
+}
+List<String> getWindowsLibs() {
+    return ['XPLM_64.lib', 'XPWidgets_64.lib']
 }
 String getSdkCheckoutDir(String platform) {
     return utils.chooseByPlatformNixWin("/jenkins/xplanesdk/", "C:\\jenkins\\xplanesdk\\", platform)

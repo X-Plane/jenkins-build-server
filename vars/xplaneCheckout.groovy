@@ -6,6 +6,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 sh "git branch"
                 sh "git fetch"
                 sh "git checkout ${branchName}"
+                sh "git submodule update --init"
                 try {
                     sh "git pull"
                 } catch(e) { } // If we're in detached HEAD mode, pull will fail
@@ -13,11 +14,9 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         } else {
             checkout(
                     [$class: 'GitSCM', branches: [[name: branchName]],
-                     doGenerateSubmoduleConfigurations: false,
                      extensions: [
-                             [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '', maximumAgeInDays: 120]]
+                             [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '']]
                      ],
-                     submoduleCfg: [],
                      userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
             )
         }
