@@ -17,6 +17,7 @@ utils.setEnvironment(environment, this.&notify)
 
 isFpsTest = test_type == 'fps_test'
 isSmokeTest = test_type == 'smoke_test'
+isLoadTime = test_type == 'load_time'
 isRenderingRegressionMaster = test_type == 'rendering_regression_new_master'
 isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
 isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionComparison
@@ -96,6 +97,8 @@ def doTest() {
                 testsToRun.push('fps_test_runner.py')
             } else if(isRenderingRegression) {
                 testsToRun.push('test_runner.py rendering_regression.test --nodelete')
+            } else if(isLoadTime) {
+                testsToRun.push('test_runner.py instaquit.test --nodelete')
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
                 def testFiles = readListFile('jenkins_tests.list')
                 for(String testFile : testFiles) {
