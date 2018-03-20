@@ -8,29 +8,27 @@ environment['send_emails'] = send_emails
 environment['pmt_subject'] = pmt_subject
 environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
-environment['release_build'] = release_build
-environment['steam_build'] = 'false'
 environment['build_windows'] = 'true'
 environment['build_mac'] = 'true'
 environment['build_linux'] = 'true'
 environment['build_all_apps'] = 'false'
-environment['dev_build'] = dev_build
+environment['build_type'] = build_type
 utils.setEnvironment(environment, this.&notify)
 
 isFpsTest = test_type == 'fps_test'
 isSmokeTest = test_type == 'smoke_test'
 isRenderingRegressionMaster = test_type == 'rendering_regression_new_master'
+isRenderingRegressionRelease = test_type == 'rendering_regression_new_release'
 isRenderingRegressionComparison = test_type == 'rendering_regression_compare'
-isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionComparison
-expectedScreenshotNames = isSmokeTest ? ["sunset_scattered_clouds", "evening", "stormy"] : []
+isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionRelease || isRenderingRegressionComparison
+regressionMasterArchive = utils.getArchiveRoot(platform) + 'rendering-master/'
+regressionReleaseArchive = utils.getArchiveRoot(platform) + 'rendering-release/'
+isTimeTest = test_type == 'load_time'
 String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
-    renderingRegressionMaster = utils.getArchiveRoot(platform) + 'rendering-master/'
-    archiveDir = isRenderingRegressionMaster ?
-            renderingRegressionMaster :
-            utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
 }
+logFilesToArchive = []
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE TESTS
@@ -52,18 +50,19 @@ stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated b
 def doCheckout() {
     // Nuke previous products
     cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(utils.getExpectedXPlaneProducts(platform) + ['*.png'], cleanCommand, platform, utils)
+    clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png'], cleanCommand, platform, utils)
 
     try {
         xplaneCheckout(branch_name, checkoutDir, platform)
-        getArt()
+        getArt(checkoutDir)
     } catch(e) {
         notifyBrokenCheckout(utils.&sendEmail, 'autotesting', branch_name, platform, e)
     }
 
     // Copy pre-built executables to our working dir as well
     dir(checkoutDir) {
-        def products = utils.getExpectedXPlaneProducts(platform)
+        def products = utils.getExpectedXPlaneProducts(platform, true)
+        archiveDir = getArchiveDir()
         if(utils.copyBuildProductsFromArchive(products, platform)) {
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {
@@ -74,8 +73,18 @@ def doCheckout() {
                     "Missing executables to test on ${platform} [${branch_name}]",
                     "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name}.\r\n\r\nWe were looking for:\r\n${prodStr}\r\nin directory:\r\n${archiveDir}\r\n\r\nWe will be unable to test until this is fixed.",
                     'tyler@x-plane.com')
-            throw new java.io.FileNotFoundException()
+            throw new java.io.FileNotFoundException(prodStr)
         }
+    }
+}
+
+def getArchiveDir() {
+    if(isRenderingRegressionMaster) {
+        return regressionMasterArchive
+    } else if(isRenderingRegressionRelease) {
+        return regressionReleaseArchive
+    } else {
+        return utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
     }
 }
 
@@ -87,20 +96,50 @@ def doTest() {
             def app = "X-Plane" + utils.app_suffix + utils.chooseByPlatformMacWinLin([".app/Contents/MacOS/X-Plane" + utils.app_suffix, ".exe", '-x86_64'], platform)
             def binSubdir = utils.chooseByPlatformNixWin("bin", "Scripts", platform)
             def venvPath = utils.isMac(platform) ? '/usr/local/bin/' : ''
-            String testToRun = ''
-            if(isFpsTest) {
-                testToRun = 'fps_test_runner.py'
-            } else {
-                String testFile = isRenderingRegression ? 'rendering_regression.test' : 'jenkins_smoke_test.test'
-                testToRun = "test_runner.py ${testFile} --nodelete"
+            List testsToRun = []
+            if(override_test_cmd) {
+                testsToRun.push(override_test_cmd)
+            } else if(isFpsTest) {
+                testsToRun.push('fps_test_runner.py')
+            } else if(isRenderingRegression) {
+                testsToRun.push('test_runner.py rendering_regression.test --nodelete')
+            } else if(isTimeTest) {
+                testsToRun.push("load_time_test_runner.py")
+            } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
+                def testFiles = readListFile('jenkins_tests.list')
+                for(String testFile : testFiles) {
+                    testsToRun << "test_runner.py ${testFile} --nodelete"
+                }
+                echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
             String setupVenv = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt"
             echo setupVenv
             sh setupVenv
-            String runTest = override_test_cmd ? override_test_cmd : "env/${binSubdir}/python ${testToRun} --app ../${app}"
-            echo runTest
-            sh runTest
+
+            def errorToThrow = null
+            for(String testToRun : testsToRun) {
+                String completeCommand = "env/${binSubdir}/python ${testToRun} --app ../${app}"
+                echo "Running: ${completeCommand}"
+                try {
+                    sh completeCommand
+                } catch(e) {
+                    errorToThrow = e // Continue running the rest of the tests!
+                }
+            }
+
+            if(errorToThrow) {
+                throw errorToThrow
+            }
         } catch(e) {
+            echo "Caught error: ${e}"
+            try {
+                dir(checkoutDir) {
+                    String logDest = "Log_${platform}_failed.txt"
+                    utils.moveFilePatternToDest("Log.txt", logDest)
+                    logFilesToArchive.push(logDest)
+                }
+            } catch(e2) { }
+
             def commitId = utils.getCommitId(platform)
             utils.sendEmail("Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Auto-testing of commit ${commitId} from the branch ${branch_name} failed.",
@@ -109,10 +148,11 @@ def doTest() {
         }
     }
 
-    if(isRenderingRegression) { // Post-test, we need to run the golden image comparison
-        dir(checkoutDir) {
+    if(isRenderingRegressionComparison) { // Post-test, we need to run the golden image comparison
+        dir(checkoutDir + 'scripts') {
             try {
-                // TODO: Do the image analysis
+                sh "python golden_image_regression.py ${regressionMasterArchive} ../regression_images ../master_comparison.txt"
+                sh "python golden_image_regression.py ${regressionReleaseArchive} ../regression_images ../release_comparison.txt"
             } catch(e) {
                 def commitId = utils.getCommitId(platform)
                 utils.sendEmail("Rendering regression image analysis failed on ${platform} [${branch_name}; ${commitId}]",
@@ -127,16 +167,8 @@ def doTest() {
 def doArchive() {
     try {
         dir(checkoutDir) {
-            List products = []
+            List products = logFilesToArchive
             try {
-                for(String screenshotName : expectedScreenshotNames) {
-                    def dest = "${screenshotName}_${platform}.png"
-                    try {
-                        utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
-                        products.push(dest)
-                    } catch(e) { } // No error if it doesn't exist
-                }
-
                 if(isFpsTest) {
                     String dest = "fps_test_results_${platform}.txt"
                     utils.moveFilePatternToDest("fps_test_results.txt", dest)
@@ -147,13 +179,23 @@ def doArchive() {
                     echo cmd
                     sh cmd
                     products.push(zipName)
+                    if(isRenderingRegressionComparison) {
+                        products.push('master_comparison.txt')
+                        products.push('release_comparison.txt')
+                    }
+                } else if(isTimeTest) {
+                    products.push('load_test_results.txt')
+                } else { // Need to read the list of all screenshots to check for
+                    for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
+                        def dest = "${screenshotName}_${platform}.png"
+                        try {
+                            utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
+                            products.push(dest)
+                        } catch(e) { } // No error if it doesn't exist
+                    }
                 }
-
-                def logDest = "Log_${platform}.txt"
-                utils.moveFilePatternToDest("Log.txt", logDest)
-                products.push(logDest)
             } finally {
-                archiveWithDropbox(products, archiveDir, false, utils)
+                archiveWithDropbox(products, getArchiveDir(), false, utils)
             }
         }
     } catch (e) {
@@ -164,6 +206,25 @@ def doArchive() {
         }
         throw e
     }
+}
+
+List<String> readListFile(String fileName) {
+    def completeFile = readFile(fileName).normalize() // Turn Windows-style line feeds into plain \n
+    def out = []
+    for(String line : completeFile.split('\n')) {
+        line = line.trim()
+        if(line && !line.startsWith('#')) {
+            if(line.contains(':')) {
+                platformAndTest = line.split(':')
+                if(platformAndTest[0] == platform) {
+                    out << platformAndTest[1].trim()
+                }
+            } else { // this is an unqualified test
+                out << line
+            }
+        }
+    }
+    return out
 }
 
 

@@ -1,5 +1,6 @@
-def call() {
-        if(isUnix()) {
+def call(String checkoutDir) {
+    if(isUnix()) {
+        dir(checkoutDir) {
             sshagent(['tylers-ssh']) {
                 echo "Pulling SVN art assets too for later auto-testing"
                 // Do recursive cleanup, just in case

@@ -7,14 +7,13 @@ environment['send_emails'] = send_emails
 environment['pmt_subject'] = pmt_subject
 environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
-environment['release_build'] = release_build
-environment['steam_build'] = steam_build
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['build_all_apps'] = build_all_apps
-environment['dev_build'] = dev_build
+environment['build_type'] = build_type
 utils.setEnvironment(environment, this.&notify)
+
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -38,15 +37,17 @@ try {
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
     stage('Notify')                        { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
 } finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    if(utils.build_windows) {
+        node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    }
 }
 
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { node('windows') { if(utils.build_windows) { closure('Windows') } } },
-            'macOS'   : { node('mac')     { if(utils.build_mac)     { closure('macOS')   } } },
-            'Linux'   : { node('linux')   { if(utils.build_linux)   { closure('Linux')   } } }
+            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
     )
 }
 
@@ -102,7 +103,7 @@ def doBuild(String platform) {
 }
 
 def getBuildToolConfiguration() {
-    return utils.steam_build ? "NODEV_OPT_Prod_Steam" : (utils.release_build ? "NODEV_OPT_Prod" : (utils.is_dev ? "DEV_OPT" : "NODEV_OPT"))
+    return utils.getBuildToolConfiguration()
 }
 
 def doArchive(String platform) {

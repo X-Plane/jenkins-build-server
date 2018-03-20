@@ -2,24 +2,31 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
     // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
     assert environment['build_windows'] && environment['build_mac'] && environment['build_linux'], "Missing expected build parameters: platforms"
-    assert environment['release_build'], "Missing expected build parameters: release_build"
     notify = notifyStep
     branch_name = environment['branch_name']
     send_emails = toRealBool(environment['send_emails'])
     pmt_subject = environment['pmt_subject']
     pmt_from = environment['pmt_from']
     directory_suffix = environment['directory_suffix']
-    release_build = toRealBool(environment['release_build'])
-    steam_build = toRealBool(environment['steam_build'])
     build_windows = toRealBool(environment['build_windows'])
     build_mac = toRealBool(environment['build_mac'])
     build_linux = toRealBool(environment['build_linux'])
     build_all_apps = toRealBool(environment['build_all_apps'])
-    is_release = steam_build || release_build
-    is_dev = toRealBool(environment['dev_build'])
-    assert !(is_dev && is_release), "Dev and release options are mutually exlusive"
-    app_suffix = is_release ? "" : (is_dev ? "_DEV_OPT" : "_NODEV_OPT")
-    assert build_all_apps || (!release_build && !steam_build), "Release & Steam builds require all apps to be built"
+    // Switch between compatibility with old style and new style
+    if(environment.containsKey('dev_build')) {
+        assert environment['release_build'], "Missing expected build parameters: release_build"
+        assert environment['steam_build'], "Missing expected build parameters: steam_build"
+        def release_build = toRealBool(environment['release_build'])
+        def steam_build = toRealBool(environment['steam_build'])
+        def is_dev = toRealBool(environment['dev_build'])
+        build_type = steam_build ? "NODEV_OPT_Prod_Steam" : (release_build ? "NODEV_OPT_Prod" : (is_dev ? 'DEV_OPT' : "NODEV_OPT"))
+        assert release_build == isReleaseBuild()
+        assert !(is_dev && release_build), "Dev and release options are mutually exlusive"
+    } else {
+        assert environment.containsKey('build_type')
+        build_type = environment['build_type']
+    }
+    app_suffix = build_type.contains('_Prod') ? '' : '_' + build_type
 
     node = globalSteps ? globalSteps.&node : null
     parallel = globalSteps ? globalSteps.&parallel : null
@@ -75,12 +82,12 @@ String getArchiveRoot(String platform='') {
 String getArchiveDir(String platform='', String optionalSubdir='') {
     String archiveRoot = getArchiveRoot(platform)
     def dirChar = chooseByPlatformNixWin('/', '\\', platform)
-    String steamSubdir = steam_build ? "steam${dirChar}" : ""
+    String steamSubdir = isSteamBuild() ? "steam${dirChar}" : ""
     if(optionalSubdir) {
         optionalSubdir += dirChar
     }
     String commitDir = getCommitId(platform)
-    if(is_release) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
+    if(isReleaseBuild()) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
         commitDir = branch_name + '-' + commitDir
     }
     String archiveDir = chooseByPlatformNixWin("${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}/", "${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}\\", platform)
@@ -98,7 +105,7 @@ String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir=
     return out
 }
 
-List getExpectedXPlaneProducts(String platform) {
+List getExpectedXPlaneProducts(String platform, boolean ignoreSymbols=false) {
     String appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
     List appNamesNoInstaller = addSuffix(build_all_apps ? ["X-Plane", "Airfoil Maker", "Plane Maker"] : ["X-Plane"], app_suffix)
     List appNames = appNamesNoInstaller + (build_all_apps ? ["X-Plane 11 Installer" + app_suffix] : [])
@@ -111,7 +118,9 @@ List getExpectedXPlaneProducts(String platform) {
         }
     }
 
-    if(is_release) {
+
+    boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
+    if(needsSymbols) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
         def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
         if(isWindows(platform)) {
@@ -144,8 +153,15 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
     return false
 }
 
-def getBuildToolConfiguration() {
-    return steam_build ? "NODEV_OPT_Prod_Steam" : (release_build ? "NODEV_OPT_Prod" : "NODEV_OPT")
+String getBuildToolConfiguration() {
+    return build_type
+}
+
+boolean isReleaseBuild() {
+    return build_type.contains('_Prod')
+}
+boolean isSteamBuild() {
+    return build_type.contains('_Steam')
 }
 
 // $&@#* Jenkins.
@@ -164,7 +180,7 @@ boolean toRealBool(fakeBool) {
 // PLATFORM UTILS
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 def supportsTesting() {
-    return isUnix() && !steam_build
+    return isUnix() && !isSteamBuild()
 }
 
 def isWindows(String platform) {
@@ -172,6 +188,9 @@ def isWindows(String platform) {
 }
 def isNix(String platform) {
     return !isWindows(platform)
+}
+def isLinux(String platform) {
+    return platform == 'Linux'
 }
 def isMac(String platform) {
     return platform == 'macOS'
