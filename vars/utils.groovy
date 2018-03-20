@@ -118,7 +118,9 @@ List getExpectedXPlaneProducts(String platform, boolean ignoreSymbols=false) {
         }
     }
 
-    if(isOptimizedBuild() && !ignoreSymbols) {
+
+    boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
+    if(needsSymbols) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
         def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
         if(isWindows(platform)) {
@@ -158,12 +160,6 @@ String getBuildToolConfiguration() {
 boolean isReleaseBuild() {
     return build_type.contains('_Prod')
 }
-boolean isDevBuild() {
-    return build_type.contains('DEV_')
-}
-boolean isOptimizedBuild() {
-    return build_type.contains('_OPT')
-}
 boolean isSteamBuild() {
     return build_type.contains('_Steam')
 }
@@ -192,6 +188,9 @@ def isWindows(String platform) {
 }
 def isNix(String platform) {
     return !isWindows(platform)
+}
+def isLinux(String platform) {
+    return platform == 'Linux'
 }
 def isMac(String platform) {
     return platform == 'macOS'
