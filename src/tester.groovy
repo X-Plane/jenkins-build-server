@@ -98,7 +98,7 @@ def doTest() {
             } else if(isRenderingRegression) {
                 testsToRun.push('test_runner.py rendering_regression.test --nodelete')
             } else if(isLoadTime) {
-                testsToRun.push('test_runner.py instaquit.test --nodelete')
+                testsToRun.push('load_time_test_runner.py')
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
                 def testFiles = readListFile('jenkins_tests.list')
                 for(String testFile : testFiles) {
