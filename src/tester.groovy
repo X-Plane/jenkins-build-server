@@ -172,6 +172,8 @@ def doArchive() {
                     echo cmd
                     sh cmd
                     products.push(zipName)
+                } else if(isLoadTime) {
+                    products.push('load_test_results.txt')
                 } else { // Need to read the list of all screenshots to check for
                     for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
                         def dest = "${screenshotName}_${platform}.png"
