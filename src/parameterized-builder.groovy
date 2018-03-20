@@ -7,13 +7,11 @@ environment['send_emails'] = send_emails
 environment['pmt_subject'] = pmt_subject
 environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
-environment['release_build'] = release_build
-environment['steam_build'] = steam_build
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['build_all_apps'] = build_all_apps
-environment['dev_build'] = dev_build
+environment['build_type'] = build_type
 utils.setEnvironment(environment, this.&notify)
 
 
