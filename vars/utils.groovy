@@ -14,8 +14,6 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     build_all_apps = toRealBool(environment['build_all_apps'])
     // Switch between compatibility with old style and new style
     if(environment.containsKey('dev_build')) {
-        assert environment['release_build'], "Missing expected build parameters: release_build"
-        assert environment['steam_build'], "Missing expected build parameters: steam_build"
         def release_build = toRealBool(environment['release_build'])
         def steam_build = toRealBool(environment['steam_build'])
         def is_dev = toRealBool(environment['dev_build'])
