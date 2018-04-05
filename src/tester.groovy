@@ -88,6 +88,10 @@ def getArchiveDir() {
     }
 }
 
+boolean isUiTest(String fileName) {
+    return fileName.startsWith('ui_') || fileName.contains('_ui.') || fileName.contains('_ui_')
+}
+
 def doTest() {
     String testDir = checkoutDir + "tests"
     echo "Running tests in ${testDir}"
@@ -108,7 +112,7 @@ def doTest() {
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
                 def testFiles = readListFile('jenkins_tests.list')
                 for(String testFile : testFiles) {
-                    testsToRun << "test_runner.py ${testFile} --nodelete"
+                    testsToRun << "test_runner.py ${testFile} --nodelete" + (isUiTest(testFile) ? ' --ui' : '')
                 }
                 echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
