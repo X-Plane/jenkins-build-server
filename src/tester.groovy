@@ -218,7 +218,7 @@ def doArchive() {
 }
 
 List<String> readListFile(String fileName) {
-    def completeFile = readFile(fileName).normalize() // Turn Windows-style line feeds into plain \n
+    def completeFile = readFile(fileName).replace('\r\n', '\n').replace('\r', '\n') // Turn Windows-style line feeds into plain \n
     def out = []
     for(String line : completeFile.split('\n')) {
         line = line.trim()
