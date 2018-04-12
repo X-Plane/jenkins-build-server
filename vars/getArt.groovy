@@ -6,7 +6,7 @@ def call(String checkoutDir) {
                 // Do recursive cleanup, just in case
                 sh(returnStdout: true, script: "set +x find Aircraft  -type d -exec \"svn cleanup\" \\;")
                 sh(returnStdout: true, script: "set +x find Resources -type d -exec \"svn cleanup\" \\;")
-                sh(returnStdout: true, script: 'scripts/get_art.sh checkout tyler')
+                sh(returnStdout: true, script: 'scripts/get_art.sh --clobber checkout tyler')
             }
         }
     }
