@@ -62,12 +62,12 @@ def doCheckout() {
     // Copy pre-built executables to our working dir as well
     dir(checkoutDir) {
         def products = utils.getExpectedXPlaneProducts(platform, true)
-        archiveDir = getArchiveDir()
+        def archiveDir = getArchiveDir()
         if(utils.copyBuildProductsFromArchive(products, platform)) {
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {
             def commitId = utils.getCommitId(platform)
-            def prodStr = products.join(', ')
+            def prodStr = addPrefix(products, archiveDir).join(', ')
             utils.sendEmail(
                     "Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Missing executables to test on ${platform} [${branch_name}]",
