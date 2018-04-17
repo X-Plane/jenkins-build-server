@@ -67,7 +67,7 @@ def doCheckout() {
             echo "Copied executables for ${platform} in ${archiveDir}"
         } else {
             def commitId = utils.getCommitId(platform)
-            def prodStr = addPrefix(products, archiveDir).join(', ')
+            def prodStr = utils.addPrefix(products, archiveDir).join(', ')
             utils.sendEmail(
                     "Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Missing executables to test on ${platform} [${branch_name}]",
