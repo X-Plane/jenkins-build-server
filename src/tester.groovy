@@ -132,6 +132,7 @@ def doTest() {
                 try {
                     sh completeCommand
                 } catch(e) {
+                    echo "Test ${testsToRun} exited with error, but we won't actually die until all test scripts have completed. Error was: ${e}"
                     errorToThrow = e // Continue running the rest of the tests!
                 }
             }
