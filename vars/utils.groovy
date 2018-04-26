@@ -36,18 +36,6 @@ def replyToTrigger(String msg, String errorMsg='') {
     }
 }
 
-def do3PlatformStage(String stageName, Closure c) {
-    assert node && parallel, 'Failed to pass global steps into utils.setEnvironment()'
-    def closure = c
-    stage(stageName) {
-        parallel(
-                'Windows' : { if(build_windows) { node('windows') { closure('Windows') } } },
-                'macOS'   : { if(build_mac)     { node('mac')     { closure('macOS')   } } },
-                'Linux'   : { if(build_linux)   { node('linux')   { closure('Linux')   } } }
-        )
-    }
-}
-
 def sendEmail(String subj, String msg, String errorMsg='', String recipient='') {
     if(send_emails) {
         if(pmt_subject && pmt_from) {
