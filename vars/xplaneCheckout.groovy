@@ -5,6 +5,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             sshagent(['tylers-ssh']) {
                 sh "git branch"
                 sh "git fetch"
+                sh "git reset --hard"
                 sh "git checkout ${branchName}"
                 sh "git submodule update --init"
                 try {
