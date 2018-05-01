@@ -93,7 +93,7 @@ def doBuild(String platform) {
                 utils.chooseShellByPlatformMacWinLin([
                         "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build ${pipe_to_xcpretty}",
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (utils.build_all_apps ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
-                        "cd design_linux && make -j4 " + (utils.build_all_apps ? '' : "X-Plane")
+                        "cd design_linux && make -j\$(nproc) " + (utils.build_all_apps ? '' : "X-Plane")
                 ], platform)
             }
         } catch (e) {

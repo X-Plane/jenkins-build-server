@@ -13,16 +13,27 @@ utils.setEnvironment(environment, this.&notify, this.steps)
 assert build_mac == 'true' || build_type != 'build_dlls'
 
 try {
-    utils.do3PlatformStage('Checkout', this.&doCheckout)
+    stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     if(build_type == 'build_dlls') {
-        utils.do3PlatformStage('Build',    this.&doBuild)
-        utils.do3PlatformStage('Archive',  this.&archiveBuild)
+        stage('Build')                     { runOn3Platforms(this.&doBuild) }
+        stage('Archive')                   { runOn3Platforms(this.&archiveBuild) }
     } else {
-        stage('Build')   { node('mac') { packageRelease('macOS') } }
-        stage('Archive') { node('mac') { archiveRelease('macOS') } }
+        stage('Build')                     { node('mac') { packageRelease('macOS') } }
+        stage('Archive')                   { node('mac') { archiveRelease('macOS') } }
     }
+    stage('Notify')                        { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+}
+
+
+def runOn3Platforms(Closure c) {
+    def closure = c
+    parallel (
+            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+    )
 }
 
 def doCheckout(String platform) {

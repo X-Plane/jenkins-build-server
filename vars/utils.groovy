@@ -14,8 +14,6 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     build_all_apps = toRealBool(environment['build_all_apps'])
     // Switch between compatibility with old style and new style
     if(environment.containsKey('dev_build')) {
-        assert environment['release_build'], "Missing expected build parameters: release_build"
-        assert environment['steam_build'], "Missing expected build parameters: steam_build"
         def release_build = toRealBool(environment['release_build'])
         def steam_build = toRealBool(environment['steam_build'])
         def is_dev = toRealBool(environment['dev_build'])
@@ -35,18 +33,6 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
 def replyToTrigger(String msg, String errorMsg='') {
     if(send_emails && pmt_subject && pmt_from) {
         sendEmail("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
-    }
-}
-
-def do3PlatformStage(String stageName, Closure c) {
-    assert node && parallel, 'Failed to pass global steps into utils.setEnvironment()'
-    def closure = c
-    stage(stageName) {
-        parallel(
-                'Windows' : { if(build_windows) { node('windows') { closure('Windows') } } },
-                'macOS'   : { if(build_mac)     { node('mac')     { closure('macOS')   } } },
-                'Linux'   : { if(build_linux)   { node('linux')   { closure('Linux')   } } }
-        )
     }
 }
 

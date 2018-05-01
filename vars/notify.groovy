@@ -13,12 +13,13 @@ Console Log (split by machine/task/subtask): ${BUILD_URL}flowGraphTable/
 
 Console Log (plain text): ${BUILD_URL}console
 """
+    boolean buildTriggeredByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
+    String recipientProviderClass = buildTriggeredByUser ? 'RequesterRecipientProvider' : 'CulpritsRecipientProvider'
     emailext attachLog: true,
             body: body,
             subject: subj,
             to: recipient ? recipient : emailextrecipients([
-                    [$class: 'CulpritsRecipientProvider'],
-                    [$class: 'RequesterRecipientProvider']
+                    [$class: recipientProviderClass]
             ])
 }
 
