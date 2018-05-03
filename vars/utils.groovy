@@ -48,7 +48,17 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
 
 
 String getCheckoutDir(String platform='') {
-    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\", platform)
+    return chooseByPlatformNixWin(
+            "/jenkins/design-${directory_suffix}/",
+            fixWindowsPathConventions("C:\\jenkins\\design-${directory_suffix}\\", platform),
+            platform)
+}
+
+String fixWindowsPathConventions(String path, String platform) {
+    if(platform.endsWith('GitBash')) {
+        return path.replace('C:\\', '/c/').replace('D:\\', '/d/').replace('\\', '/').replace(' ', '\\ ')
+    }
+    return path
 }
 
 String getCommitId(String platform='') {
@@ -63,7 +73,9 @@ String getCommitId(String platform='') {
 
 String getArchiveRoot(String platform='') {
     if(isWindows(platform)) { // windows path might be on either the C:\ or D:\ drive
-        return platform == 'WindowsC' ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\"
+        return fixWindowsPathConventions(
+                platform.startsWith('WindowsC') ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\",
+                platform)
     } else {
         return '/jenkins/Dropbox/jenkins-archive/'
     }
@@ -71,7 +83,7 @@ String getArchiveRoot(String platform='') {
 
 String getArchiveDir(String platform='', String optionalSubdir='') {
     String archiveRoot = getArchiveRoot(platform)
-    def dirChar = chooseByPlatformNixWin('/', '\\', platform)
+    def dirChar = chooseByPlatformNixWin('/', fixWindowsPathConventions('\\', platform), platform)
     String steamSubdir = isSteamBuild() ? "steam${dirChar}" : ""
     if(optionalSubdir) {
         optionalSubdir += dirChar
@@ -80,7 +92,7 @@ String getArchiveDir(String platform='', String optionalSubdir='') {
     if(isReleaseBuild()) { // stick it in a directory named based on the commit/tag/branch name that triggered the build
         commitDir = branch_name + '-' + commitDir
     }
-    String archiveDir = chooseByPlatformNixWin("${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}/", "${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}\\", platform)
+    String archiveDir = "${archiveRoot}${steamSubdir}${optionalSubdir}${commitDir}${dirChar}"
     assert archiveDir : "Got an empty archive dir"
     assert !archiveDir.contains("C:") || isWindows(platform) : "Got a Windows path on platform ${platform} from getArchiveDir()"
     assert !archiveDir.contains("/jenkins/") || isNix(platform) : "Got a Unix path on Windows from utils.getArchiveDir()"
@@ -269,7 +281,7 @@ def chooseShellByPlatformNixWin(String nixCommand, String winCommand, String pla
     }
 }
 def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
-    if(isWindows(platform)) {
+    if(isWindows(platform) && !platform.endsWith('GitBash')) {
         bat macWinLinCommands[1]
     } else if(isMac(platform)) {
         sh macWinLinCommands[0]
