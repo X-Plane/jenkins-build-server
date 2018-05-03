@@ -132,7 +132,7 @@ def nukeIfExist(List<String> files, String platform) {
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
-    String archiveDir = fixWindowsPathConventions(getArchiveDir(), platform)
+    String archiveDir = fixWindowsPathConventions(getArchiveDir(platform), platform)
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
         // Copy them back to our working directories for the sake of working with them
@@ -147,7 +147,9 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
 
 String fixWindowsPathConventions(String path, String platform) {
     if(platform.endsWith('GitBash')) {
-        return path.replace('C:\\', '/c/').replace('D:\\', '/d/').replace('\\', '/').replace(' ', '\\ ')
+        String out = path.replace('C:\\', '/c/').replace('D:\\', '/d/').replace('\\', '/').replace(' ', '\\ ')
+        echo "Transformed ${path} to ${out} for Git Bash"
+        return out
     }
     return path
 }
