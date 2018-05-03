@@ -146,33 +146,24 @@ def notifySuccess() {
 String getSlackHeyYourBuild() {
     def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
     if(userCause != null) {
-        String slackUserName = jenkinsToSlackUserName(userCause.getUserName())
-        if(slackUserName.isEmpty()) {
+        String slackUserId = jenkinsToSlackUserId(userCause.getUserName())
+        if(slackUserId.isEmpty()) {
             return 'Manual build'
         } else {
-            return "Hey @${slackUserName}, your build"
+            return "Hey <@${slackUserId}>, your build"
         }
     }
     return 'Autotriggered build'
 }
 
-String jenkinsToSlackUserName(String jenkinsUserName) {
-    if(jenkinsUserName == 'jennifer') {
-        return 'Jennifer'
-    } else if(jenkinsUserName == 'tyler') {
-        return 'Tyler Young'
-    } else if(jenkinsUserName == 'justsid') {
-        return 'justsid'
-    } else if(jenkinsUserName == 'chris') {
-        return 'Chris Serio'
-    } else if(jenkinsUserName == 'philipp') {
-        return 'Philipp'
-    } else if(jenkinsUserName == 'ben') {
-        return 'Ben Supnik'
-    } else if(jenkinsUserName == 'joerg') {
-        return 'Jörg'
-    } else if(jenkinsUserName == 'austin') {
-        return 'Austin Meyer'
-    }
+String jenkinsToSlackUserId(String jenkinsUserName) {
+         if(jenkinsUserName == 'jennifer') { return 'UAFN64MEC' }
+    else if(jenkinsUserName == 'tyler')    { return 'UAG6R8LHJ' }
+    else if(jenkinsUserName == 'justsid')  { return 'UAFUMQESC' }
+    else if(jenkinsUserName == 'chris')    { return 'UAG89NX9S' }
+    else if(jenkinsUserName == 'philipp')  { return 'UAHMBUCV9' }
+    else if(jenkinsUserName == 'ben')      { return 'UAHHSRPD5' }
+    else if(jenkinsUserName == 'joerg')    { return 'UAHNGEP61' }
+    else if(jenkinsUserName == 'austin')   { return 'UAGV8R9PS' }
     return ''
 }
