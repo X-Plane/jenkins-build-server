@@ -132,11 +132,12 @@ def nukeIfExist(List<String> files, String platform) {
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
-    String archiveDir = fixWindowsPathConventions(getArchiveDir(platform), platform)
+    String archiveDir = getArchiveDir(platform)
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
         echo "Copying products from ${archiveDir} on ${platform}"
         // Copy them back to our working directories for the sake of working with them
+        archiveDir = fixWindowsPathConventions(archiveDir, platform)
         chooseShellByPlatformNixWin("cp ${archiveDir}* .", "copy \"${archiveDir}*\" .", platform)
         if(isMac(platform)) {
             sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
