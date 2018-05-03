@@ -102,7 +102,7 @@ def doBuild(String platform) {
             String logUrl = "${BUILD_URL}flowGraphTable/"
             slackSend(
                     color: 'danger',
-                    message: "${heyYourBuild} of ${branch_name} failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
+                    message: "${heyYourBuild} of `${branch_name}` failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
         }
     }
 }
@@ -140,7 +140,7 @@ def notifySuccess() {
     String heyYourBuild = getSlackHeyYourBuild()
     slackSend(
             color: 'good',
-            message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download all build products> | <${BUILD_URL}|Build Info>")
+            message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
 }
 
 String getSlackHeyYourBuild() {
