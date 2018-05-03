@@ -255,10 +255,14 @@ def addSuffix(List strings, String newSuffix) {
 // FILE OPS
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 def filesExist(List expectedProducts) {
-    for(def p : expectedProducts) {
-        if(!fileExists(p)) {
-            return false
+    try {
+        for(def p : expectedProducts) {
+            if(!fileExists(p)) {
+                return false
+            }
         }
+    } catch(e) {
+        return false
     }
     return true
 }
