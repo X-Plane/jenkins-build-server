@@ -146,7 +146,7 @@ def notifySuccess() {
 String getSlackHeyYourBuild() {
     def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
     if(userCause != null) {
-        String slackUserId = jenkinsToSlackUserId(userCause.getUserName())
+        String slackUserId = jenkinsToSlackUserId(userCause.getUserId())
         if(slackUserId.isEmpty()) {
             return 'Manual build'
         } else {
