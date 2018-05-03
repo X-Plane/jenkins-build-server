@@ -33,6 +33,8 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
 def replyToTrigger(String msg, String errorMsg='') {
     if(send_emails && pmt_subject && pmt_from) {
         sendEmail("Re: ${pmt_subject}", msg, errorMsg, pmt_from)
+    } else {
+        echo msg
     }
 }
 
