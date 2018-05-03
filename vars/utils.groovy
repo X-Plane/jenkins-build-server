@@ -135,6 +135,7 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
     String archiveDir = fixWindowsPathConventions(getArchiveDir(platform), platform)
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
+        echo "Copying products from ${archiveDir} on ${platform}"
         // Copy them back to our working directories for the sake of working with them
         chooseShellByPlatformNixWin("cp ${archiveDir}* .", "copy \"${archiveDir}*\" .", platform)
         if(isMac(platform)) {
