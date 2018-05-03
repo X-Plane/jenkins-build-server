@@ -63,12 +63,7 @@ String getCommitId(String platform='') {
 
 String getArchiveRoot(String platform='') {
     if(isWindows(platform)) { // windows path might be on either the C:\ or D:\ drive
-        String pathOnD = "D:\\Dropbox\\jenkins-archive\\"
-        if(fileExists(pathOnD)) {
-            return pathOnD
-        } else {
-            return "C:\\jenkins\\Dropbox\\jenkins-archive\\"
-        }
+        return platform == 'WindowsC' ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\"
     } else {
         return '/jenkins/Dropbox/jenkins-archive/'
     }
@@ -179,7 +174,7 @@ def supportsTesting() {
 }
 
 def isWindows(String platform='') {
-    return platform ? platform == 'Windows' : !isUnix()
+    return platform ? platform.startsWith('Windows') : !isUnix()
 }
 def isNix(String platform) {
     return !isWindows(platform)

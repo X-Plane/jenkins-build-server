@@ -24,7 +24,7 @@ isRenderingRegression = isRenderingRegressionMaster || isRenderingRegressionRele
 regressionMasterArchive = utils.getArchiveRoot(platform) + 'rendering-master/'
 regressionReleaseArchive = utils.getArchiveRoot(platform) + 'rendering-release/'
 isTimeTest = test_type == 'load_time'
-String nodeType = platform == 'Windows' ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
+String nodeType = platform.startsWith('Windows') ? 'windows' : (platform == 'Linux' ? 'linux' : 'mac')
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
 }
