@@ -130,7 +130,7 @@ def nukeIfExist(List<String> files, String platform) {
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
-    String archiveDir = getArchiveDir()
+    String archiveDir = fixWindowsPathConventions(getArchiveDir(), platform)
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
         // Copy them back to our working directories for the sake of working with them
@@ -141,6 +141,13 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
         return true
     }
     return false
+}
+
+String fixWindowsPathConventions(String path, String platform) {
+    if(platform.endsWith('GitBash')) {
+        return path.replace('C:\\', '/c/').replace('D:\\', '/d/').replace('\\', '/').replace(' ', '\\ ')
+    }
+    return path
 }
 
 String getBuildToolConfiguration() {
@@ -269,7 +276,7 @@ def chooseShellByPlatformNixWin(String nixCommand, String winCommand, String pla
     }
 }
 def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
-    if(isWindows(platform)) {
+    if(isWindows(platform) && !platform.endsWith('GitBash')) {
         bat macWinLinCommands[1]
     } else if(isMac(platform)) {
         sh macWinLinCommands[0]
