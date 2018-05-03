@@ -134,7 +134,7 @@ def doArchive(String platform) {
     }
 }
 
-def notifySuccess(String platform) {
+def notifySuccess() {
     utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.")
     String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
     String heyYourBuild = getSlackHeyYourBuild()
