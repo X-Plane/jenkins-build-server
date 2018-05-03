@@ -63,7 +63,7 @@ String getCommitId(String platform='') {
 
 String getArchiveRoot(String platform='') {
     if(isWindows(platform)) { // windows path might be on either the C:\ or D:\ drive
-        return platform == 'WindowsC' ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\"
+        return platform.startsWith('WindowsC') ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\"
     } else {
         return '/jenkins/Dropbox/jenkins-archive/'
     }
