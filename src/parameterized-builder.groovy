@@ -159,7 +159,7 @@ String getSlackHeyYourBuild() {
 String jenkinsToSlackUserId(String jenkinsUserName) {
          if(jenkinsUserName == 'jennifer') { return 'UAFN64MEC' }
     else if(jenkinsUserName == 'tyler')    { return 'UAG6R8LHJ' }
-    else if(jenkinsUserName == 'justsid')  { return 'UAFUMQESC' }
+    else if(jenkinsUserName == 'justsid')  { return 'UAFUMQESC' }
     else if(jenkinsUserName == 'chris')    { return 'UAG89NX9S' }
     else if(jenkinsUserName == 'philipp')  { return 'UAHMBUCV9' }
     else if(jenkinsUserName == 'ben')      { return 'UAHHSRPD5' }
