@@ -65,15 +65,28 @@ if(!utils.isWindows(platform)) {
     dir(checkoutDir) {
         def products = utils.getExpectedXPlaneProducts(platform, true)
         def archiveDir = getArchiveDir()
-        if(utils.copyBuildProductsFromArchive(products, platform)) {
-            echo "Copied executables for ${platform} in ${archiveDir}"
-        } else {
+
+        // We're going to attempt to copy our dependencies once/minute for up to 10 minutes (to give Dropbox time to sync)
+        boolean copied = false
+        int secondsWaited = 0
+        def timeout = 60 * (checkout_max_wait_minutes as Integer)
+        while(!copied && secondsWaited <= timeout) {
+            if(utils.copyBuildProductsFromArchive(products, platform)) {
+                echo "Copied executables for ${platform} in ${archiveDir}"
+                copied = true
+            } else if(secondsWaited < timeout) {
+                sleep(30 * 1000)
+                secondsWaited += 30
+            }
+        }
+
+        if(!copied) {
             def commitId = utils.getCommitId(platform)
             def prodStr = utils.addPrefix(products, archiveDir).join(', ')
             utils.sendEmail(
                     "Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Missing executables to test on ${platform} [${branch_name}]",
-                    "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name}.\r\n\r\nWe were looking for:\r\n${prodStr}\r\nin directory:\r\n${archiveDir}\r\n\r\nWe will be unable to test until this is fixed.",
+                    "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name} after waiting ${checkout_max_wait_minutes} minutes.\r\n\r\nWe were looking for:\r\n${prodStr}\r\nin directory:\r\n${archiveDir}\r\n\r\nWe will be unable to test until this is fixed.",
                     'tyler@x-plane.com')
             echo 'Throwing error due to missing products: ' + prodStr
             throw new java.io.FileNotFoundException(prodStr)
