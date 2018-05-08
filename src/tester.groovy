@@ -52,13 +52,13 @@ def doCheckout() {
     cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
     clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png'], cleanCommand, platform, utils)
 
-    if(utils.toRealBool(do_git_and_svn_checkout)) {
-        try {
-            xplaneCheckout(branch_name, checkoutDir, platform)
+    try {
+        xplaneCheckout(branch_name, checkoutDir, platform)
+        if(utils.toRealBool(do_svn_checkout)) {
             getArt(checkoutDir)
-        } catch(e) {
-            notifyBrokenCheckout(utils.&sendEmail, 'autotesting', branch_name, platform, e)
         }
+    } catch(e) {
+        notifyBrokenCheckout(utils.&sendEmail, 'autotesting', branch_name, platform, e)
     }
 
     // Copy pre-built executables to our working dir as well
