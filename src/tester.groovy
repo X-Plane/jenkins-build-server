@@ -75,7 +75,10 @@ def doCheckout() {
                 echo "Copied executables for ${platform} in ${archiveDir}"
                 copied = true
             } else if(secondsWaited < timeout) {
-                sleep(30 * 1000)
+                // Tyler says: Jenkins overrides the Java-provided sleep with its own version.
+                //             The Jenkins version "conveniently" takes different units than the Java version:
+                //             it expects *seconds*, not milliseconds. (WTF?)
+                sleep(30)
                 secondsWaited += 30
             }
         }
