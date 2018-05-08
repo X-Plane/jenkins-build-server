@@ -70,29 +70,27 @@ def doCheckout() {
         boolean copied = false
         int secondsWaited = 0
         def timeout = 60 * (checkout_max_wait_minutes as Integer)
-        while(!copied && secondsWaited <= timeout) {
+        while(!copied) {
             if(utils.copyBuildProductsFromArchive(products, platform)) {
                 echo "Copied executables for ${platform} in ${archiveDir}"
-                copied = true
+                break
             } else if(secondsWaited < timeout) {
                 // Tyler says: Jenkins overrides the Java-provided sleep with its own version.
                 //             The Jenkins version "conveniently" takes different units than the Java version:
                 //             it expects *seconds*, not milliseconds. (WTF?)
                 sleep(30)
                 secondsWaited += 30
+            } else {
+                def commitId = utils.getCommitId(platform)
+                def prodStr = utils.addPrefix(products, archiveDir).join(', ')
+                utils.sendEmail(
+                        "Testing failed on ${platform} [${branch_name}; ${commitId}]",
+                        "Missing executables to test on ${platform} [${branch_name}]",
+                        "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name} after waiting ${checkout_max_wait_minutes} minutes.\r\n\r\nWe were looking for:\r\n${prodStr}\r\nin directory:\r\n${archiveDir}\r\n\r\nWe will be unable to test until this is fixed.",
+                        'tyler@x-plane.com')
+                echo 'Throwing error due to missing products: ' + prodStr
+                throw new java.io.FileNotFoundException(prodStr)
             }
-        }
-
-        if(!copied) {
-            def commitId = utils.getCommitId(platform)
-            def prodStr = utils.addPrefix(products, archiveDir).join(', ')
-            utils.sendEmail(
-                    "Testing failed on ${platform} [${branch_name}; ${commitId}]",
-                    "Missing executables to test on ${platform} [${branch_name}]",
-                    "Couldn't find pre-built binaries to test for ${platform} on branch ${branch_name} after waiting ${checkout_max_wait_minutes} minutes.\r\n\r\nWe were looking for:\r\n${prodStr}\r\nin directory:\r\n${archiveDir}\r\n\r\nWe will be unable to test until this is fixed.",
-                    'tyler@x-plane.com')
-            echo 'Throwing error due to missing products: ' + prodStr
-            throw new java.io.FileNotFoundException(prodStr)
         }
     }
 }
