@@ -138,7 +138,9 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
         echo "Copying products from ${archiveDir} on ${platform}"
         // Copy them back to our working directories for the sake of working with them
         archiveDir = fixWindowsPathConventions(archiveDir, platform)
-        chooseShellByPlatformNixWin("cp ${archiveDir}* .", "copy \"${archiveDir}*\" .", platform)
+        for(def p : expectedProducts) {
+            chooseShellByPlatformNixWin("cp ${archiveDir}${p} .", "copy \"${archiveDir}${p}\" .", platform)
+        }
         if(isMac(platform)) {
             sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
         }
