@@ -194,7 +194,7 @@ def doArchive() {
             List products = logFilesToArchive
             try {
                 if(isFpsTest) {
-                    String dest = "fps_test_results_${platform}.csv"
+                    String dest = "fps_test_results_${platform}_${cpu}_${gpu}.csv"
                     utils.moveFilePatternToDest("fps_test_results.csv", dest)
                     products.push(dest)
                 } else if(isRenderingRegression) {
