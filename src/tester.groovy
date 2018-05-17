@@ -100,6 +100,8 @@ def getArchiveDir() {
         return regressionMasterArchive
     } else if(isRenderingRegressionRelease) {
         return regressionReleaseArchive
+    } else if(isFpsTest) {
+        return utils.getArchiveDir(platform, 'fps-test')
     } else {
         return utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
     }
@@ -192,8 +194,8 @@ def doArchive() {
             List products = logFilesToArchive
             try {
                 if(isFpsTest) {
-                    String dest = "fps_test_results_${platform}.txt"
-                    utils.moveFilePatternToDest("fps_test_results.txt", dest)
+                    String dest = "fps_test_results_${platform}.csv"
+                    utils.moveFilePatternToDest("fps_test_results.csv", dest)
                     products.push(dest)
                 } else if(isRenderingRegression) {
                     String zipName = "regression_images.zip"
