@@ -45,9 +45,9 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
-            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
-            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+            'Windows' : { if(utils.build_windows) { node('windows') { timeout(60 * 2) { closure('Windows') } } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
     )
 }
 
