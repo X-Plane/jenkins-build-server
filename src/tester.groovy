@@ -37,7 +37,7 @@ logFilesToArchive = []
 stage('Respond')             { utils.replyToTrigger("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
 stage('Checkout')            { node(nodeType) { doCheckout() } }
 try {
-    stage('Test')            { node(nodeType) { doTest() } }
+    stage('Test')            { node(nodeType) { timeout(60 * 12) { doTest() } } }
 } finally { // we want to archive regardless of whether the tests passed
     stage('Archive')         { node(nodeType) { doArchive() } }
 }
