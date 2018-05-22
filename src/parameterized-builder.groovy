@@ -35,7 +35,7 @@ try {
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build')                         { runOn3Platforms(this.&doBuild) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify')                        { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
+    stage('Notify')                        { notifySuccess() }
 } finally {
     if(utils.build_windows) {
         node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
@@ -45,9 +45,9 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
-            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
-            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+            'Windows' : { if(utils.build_windows) { node('windows') { timeout(60 * 2) { closure('Windows') } } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
     )
 }
 
@@ -98,6 +98,11 @@ def doBuild(String platform) {
             }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
+            String heyYourBuild = getSlackHeyYourBuild()
+            String logUrl = "${BUILD_URL}flowGraphTable/"
+            slackSend(
+                    color: 'danger',
+                    message: "${heyYourBuild} of `${branch_name}` failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
         }
     }
 }
@@ -127,4 +132,38 @@ def doArchive(String platform) {
                 e.toString())
         throw e
     }
+}
+
+def notifySuccess() {
+    utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.")
+    String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
+    String heyYourBuild = getSlackHeyYourBuild()
+    slackSend(
+            color: 'good',
+            message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+}
+
+String getSlackHeyYourBuild() {
+    def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
+    if(userCause != null) {
+        String slackUserId = jenkinsToSlackUserId(userCause.getUserId())
+        if(slackUserId.isEmpty()) {
+            return 'Manual build'
+        } else {
+            return "Hey <@${slackUserId}>, your build"
+        }
+    }
+    return 'Autotriggered build'
+}
+
+String jenkinsToSlackUserId(String jenkinsUserName) {
+         if(jenkinsUserName == 'jennifer') { return 'UAFN64MEC' }
+    else if(jenkinsUserName == 'tyler')    { return 'UAG6R8LHJ' }
+    else if(jenkinsUserName == 'justsid')  { return 'UAFUMQESC' }
+    else if(jenkinsUserName == 'chris')    { return 'UAG89NX9S' }
+    else if(jenkinsUserName == 'philipp')  { return 'UAHMBUCV9' }
+    else if(jenkinsUserName == 'ben')      { return 'UAHHSRPD5' }
+    else if(jenkinsUserName == 'joerg')    { return 'UAHNGEP61' }
+    else if(jenkinsUserName == 'austin')   { return 'UAGV8R9PS' }
+    return ''
 }
