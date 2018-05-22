@@ -141,7 +141,7 @@ def doTest() {
 
             def errorToThrow = null
             for(String testToRun : testsToRun) {
-                String completeCommand = "./${testToRun} --app ../${app}"
+                String completeCommand = "env/${binSubdir}/python3 ${testToRun} --app ../${app}"
                 echo "Running: ${completeCommand}"
                 try {
                     sh completeCommand
