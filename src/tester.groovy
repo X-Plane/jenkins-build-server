@@ -135,13 +135,13 @@ def doTest() {
                 }
                 echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
-            String setupVenv = "${venvPath}virtualenv env && env/${binSubdir}/pip install -r package_requirements.txt"
+            String setupVenv = "${venvPath}virtualenv env -p python3 && env/${binSubdir}/pip3 install -r package_requirements.txt"
             echo setupVenv
             sh setupVenv
 
             def errorToThrow = null
             for(String testToRun : testsToRun) {
-                String completeCommand = "env/${binSubdir}/python ${testToRun} --app ../${app}"
+                String completeCommand = "./${testToRun} --app ../${app}"
                 echo "Running: ${completeCommand}"
                 try {
                     sh completeCommand
