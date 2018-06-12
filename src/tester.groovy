@@ -219,6 +219,7 @@ def doArchive() {
                     }
                 }
             } finally {
+                products.push('*.png') // XPD-9229: Any time a wait/expect fails, we take a screenshot before quitting; this allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list
                 archiveWithDropbox(products, getArchiveDir(), false, utils)
             }
         }
