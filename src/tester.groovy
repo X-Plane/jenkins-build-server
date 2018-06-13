@@ -219,7 +219,12 @@ def doArchive() {
                     }
                 }
             } finally {
-                products.push('*.png') // XPD-9229: Any time a wait/expect fails, we take a screenshot before quitting; this allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list
+                // XPD-9229: Any time a wait/expect fails, we take a screenshot before quitting; this allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list
+                for(def png : findFiles(glob: '*.png')) {
+                    if(!products.contains(png.name)) {
+                        products.push(png.name)
+                    }
+                }
                 archiveWithDropbox(products, getArchiveDir(), false, utils)
             }
         }
