@@ -219,13 +219,21 @@ def doArchive() {
                     }
                 }
             } finally {
-                // XPD-9229: Any time a wait/expect fails, we take a screenshot before quitting; this allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list
+                // First archive all the truly *required* stuff.
+                // any failure here (i.e., a missing *required* artifact) causes a test failure!
+                def archiveDir = getArchiveDir()
+                archiveWithDropbox(products, archiveDir, false, utils)
+
+                // XPD-9229: Any time a wait/expect fails, we take a screenshot before quitting.
+                // This allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list.
+                // A failure in archiving any of these does *not* result in a test failure.
                 for(def png : findFiles(glob: '*.png')) {
                     if(!products.contains(png.name)) {
-                        products.push(png.name)
+                        try {
+                            archiveWithDropbox([png.name], archiveDir, false, utils)
+                        } catch(e) { }
                     }
                 }
-                archiveWithDropbox(products, getArchiveDir(), false, utils)
             }
         }
     } catch (e) {
