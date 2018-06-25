@@ -224,14 +224,21 @@ def doArchive() {
                 def archiveDir = getArchiveDir()
                 archiveWithDropbox(products, archiveDir, false, utils)
 
-                // XPD-9229: Any time a wait/expect fails, we take a screenshot before quitting.
-                // This allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list.
-                // A failure in archiving any of these does *not* result in a test failure.
-                for(def png : findFiles(glob: '*.png')) {
-                    if(!products.contains(png.name)) {
-                        try {
-                            archiveWithDropbox([png.name], archiveDir, false, utils)
-                        } catch(e) { }
+                List extraFilePatterns = [
+                        // XPD-9229: Any time a wait/expect fails, we take a screenshot before quitting.
+                        // This allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list.
+                        // A failure in archiving any of these does *not* result in a test failure.
+                        '*.png',
+                        // Grab any log files that the test_runner gave us from instances that crashed
+                        'Log_crashed_*.png']
+                for(String pattern : extraFilePatterns) {
+                    for(def file : findFiles(glob: pattern)) {
+                        if(!products.contains(file.name)) {
+                            try {
+                                archiveWithDropbox([file.name], archiveDir, false, utils)
+                                products.push(file.name)
+                            } catch(e) { }
+                        }
                     }
                 }
             }
