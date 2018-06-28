@@ -1,7 +1,7 @@
 def call(String branchName='', String checkoutDir='', String platform='', String repo='ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git') {
     dir(checkoutDir) {
         echo "Checking out ${branchName} on ${platform}"
-        if(platform == 'Linux') {
+        if(platform == 'Linux' || platform.contains('Bash')) {
             sshagent(['tylers-ssh']) {
                 sh "git branch"
                 sh "git fetch --tags"
