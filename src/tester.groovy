@@ -50,11 +50,7 @@ stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated b
 def doCheckout() {
     // Nuke previous products
     cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png'], cleanCommand, platform, utils)
-
-    if(isRenderingRegression) {
-        utils.chooseShellByPlatformNixWin('rm -Rf regression_images', 'rd /s /q regression_images')
-    }
+    clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png', 'regression_images'], cleanCommand, platform, utils)
 
     try {
         xplaneCheckout(branch_name, checkoutDir, platform)
