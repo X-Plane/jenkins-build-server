@@ -52,6 +52,10 @@ def doCheckout() {
     cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
     clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png'], cleanCommand, platform, utils)
 
+    if(isRenderingRegression) {
+        utils.chooseShellByPlatformNixWin('rm -Rf regression_images', 'rd /s /q regression_images')
+    }
+
     try {
         xplaneCheckout(branch_name, checkoutDir, platform)
         if(utils.toRealBool(do_svn_checkout)) {
