@@ -103,7 +103,7 @@ def getArchiveDir() {
     } else if(isFpsTest) {
         return utils.getArchiveDirAndEnsureItExists(platform, 'fps-test')
     } else {
-        return utils.getArchiveDir(platform) + (isRenderingRegressionComparison ? 'rendering-regression/' : '')
+        return utils.getArchiveDirAndEnsureItExists(platform, isRenderingRegressionComparison ? 'rendering-regression/' : '')
     }
 }
 
