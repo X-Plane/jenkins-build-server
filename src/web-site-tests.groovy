@@ -1,5 +1,6 @@
 stage('Checkout') { run(this.&doCheckout) }
 stage('Test')     { run(this.&testFunnel) }
+stage('Archive')  { run(this.&doArchive) }
 
 
 def run(Closure c) {
@@ -53,6 +54,16 @@ def testFunnel(String platform) {
             notifyBuild("Web site test failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
             throw e
         }
+    }
+}
+
+def doArchive(String platform) {
+    def images = []
+    for(def file : findFiles(glob: '*.png')) {
+        images.push(file.name)
+    }
+    if(images) {
+        archiveArtifacts artifacts: images.join(', '), fingerprint: true, onlyIfSuccessful: false
     }
 }
 
