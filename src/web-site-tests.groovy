@@ -13,8 +13,12 @@ def run(Closure c) {
 
 def doCheckout(String platform) {
     try {
-        clean(['*.png'], [], platform, utils)
-        xplaneCheckout('master', getCheckoutDir(), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
+        String checkoutDir = getCheckoutDir()
+        dir(checkoutDir) {
+            utils.nukeIfExist(['*.png'], platform)
+        }
+        
+        xplaneCheckout('master', checkoutDir, platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
     } catch(e) {
         currentBuild.result = "FAILED"
         notifyBuild('Sales funnel Git checkout is broken on ' + platform,
