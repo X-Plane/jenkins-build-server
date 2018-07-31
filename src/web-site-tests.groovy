@@ -1,6 +1,9 @@
 stage('Checkout') { run(this.&doCheckout) }
-stage('Test')     { run(this.&testFunnel) }
-stage('Archive')  { run(this.&doArchive) }
+try {
+    stage('Test')     { run(this.&testFunnel) }
+} finally { // we want to archive regardless of whether the tests passed
+    stage('Archive')  { run(this.&doArchive) }
+}
 
 
 def run(Closure c) {
