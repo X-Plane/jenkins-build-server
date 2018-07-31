@@ -17,7 +17,7 @@ def doCheckout(String platform) {
         dir(checkoutDir) {
             utils.nukeIfExist(['*.png'], platform)
         }
-        
+
         xplaneCheckout('master', checkoutDir, platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
     } catch(e) {
         currentBuild.result = "FAILED"
@@ -66,12 +66,14 @@ def testFunnel(String platform) {
 }
 
 def doArchive(String platform) {
-    def images = []
-    for(def file : findFiles(glob: '*.png')) {
-        images.push(file.name)
-    }
-    if(images) {
-        archiveArtifacts artifacts: images.join(', '), fingerprint: true, onlyIfSuccessful: false
+    dir(getCheckoutDir()) {
+        def images = []
+        for(def file : findFiles(glob: '*.png')) {
+            images.push(file.name)
+        }
+        if(images) {
+            archiveArtifacts artifacts: images.join(', '), fingerprint: true, onlyIfSuccessful: false
+        }
     }
 }
 
