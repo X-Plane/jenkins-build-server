@@ -170,7 +170,7 @@ def supportsTesting() {
 }
 
 def isWindows(String platform) {
-    return platform == 'Windows'
+    return platform.startsWith('Windows')
 }
 def isNix(String platform) {
     return !isWindows(platform)
@@ -255,6 +255,9 @@ def moveFilePatternToDest(String filePattern, String dest) {
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 // SHELLS
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
+def chooseShell(String commandAllPlatforms, String platform='') {
+    chooseShellByPlatformNixWin(commandAllPlatforms, platform)
+}
 def chooseShellByPlatformNixWin(String nixCommand, String winCommand, String platform='') {
     if(platform) {
         chooseShellByPlatformMacWinLin([nixCommand, winCommand, nixCommand], platform)

@@ -1,19 +1,15 @@
-stage('Checkout') { run(this.&doCheckout) }
+stage('Checkout') { doCheckout(platform) }
 try {
-    stage('Test')     { run(this.&testFunnel) }
+    stage('Test')     { testFunnel(platform) }
 } finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')  { run(this.&doArchive) }
+    stage('Archive')  { doArchive(platform) }
 }
 
 
-def run(Closure c) {
-    def closure = c
-    node('windows') { closure('Windows') }
-}
+String checkoutDir = utils.chooseByPlatformNixWin('/jenkins/website/', 'C:\\jenkins\\website\\', platform)
 
 def doCheckout(String platform) {
     try {
-        String checkoutDir = getCheckoutDir()
         dir(checkoutDir) {
             utils.nukeIfExist(['*.png'], platform)
         }
@@ -29,13 +25,9 @@ def doCheckout(String platform) {
     }
 }
 
-def getCheckoutDir() {
-    def nix = isUnix()
-    return (nix ? '/jenkins/' : 'C:\\jenkins\\') + 'website'+ (nix ? '/' : '\\')
-}
 
 def getCommitId() {
-    dir(getCheckoutDir()) {
+    dir(checkoutDir) {
         if(isUnix()) {
             return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
         } else {
@@ -45,28 +37,21 @@ def getCommitId() {
 }
 
 def testFunnel(String platform) {
-    dir(getCheckoutDir()) {
+    dir(checkoutDir) {
         try {
-            if(platform == 'Windows') {
-                bat "virtualenv env"
-                bat "env\\Scripts\\activate"
-                bat "pip install -r package_requirements.txt"
-                bat "behave --tags=${tag}"
-            } else {
-                sh "virtualenv env"
-                sh "source env/bin/activate"
-                sh "pip install -r package_requirements.txt"
-                sh "behave --tags=${tag}"
-            }
+            utils.chooseShell('virtualenv env -p python3', platform)
+            utils.chooseShellByPlatformNixWin('env\\Scripts\\activate', 'source env/bin/activate', platform)
+            utils.chooseShell('pip install -r package_requirements.txt', platform)
         } catch(e) {
-            notifyBuild("Web site test failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
+            notifyBuild("Web site test setup failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
             throw e
         }
+        utils.chooseShell("behave --tags=${tag}", platform)
     }
 }
 
 def doArchive(String platform) {
-    dir(getCheckoutDir()) {
+    dir(checkoutDir) {
         def images = []
         for(def file : findFiles(glob: '*.png')) {
             images.push(file.name)
@@ -81,6 +66,8 @@ def notifyBuild(String subj, String msg, String errorMsg, String recipient=NULL)
     body = """${msg}
     
 The error was: ${errorMsg}
+
+Download the screenshots: ${BUILD_URL}artifact/*zip*/archive.zip
         
 Build URL: ${BUILD_URL}
 Console Log: ${BUILD_URL}console
