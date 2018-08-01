@@ -48,7 +48,7 @@ def testFunnel(String platform) {
     dir(getCheckoutDir(platform)) {
         try {
             utils.chooseShell('virtualenv env -p python3', platform)
-            utils.chooseShellByPlatformNixWin('env\\Scripts\\activate', 'source env/bin/activate', platform)
+            utils.chooseShellByPlatformNixWin('source env/bin/activate', "env\\Scripts\\activate", platform)
             utils.chooseShell('pip install -r package_requirements.txt', platform)
         } catch(e) {
             notifyBuild("Web site test setup failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
