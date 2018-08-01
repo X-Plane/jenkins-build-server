@@ -280,6 +280,9 @@ def moveFilePatternToDest(String filePattern, String dest) {
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
 // SHELLS
 //----------------------------------------------------------------------------------------------------------------------------------------------------------
+def chooseShell(String commandAllPlatforms, String platform='') {
+    chooseShellByPlatformNixWin(commandAllPlatforms, platform)
+}
 def chooseShellByPlatformNixWin(String nixCommand, String winCommand, String platform='') {
     if(platform) {
         chooseShellByPlatformMacWinLin([nixCommand, winCommand, nixCommand], platform)

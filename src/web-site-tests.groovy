@@ -1,15 +1,28 @@
-stage('Checkout') { run(this.&doCheckout) }
-stage('Test')     { run(this.&testFunnel) }
+stage('Checkout')     { run(this.&doCheckout) }
+try {
+    stage('Test')     { run(this.&testFunnel) }
+} finally { // we want to archive regardless of whether the tests passed
+    stage('Archive')  { run(this.&doArchive) }
+}
 
 
 def run(Closure c) {
     def closure = c
-    node('windows') { closure('Windows') }
+    String nodeType = platform.startsWith('Windows') ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+    node(nodeType) { closure(platform) }
+}
+
+String getCheckoutDir(platform) {
+    return utils.chooseByPlatformNixWin('/jenkins/website/', 'C:\\jenkins\\website\\', platform)
 }
 
 def doCheckout(String platform) {
     try {
-        xplaneCheckout('master', getCheckoutDir(), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
+        dir(getCheckoutDir(platform)) {
+            utils.nukeIfExist(['*.png'], platform)
+        }
+
+        xplaneCheckout('master', getCheckoutDir(platform), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
     } catch(e) {
         currentBuild.result = "FAILED"
         notifyBuild('Sales funnel Git checkout is broken on ' + platform,
@@ -20,13 +33,9 @@ def doCheckout(String platform) {
     }
 }
 
-def getCheckoutDir() {
-    def nix = isUnix()
-    return (nix ? '/jenkins/' : 'C:\\jenkins\\') + 'website'+ (nix ? '/' : '\\')
-}
 
 def getCommitId() {
-    dir(getCheckoutDir()) {
+    dir(getCheckoutDir(platform)) {
         if(isUnix()) {
             return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
         } else {
@@ -36,22 +45,27 @@ def getCommitId() {
 }
 
 def testFunnel(String platform) {
-    dir(getCheckoutDir()) {
+    dir(getCheckoutDir(platform)) {
         try {
-            if(platform == 'Windows') {
-                bat "virtualenv env"
-                bat "env\\Scripts\\activate"
-                bat "pip install -r package_requirements.txt"
-                bat "behave --tags=${tag}"
-            } else {
-                sh "virtualenv env"
-                sh "source env/bin/activate"
-                sh "pip install -r package_requirements.txt"
-                sh "behave --tags=${tag}"
-            }
+            utils.chooseShell('virtualenv env -p python3', platform)
+            utils.chooseShellByPlatformNixWin('env\\Scripts\\activate', 'source env/bin/activate', platform)
+            utils.chooseShell('pip install -r package_requirements.txt', platform)
         } catch(e) {
-            notifyBuild("Web site test failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
+            notifyBuild("Web site test setup failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
             throw e
+        }
+        utils.chooseShell("behave --tags=${tag}", platform)
+    }
+}
+
+def doArchive(String platform) {
+    dir(getCheckoutDir(platform)) {
+        def images = []
+        for(def file : findFiles(glob: '*.png')) {
+            images.push(file.name)
+        }
+        if(images) {
+            archiveArtifacts artifacts: images.join(', '), fingerprint: true, onlyIfSuccessful: false
         }
     }
 }
@@ -60,6 +74,8 @@ def notifyBuild(String subj, String msg, String errorMsg, String recipient=NULL)
     body = """${msg}
     
 The error was: ${errorMsg}
+
+Download the screenshots: ${BUILD_URL}artifact/*zip*/archive.zip
         
 Build URL: ${BUILD_URL}
 Console Log: ${BUILD_URL}console
