@@ -1,20 +1,28 @@
-stage('Checkout') { doCheckout(platform) }
+stage('Checkout')     { run(this.&doCheckout) }
 try {
-    stage('Test')     { testFunnel(platform) }
+    stage('Test')     { run(this.&testFunnel) }
 } finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')  { doArchive(platform) }
+    stage('Archive')  { run(this.&doArchive) }
 }
 
 
-String checkoutDir = utils.chooseByPlatformNixWin('/jenkins/website/', 'C:\\jenkins\\website\\', platform)
+def run(Closure c) {
+    def closure = c
+    String nodeType = platform.startsWith('Windows') ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+    node(nodeType) { closure(platform) }
+}
+
+String getCheckoutDir(platform) {
+    return utils.chooseByPlatformNixWin('/jenkins/website/', 'C:\\jenkins\\website\\', platform)
+}
 
 def doCheckout(String platform) {
     try {
-        dir(checkoutDir) {
+        dir(getCheckoutDir(platform)) {
             utils.nukeIfExist(['*.png'], platform)
         }
 
-        xplaneCheckout('master', checkoutDir, platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
+        xplaneCheckout('master', getCheckoutDir(platform), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
     } catch(e) {
         currentBuild.result = "FAILED"
         notifyBuild('Sales funnel Git checkout is broken on ' + platform,
@@ -27,7 +35,7 @@ def doCheckout(String platform) {
 
 
 def getCommitId() {
-    dir(checkoutDir) {
+    dir(getCheckoutDir(platform)) {
         if(isUnix()) {
             return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
         } else {
@@ -37,7 +45,7 @@ def getCommitId() {
 }
 
 def testFunnel(String platform) {
-    dir(checkoutDir) {
+    dir(getCheckoutDir(platform)) {
         try {
             utils.chooseShell('virtualenv env -p python3', platform)
             utils.chooseShellByPlatformNixWin('env\\Scripts\\activate', 'source env/bin/activate', platform)
@@ -51,7 +59,7 @@ def testFunnel(String platform) {
 }
 
 def doArchive(String platform) {
-    dir(checkoutDir) {
+    dir(getCheckoutDir(platform)) {
         def images = []
         for(def file : findFiles(glob: '*.png')) {
             images.push(file.name)
