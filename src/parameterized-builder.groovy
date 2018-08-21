@@ -95,6 +95,17 @@ def doBuild(String platform) {
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (utils.build_all_apps ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
                         "cd design_linux && make -j\$(nproc) " + (utils.build_all_apps ? '' : "X-Plane")
                 ], platform)
+                
+                // Kit the installers for deployment
+                if(utils.needsInstallerKitting()) {
+                    List expectedProducts = utils.getExpectedXPlaneProducts(platform, true)
+                    String installer = expectedProducts.last()
+                    utils.chooseShellByPlatformMacWinLin([
+                            "zip -r X-Plane11InstallerMac.zip \"X-Plane 11 Installer.app\"",
+                            "zip -j X-Plane11InstallerWindows.zip \"X-Plane 11 Installer.exe\"",
+                            "mv \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -j X-Plane11InstallerLinux.zip \"X-Plane 11 Installer Linux\"",
+                    ], platform)
+                }
             }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
@@ -124,7 +135,11 @@ def doArchive(String platform) {
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            archiveWithDropbox(utils.getExpectedXPlaneProducts(platform), dropboxPath, true, utils)
+            List prods = utils.getExpectedXPlaneProducts(platform);
+            if(utils.needsInstallerKitting()) {
+                prods.push(utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform))
+            }
+            archiveWithDropbox(prods, dropboxPath, true, utils)
         }
     } catch (e) {
         utils.sendEmail("Jenkins archive step failed on ${platform} [${branch_name}]",
