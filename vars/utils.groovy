@@ -149,8 +149,8 @@ boolean isReleaseBuild() {
 boolean isSteamBuild() {
     return build_type.contains('_Steam')
 }
-boolean needsInstallerKitting() {
-    return build_all_apps && isReleaseBuild() && !isSteamBuild()
+boolean needsInstallerKitting(String platform='') {
+    return build_all_apps && isReleaseBuild() && !isSteamBuild() && isNix(platform)
 }
 
 // $&@#* Jenkins.

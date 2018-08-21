@@ -97,7 +97,7 @@ def doBuild(String platform) {
                 ], platform)
                 
                 // Kit the installers for deployment
-                if(utils.needsInstallerKitting()) {
+                if(utils.needsInstallerKitting(platform)) {
                     List expectedProducts = utils.getExpectedXPlaneProducts(platform, true)
                     String installer = expectedProducts.last()
                     utils.chooseShellByPlatformMacWinLin([
