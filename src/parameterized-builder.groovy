@@ -135,8 +135,8 @@ def doArchive(String platform) {
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            List prods = utils.getExpectedXPlaneProducts(platform);
-            if(utils.needsInstallerKitting()) {
+            List prods = utils.getExpectedXPlaneProducts(platform)
+            if(utils.needsInstallerKitting(platform)) {
                 prods.push(utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform))
             }
             archiveWithDropbox(prods, dropboxPath, true, utils)
