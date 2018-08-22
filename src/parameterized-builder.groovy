@@ -103,7 +103,7 @@ def doBuild(String platform) {
                     utils.chooseShellByPlatformMacWinLin([
                             "zip -r X-Plane11InstallerMac.zip \"X-Plane 11 Installer.app\"",
                             "zip -j X-Plane11InstallerWindows.zip \"X-Plane 11 Installer.exe\"",
-                            "mv \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -j X-Plane11InstallerLinux.zip \"X-Plane 11 Installer Linux\"",
+                            "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -j X-Plane11InstallerLinux.zip \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
                     ], platform)
                 }
             }
