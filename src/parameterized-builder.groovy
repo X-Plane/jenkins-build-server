@@ -136,11 +136,11 @@ def doArchive(String platform) {
 
             List prods = utils.getExpectedXPlaneProducts(platform)
 
-            if(fileExists('Resources/shaders/bin/')) {
+            try {
                 String shadersZip = "shaders_bin_${platform}"
                 zip(shadersZip, false, 'Resources/shaders/bin/')
                 prods.add(shadersZip)
-            }
+            } catch(e) { }
 
             // Kit the installers for deployment
             if(utils.needsInstallerKitting(platform)) {
