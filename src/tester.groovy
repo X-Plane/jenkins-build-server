@@ -198,7 +198,7 @@ def doArchive() {
                     utils.moveFilePatternToDest("fps_test_results.csv", dest)
                     products.push(dest)
                 } else if(isRenderingRegression) {
-                    String zipName = "regression_images.zip"
+                    String zipName = "regression_images_${platform}.zip"
                     String cmd = "zip -r ${zipName} regression_images/*"
                     echo cmd
                     sh cmd

@@ -168,6 +168,9 @@ boolean isReleaseBuild() {
 boolean isSteamBuild() {
     return build_type.contains('_Steam')
 }
+boolean needsInstallerKitting(String platform='') {
+    return build_all_apps && isReleaseBuild() && !isSteamBuild() && isNix(platform)
+}
 
 // $&@#* Jenkins.
 // It passes us our BOOLEAN parameters as freaking strings. "false" and "true".

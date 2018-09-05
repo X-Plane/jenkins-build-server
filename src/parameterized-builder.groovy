@@ -53,8 +53,18 @@ def runOn3Platforms(Closure c) {
 
 def doCheckout(String platform) {
     // Nuke previous products
-    cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
+    boolean doClean = utils.toRealBool(clean_build)
+    cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
     clean(utils.getExpectedXPlaneProducts(platform), cleanCommand, platform, utils)
+
+    if(doClean) {
+        for(String shaderDir : ['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl']) {
+            String relPath = 'Resources/shaders/bin/' + shaderDir
+            try {
+                utils.chooseShellByPlatformNixWin("rm -Rf ${relPath}", "rd /s /q ${relPath}", platform)
+            } catch(e) { }
+        }
+    }
 
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
@@ -124,7 +134,26 @@ def doArchive(String platform) {
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            archiveWithDropbox(utils.getExpectedXPlaneProducts(platform), dropboxPath, true, utils)
+            List prods = utils.getExpectedXPlaneProducts(platform)
+
+            try {
+                String shadersZip = "shaders_bin_${platform}.zip"
+                zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
+                prods.add(shadersZip)
+            } catch(e) { }
+
+            // Kit the installers for deployment
+            if(utils.needsInstallerKitting(platform)) {
+                String installer = utils.getExpectedXPlaneProducts(platform, true).last()
+                String zip_target = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
+                utils.chooseShellByPlatformMacWinLin([
+                        "zip -r ${zip_target} \"X-Plane 11 Installer.app\"",
+                        "zip -j ${zip_target} \"X-Plane 11 Installer.exe\"",
+                        "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -j ${zip_target} \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
+                ], platform)
+                prods.push(zip_target)
+            }
+            archiveWithDropbox(prods, dropboxPath, true, utils)
         }
     } catch (e) {
         utils.sendEmail("Jenkins archive step failed on ${platform} [${branch_name}]",
