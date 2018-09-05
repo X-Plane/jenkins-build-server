@@ -137,8 +137,8 @@ def doArchive(String platform) {
             List prods = utils.getExpectedXPlaneProducts(platform)
 
             try {
-                String shadersZip = "shaders_bin_${platform}"
-                zip(shadersZip, false, 'Resources/shaders/bin/')
+                String shadersZip = "shaders_bin_${platform}.zip"
+                zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
                 prods.add(shadersZip)
             } catch(e) { }
 
