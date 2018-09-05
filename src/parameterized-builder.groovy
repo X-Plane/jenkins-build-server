@@ -53,8 +53,18 @@ def runOn3Platforms(Closure c) {
 
 def doCheckout(String platform) {
     // Nuke previous products
-    cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
+    boolean doClean = utils.toRealBool(clean_build)
+    cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
     clean(utils.getExpectedXPlaneProducts(platform), cleanCommand, platform, utils)
+
+    if(doClean) {
+        for(String shaderDir : ['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl']) {
+            String relPath = 'Resources/shaders/bin/' + shaderDir
+            try {
+                utils.chooseShellByPlatformNixWin("rm -Rf ${relPath}", "rd /s /q ${relPath}", platform)
+            } catch(e) { }
+        }
+    }
 
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
@@ -125,6 +135,13 @@ def doArchive(String platform) {
             }
 
             List prods = utils.getExpectedXPlaneProducts(platform)
+
+            if(fileExists('Resources/shaders/bin/')) {
+                String shadersZip = "shaders_bin_${platform}"
+                zip(shadersZip, false, 'Resources/shaders/bin/')
+                prods.add(shadersZip)
+            }
+
             // Kit the installers for deployment
             if(utils.needsInstallerKitting(platform)) {
                 String installer = utils.getExpectedXPlaneProducts(platform, true).last()
