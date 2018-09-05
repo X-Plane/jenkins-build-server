@@ -49,8 +49,9 @@ stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated b
 //--------------------------------------------------------------------------------------------------------------------------------
 def doCheckout() {
     // Nuke previous products
-    cleanCommand = utils.toRealBool(clean_build) ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png', 'regression_images'], cleanCommand, platform, utils)
+    boolean doClean = utils.toRealBool(clean_build)
+    cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
+    clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png', 'regression_images', 'Resources/shaders/bin/'], cleanCommand, platform, utils)
 
     try {
         xplaneCheckout(branch_name, checkoutDir, platform)
@@ -90,6 +91,26 @@ def doCheckout() {
                         'tyler@x-plane.com')
                 echo 'Throwing error due to missing products: ' + prodStr
                 throw new java.io.FileNotFoundException(prodStr)
+            }
+        }
+
+        boolean copiedShaders = false
+        secondsWaited = 0
+        timeout = 60
+        String shadersSuffix = utils.isWindows(platform) ? 'Windows' : platform
+        String shadersZip = "shaders_bin_${shadersSuffix}"
+        while(!copiedShaders) {
+            if(utils.copyBuildProductsFromArchive([shadersZip], platform)) {
+                echo "Copied compiled shaders for ${platform} in ${archiveDir}"
+                unzip(zipFile: shadersZip, dir: 'Resources/shaders/bin/', quiet: true)
+                break
+            } else if(secondsWaited < timeout) {
+                // Tyler says: Jenkins overrides the Java-provided sleep with its own version.
+                //             The Jenkins version "conveniently" takes different units than the Java version:
+                //             it expects *seconds*, not milliseconds. (WTF?)
+                sleep(30)
+                echo 'Waiting for shaders'
+                secondsWaited += 30
             }
         }
     }
