@@ -96,15 +96,14 @@ def doCheckout() {
 
         boolean copiedShaders = false
         secondsWaited = 0
-        timeout = 60
         String shadersSuffix = utils.isWindows(platform) ? 'Windows' : platform
-        String shadersZip = "shaders_bin_${shadersSuffix}"
+        String shadersZip = "shaders_bin_${shadersSuffix}.zip"
         while(!copiedShaders) {
             if(utils.copyBuildProductsFromArchive([shadersZip], platform)) {
                 echo "Copied compiled shaders for ${platform} in ${archiveDir}"
                 unzip(zipFile: shadersZip, dir: 'Resources/shaders/bin/', quiet: true)
                 break
-            } else if(secondsWaited < timeout) {
+            } else if(secondsWaited < 60) {
                 // Tyler says: Jenkins overrides the Java-provided sleep with its own version.
                 //             The Jenkins version "conveniently" takes different units than the Java version:
                 //             it expects *seconds*, not milliseconds. (WTF?)
