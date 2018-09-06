@@ -103,7 +103,7 @@ def doCheckout() {
                 echo "Copied compiled shaders for ${platform} in ${archiveDir}"
                 unzip(zipFile: shadersZip, dir: 'Resources/shaders/bin/', quiet: true)
                 break
-            } else if(secondsWaited < 60) {
+            } else {
                 // Tyler says: Jenkins overrides the Java-provided sleep with its own version.
                 //             The Jenkins version "conveniently" takes different units than the Java version:
                 //             it expects *seconds*, not milliseconds. (WTF?)
