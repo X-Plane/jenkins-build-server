@@ -98,7 +98,7 @@ def doCheckout() {
         secondsWaited = 0
         String shadersSuffix = utils.isWindows(platform) ? 'Windows' : platform
         String shadersZip = "shaders_bin_${shadersSuffix}.zip"
-        while(!copiedShaders && secondsWaited <= 60) {
+        while(!copiedShaders && secondsWaited <= (5 * 60)) {
             if(utils.copyBuildProductsFromArchive([shadersZip], platform)) {
                 echo "Copied compiled shaders for ${platform} in ${archiveDir}"
                 unzip(zipFile: shadersZip, dir: 'Resources/shaders/bin/', quiet: true)
