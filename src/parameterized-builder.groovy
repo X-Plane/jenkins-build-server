@@ -59,7 +59,7 @@ def doCheckout(String platform) {
 
     if(doClean) {
         for(String shaderDir : ['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl']) {
-            String relPath = 'Resources/shaders/bin/' + shaderDir
+            String relPath = utils.isWindows(platform) ? 'Resources\\shaders\\bin\\' + shaderDir : 'Resources/shaders/bin/' + shaderDir
             try {
                 utils.chooseShellByPlatformNixWin("rm -Rf ${relPath}", "rd /s /q ${relPath}", platform)
             } catch(e) { }
