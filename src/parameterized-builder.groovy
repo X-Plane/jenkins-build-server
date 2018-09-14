@@ -57,13 +57,16 @@ def doCheckout(String platform) {
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
     clean(utils.getExpectedXPlaneProducts(platform), cleanCommand, platform, utils)
 
-    if(doClean) {
-        for(String shaderDir : ['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl']) {
-            String relPath = utils.isWindows(platform) ? 'Resources\\shaders\\bin\\' + shaderDir : 'Resources/shaders/bin/' + shaderDir
-            try {
-                utils.chooseShellByPlatformNixWin("rm -Rf ${relPath}", "rd /s /q ${relPath}", platform)
-            } catch(e) { }
+    dir(utils.getCheckoutDir(platform)) {
+        if(doClean) {
+            for (String shaderDir : ['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl']) {
+                String relPath = utils.isWindows(platform) ? 'Resources\\shaders\\bin\\' + shaderDir : 'Resources/shaders/bin/' + shaderDir
+                try {
+                    utils.chooseShellByPlatformNixWin("rm -Rf ${relPath}", "rd /s /q ${relPath}", platform)
+                } catch (e) { }
+            }
         }
+        utils.nukeIfExist(["shaders_bin_${platform}.zip"], platform)
     }
 
     try {
