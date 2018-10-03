@@ -94,25 +94,30 @@ def doCheckout() {
             }
         }
 
-        boolean copiedShaders = false
         secondsWaited = 0
-        String shadersSuffix = utils.isWindows(platform) ? 'Windows' : platform
-        String shadersZip = "shaders_bin_${shadersSuffix}.zip"
-        while(!copiedShaders && secondsWaited <= (5 * 60)) {
-            if(utils.copyBuildProductsFromArchive([shadersZip], platform)) {
-                echo "Copied compiled shaders for ${platform} in ${archiveDir}"
-                unzip(zipFile: shadersZip, dir: 'Resources/shaders/bin/', quiet: true)
-                break
-            } else {
-                // Tyler says: Jenkins overrides the Java-provided sleep with its own version.
-                //             The Jenkins version "conveniently" takes different units than the Java version:
-                //             it expects *seconds*, not milliseconds. (WTF?)
-                sleep(30)
-                echo 'Waiting for shaders'
-                secondsWaited += 30
-            }
+        while(secondsWaited <= (5 * 60) && !attemptCopyAndUnzipShaders(platform)) {
+            // Tyler says: Jenkins overrides the Java-provided sleep with its own version.
+            //             The Jenkins version "conveniently" takes different units than the Java version:
+            //             it expects *seconds*, not milliseconds. (WTF?)
+            sleep(30)
+            echo 'Waiting for shaders'
+            secondsWaited += 30
         }
     }
+}
+
+def attemptCopyAndUnzipShaders(String platform) {
+    String shadersSuffix = utils.isWindows(platform) ? 'Windows' : platform
+    // the "legacy" location, from back when we were compiling shaders individually on 3 platforms for no good reason
+    String legacyZip = "shaders_bin_${shadersSuffix}.zip"
+
+    for(String potentialZip : ['shaders_bin.zip', legacyZip]) {
+        if(utils.copyBuildProductsFromArchive([potentialZip], platform)) {
+            unzip(zipFile: potentialZip, dir: 'Resources/shaders/bin/', quiet: true)
+            return true
+        }
+    }
+    return false
 }
 
 def getArchiveDir() {

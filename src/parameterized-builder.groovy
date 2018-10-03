@@ -33,7 +33,12 @@ utils.setEnvironment(environment, this.&notify)
 try {
     stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
-    stage('Build')                         { runOn3Platforms(this.&doBuild) }
+    stage('Build') {
+        runOn3Platforms(this.&doBuild)
+        node('windows') {
+            buildAndArchiveShaders()
+        }
+    }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
     stage('Notify')                        { notifySuccess() }
 } finally {
@@ -66,7 +71,7 @@ def doCheckout(String platform) {
                 } catch (e) { }
             }
         }
-        utils.nukeIfExist(["shaders_bin_${platform}.zip"], platform)
+        utils.nukeIfExist(['shaders_bin.zip'], platform)
     }
 
     try {
@@ -88,7 +93,7 @@ def doBuild(String platform) {
                 def config = getBuildToolConfiguration()
 
                 // Generate our project files
-                utils.chooseShellByPlatformMacWinLin(['./cmake.sh', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat"', "./cmake.sh ${config}"], platform)
+                utils.chooseShellByPlatformMacWinLin(['./cmake.sh --no_gfxcc', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc"], platform)
 
                 def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
@@ -120,6 +125,19 @@ def doBuild(String platform) {
     }
 }
 
+def buildAndArchiveShaders() {
+    dir(utils.getCheckoutDir('Windows')) {
+        String dropboxPath = utils.getArchiveDirAndEnsureItExists('Windows')
+        String destSlashesEscaped = utils.escapeSlashes(dropboxPath)
+        String shadersZip = 'shaders_bin.zip'
+        if(!fileExists(destSlashesEscaped + shadersZip)) {
+            bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -O1'
+            zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
+            archiveWithDropbox([shadersZip], dropboxPath, true, utils)
+        }
+    }
+}
+
 def getBuildToolConfiguration() {
     return utils.getBuildToolConfiguration()
 }
@@ -138,13 +156,6 @@ def doArchive(String platform) {
             }
 
             List prods = utils.getExpectedXPlaneProducts(platform)
-
-            try {
-                String shadersZip = "shaders_bin_${platform}.zip"
-                zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
-                prods.add(shadersZip)
-            } catch(e) { }
-
             // Kit the installers for deployment
             if(utils.needsInstallerKitting(platform)) {
                 String installer = utils.getExpectedXPlaneProducts(platform, true).last()
