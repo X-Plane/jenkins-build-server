@@ -62,6 +62,19 @@ def doCheckout() {
         notifyBrokenCheckout(utils.&sendEmail, 'autotesting', branch_name, platform, e)
     }
 
+    String thirdPartySha = ''
+    dir(checkoutDir) {
+        String shaFilePath = 'tests/jenkins_third_party_checkout.sha'
+        if(fileExists(shaFilePath)) { // also check out from the third party repor
+            thirdPartySha = readFile(shaFilePath).trim()
+        }
+    }
+
+    if(thirdPartySha) {
+        String thirdPartyCheckoutDir = chooseByPlatformNixWin("/jenkins/third_party_testers/", "C:\\jenkins\\third_party_testers\\", platform)
+        xplaneCheckout(thirdPartySha, thirdPartyCheckoutDir, platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/third_party_testers.git')
+    }
+
     // Copy pre-built executables to our working dir as well
     dir(checkoutDir) {
         def products = utils.getExpectedXPlaneProducts(platform, true)
