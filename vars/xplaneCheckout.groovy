@@ -24,7 +24,9 @@ def call(String branchName='', String checkoutDir='', String platform='', String
 
         if(utils.shellIsSh(platform)) {
             dir(checkoutDir + 'scripts') {
-                sh './setup_submodules.sh'
+                sshagent(['tylers-ssh']) {
+                    sh './setup_submodules.sh'
+                }
             }
         }
 
