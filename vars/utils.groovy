@@ -306,5 +306,7 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
         sh macWinLinCommands[2]
     }
 }
-
+def shellIsSh(String platform='') {
+    return !isWindows(platform) || platform.endsWith('GitBash')
+}
 
