@@ -7,14 +7,9 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 sh "git fetch --tags"
                 sh "git reset --hard"
                 sh "git checkout ${branchName}"
-                sh "git submodule update --init"
                 try {
                     sh "git pull"
                 } catch(e) { } // If we're in detached HEAD mode, pull will fail
-
-                dir(checkoutDir + 'scripts') {
-                    sh './setup_submodules.sh'
-                }
             }
         } else {
             checkout(
@@ -25,11 +20,12 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                      userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
             )
 
-            if(utils.shellIsSh(platform)) {
-                dir(checkoutDir + 'scripts') {
-                    sshagent(['tylers-ssh']) {
-                        sh './setup_submodules.sh'
-                    }
+        }
+
+        if(utils.shellIsSh(platform)) {
+            dir(checkoutDir + 'scripts') {
+                sshagent(['tylers-ssh']) {
+                    sh './setup_submodules.sh'
                 }
             }
         }
