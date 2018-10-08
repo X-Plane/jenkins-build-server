@@ -34,9 +34,14 @@ try {
     stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
     stage('Build') {
-        runOn3Platforms(this.&doBuild)
-        node('windows') {
-            buildAndArchiveShaders()
+        if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
+            runOn3Platforms(this.&doBuild)
+        } else { // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
+            parallel (
+                    'Windows' : {                           node('windows') { buildAndArchiveShaders() } },
+                    'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
+                    'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
+            )
         }
     }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
@@ -113,6 +118,10 @@ def doBuild(String platform) {
                         "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (utils.build_all_apps ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
                         "cd design_linux && make -j\$(nproc) " + (utils.build_all_apps ? '' : "X-Plane")
                 ], platform)
+            }
+
+            if(utils.isWindows(platform)) {
+                buildAndArchiveShaders()
             }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
