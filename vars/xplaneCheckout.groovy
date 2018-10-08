@@ -11,6 +11,10 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 try {
                     sh "git pull"
                 } catch(e) { } // If we're in detached HEAD mode, pull will fail
+
+                dir(checkoutDir + 'scripts') {
+                    sh './setup_submodules.sh'
+                }
             }
         } else {
             checkout(
@@ -20,12 +24,12 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                      ],
                      userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
             )
-        }
 
-        if(utils.shellIsSh(platform)) {
-            dir(checkoutDir + 'scripts') {
-                sshagent(['tylers-ssh']) {
-                    sh './setup_submodules.sh'
+            if(utils.shellIsSh(platform)) {
+                dir(checkoutDir + 'scripts') {
+                    sshagent(['tylers-ssh']) {
+                        sh './setup_submodules.sh'
+                    }
                 }
             }
         }
