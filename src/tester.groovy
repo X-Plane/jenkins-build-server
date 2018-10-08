@@ -73,6 +73,21 @@ def doCheckout() {
     if(thirdPartySha) {
         String thirdPartyCheckoutDir = chooseByPlatformNixWin("/jenkins/third_party_testers/", "C:\\jenkins\\third_party_testers\\", platform)
         xplaneCheckout(thirdPartySha, thirdPartyCheckoutDir, platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/third_party_testers.git')
+
+        // Symlink directories as necessary
+        if(utils.shellIsSh(platform)) {
+            String tpDir = chooseByPlatformNixWin("/jenkins/third_party_testers/", "/c/jenkins/third_party_testers/", platform)
+            dir(checkoutDir + 'Aircraft') {
+                try {
+                    sh "ln -s ${tpDir}Aircraft/ third_party"
+                } catch(e) { }
+            }
+            dir(checkoutDir + 'Custom Scenery') {
+                try {
+                    sh "find ${tpDir}Custom\\ Scenery/ -maxdepth 1 -mindepth 1 -type d -exec ln -s \'{}\' . \\;"
+                } catch(e) { }
+            }
+        }
     }
 
     // Copy pre-built executables to our working dir as well
