@@ -22,6 +22,12 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             )
         }
 
+        if(utils.shellIsSh(platform)) {
+            dir(checkoutDir + 'scripts') {
+                sh './setup_submodules.sh'
+            }
+        }
+
         String commitId = ""
         if(isUnix()) {
             commitId = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
