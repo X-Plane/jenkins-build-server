@@ -20,7 +20,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                      userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
             )
         }
-/*
+
         if(utils.shellIsSh(platform)) {
             dir(checkoutDir + 'scripts') {
                 sshagent(['tylers-ssh']) {
@@ -28,7 +28,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 }
             }
         }
-*/
+
         String commitId = ""
         if(isUnix()) {
             commitId = sh(returnStdout: true, script: "git rev-parse HEAD").trim()
