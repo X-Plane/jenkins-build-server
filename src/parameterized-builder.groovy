@@ -39,8 +39,8 @@ try {
         } else { // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
             parallel (
                     'Windows' : {                           node('windows') { buildAndArchiveShaders() } },
-                    'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
-                    'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
+                    'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { doBuild('macOS')   } } } },
+                    'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { doBuild('Linux')   } } } }
             )
         }
     }
