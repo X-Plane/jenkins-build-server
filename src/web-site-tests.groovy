@@ -1,15 +1,19 @@
-stage('Checkout')     { run(this.&doCheckout) }
+String nodeType = platform.startsWith('Windows') ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+
+stage('Checkout')     { node(nodeType) { doCheckout(platform) } }
 try {
-    stage('Test')     { run(this.&testFunnel) }
-} finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')  { run(this.&doArchive) }
+    stage('Test') {
+        node(nodeType) {
+            try {
+                testFunnel(platform)
+            } catch(e) { // Give it a second try in case of temporary connectivity issues
+                testFunnel(platform)
+            }
+        }
+    }
 }
-
-
-def run(Closure c) {
-    def closure = c
-    String nodeType = platform.startsWith('Windows') ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
-    node(nodeType) { closure(platform) }
+finally { // we want to archive regardless of whether the tests passed
+    stage('Archive')  { node(nodeType) { doArchive(platform) } }
 }
 
 String getCheckoutDir(platform) {
