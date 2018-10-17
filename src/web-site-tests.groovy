@@ -14,7 +14,7 @@ try {
 } catch(e) {
     slackSend(
             color: 'danger',
-            message: "Hey <@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}console/|Console Log> | <${BUILD_URL}|Build Info>")
+            message: "Hey <@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}console|Console Log> | <${BUILD_URL}|Build Info>")
 }
 finally { // we want to archive regardless of whether the tests passed
     stage('Archive')  { node(nodeType) { doArchive(platform) } }
