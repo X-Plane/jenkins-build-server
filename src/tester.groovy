@@ -252,9 +252,7 @@ def doArchive() {
                     products.push(dest)
                 } else if(isRenderingRegression) {
                     String zipName = "regression_images_${platform}.zip"
-                    String cmd = "zip -r ${zipName} regression_images/*"
-                    echo cmd
-                    sh cmd
+                    zip(zipFile: zipName, archive: false, dir: 'regression_images/')
                     products.push(zipName)
                     if(isRenderingRegressionComparison) {
                         products.push('master_comparison.txt')
