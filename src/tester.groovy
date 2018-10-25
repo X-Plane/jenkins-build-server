@@ -51,7 +51,11 @@ def doCheckout() {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png', 'regression_images', 'Resources/shaders/bin/'], cleanCommand, platform, utils)
+    List to_nuke = ['*.png', 'Resources/shaders/bin/']
+    if(isRenderingRegression) {
+        to_nuke.push('regression_images')
+    }
+    clean(utils.getExpectedXPlaneProducts(platform, true) + to_nuke, cleanCommand, platform, utils)
 
     try {
         xplaneCheckout(branch_name, checkoutDir, platform)
