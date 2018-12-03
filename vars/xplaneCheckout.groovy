@@ -29,7 +29,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             }
         }
 
-        chooseShellByPlatformNixWin('git reset --hard', 'git reset --hard', platform)
+        utils.chooseShellByPlatformNixWin('git reset --hard', 'git reset --hard', platform)
 
         String commitId = ""
         if(utils.shellIsSh(platform)) {
