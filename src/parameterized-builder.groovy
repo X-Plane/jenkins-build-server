@@ -140,7 +140,14 @@ def buildAndArchiveShaders() {
         String destSlashesEscaped = utils.escapeSlashes(dropboxPath)
         String shadersZip = 'shaders_bin.zip'
         if(!fileExists(destSlashesEscaped + shadersZip) || utils.toRealBool(force_build)) {
-            bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet'
+            try {
+                bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet'
+            } catch(e) {
+                if(fileExists('gfx-cc.dmp')) {
+                    archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
+                }
+                throw e
+            }
             zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
             archiveWithDropbox([shadersZip], dropboxPath, true, utils)
         }
