@@ -145,6 +145,8 @@ def buildAndArchiveShaders() {
             } catch(e) {
                 if(fileExists('gfx-cc.dmp')) {
                     archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
+                } else {
+                    echo 'Failed to find gfx-cc.dmp'
                 }
                 throw e
             }
