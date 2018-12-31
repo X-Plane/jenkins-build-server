@@ -32,11 +32,7 @@ def doCheckout(String platform) {
 
         xplaneCheckout('master', getCheckoutDir(platform), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
     } catch(e) {
-        currentBuild.result = "FAILED"
-        notifyBuild('Sales funnel Git checkout is broken on ' + platform,
-                'Sales funnel Git checkout failed. We will be unable to continuously check the web site until this is fixed.',
-                e.toString(),
-                'tyler@x-plane.com')
+        notifyBrokenCheckout(utils.&sendEmail, 'Sales funnel', 'master', platform, e)
         throw e
     }
 }
@@ -71,24 +67,4 @@ def doArchive(String platform) {
         }
     }
 }
-
-def notifyBuild(String subj, String msg, String errorMsg, String recipient=NULL) { // null recipient means we'll send to the most likely suspects
-    body = """${msg}
-    
-The error was: ${errorMsg}
-
-Download the screenshots: ${BUILD_URL}artifact/*zip*/archive.zip
-        
-Build URL: ${BUILD_URL}
-Console Log: ${BUILD_URL}console
-"""
-    emailext attachLog: true,
-            body: body,
-            subject: subj,
-            to: recipient ? recipient : emailextrecipients([
-                    [$class: 'CulpritsRecipientProvider'],
-                    [$class: 'RequesterRecipientProvider']
-            ])
-}
-
 
