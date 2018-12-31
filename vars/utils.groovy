@@ -20,8 +20,10 @@ def setEnvironment(environment, notifyStep, globalSteps=null, single_platform=fa
         build_type = steam_build ? "NODEV_OPT_Prod_Steam" : (release_build ? "NODEV_OPT_Prod" : (is_dev ? 'DEV_OPT' : "NODEV_OPT"))
         assert release_build == isReleaseBuild()
         assert !(is_dev && release_build), "Dev and release options are mutually exlusive"
-    } else {
+    } else if(environment.containsKey('build_type')) {
         build_type = environment['build_type']
+    } else {
+        build_type = ''
     }
     app_suffix = build_type.contains('_Prod') ? '' : '_' + build_type
 
