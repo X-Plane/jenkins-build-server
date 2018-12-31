@@ -26,7 +26,7 @@ def updateFraudPreventionData(String platform) {
     dir(getCheckoutDir(platform)) {
         dir('scripts') {
             setUpPython3VirtualEnvironment(utils, platform)
-            dir('scripts/fraud-prevention') {
+            dir('fraud-prevention') {
                 String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
                 utils.chooseShell("../env/${binDir}/python3 update_fraud_prevention_data.py --commit --push", platform)
             }
