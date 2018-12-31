@@ -1,10 +1,7 @@
 def environment = [:]
 environment['branch_name'] = 'master'
 environment['send_emails'] = 'true'
-environment['build_windows'] = utils.isWindows(platform)
-environment['build_linux'] = utils.isLinux(platform)
-environment['build_mac'] = utils.isMac(platform)
-utils.setEnvironment(environment, this.&notify, this.steps)
+utils.setEnvironment(environment, this.&notify, this.steps, platform)
 
 stage('Checkout')   { doCheckout(platform) }
 stage('Update')     { updateFraudPreventionData(platform) }
