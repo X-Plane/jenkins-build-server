@@ -3,7 +3,7 @@ environment['branch_name'] = 'master'
 environment['send_emails'] = 'true'
 utils.setEnvironment(environment, this.&notify, this.steps, platform)
 
-String nodeType = platform.startsWith('Windows') ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
 
 stage('Checkout')     { node(nodeType) { doCheckout(platform) } }
 try {

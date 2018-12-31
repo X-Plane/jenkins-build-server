@@ -3,8 +3,10 @@ environment['branch_name'] = 'master'
 environment['send_emails'] = 'true'
 utils.setEnvironment(environment, this.&notify, this.steps, platform)
 
-stage('Checkout')   { doCheckout(platform) }
-stage('Update')     { updateFraudPreventionData(platform) }
+String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+
+stage('Checkout')   { node(nodeType) { doCheckout(platform) } }
+stage('Update')     { node(nodeType) { updateFraudPreventionData(platform) } }
 
 
 String getCheckoutDir(platform) {
