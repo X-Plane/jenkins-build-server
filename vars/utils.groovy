@@ -21,7 +21,6 @@ def setEnvironment(environment, notifyStep, globalSteps=null, single_platform=fa
         assert release_build == isReleaseBuild()
         assert !(is_dev && release_build), "Dev and release options are mutually exlusive"
     } else {
-        assert environment.containsKey('build_type')
         build_type = environment['build_type']
     }
     app_suffix = build_type.contains('_Prod') ? '' : '_' + build_type
