@@ -1,3 +1,8 @@
+def environment = [:]
+environment['branch_name'] = 'master'
+environment['send_emails'] = 'true'
+utils.setEnvironment(environment, this.&notify, this.steps)
+
 stage('Checkout')   { doCheckout(platform) }
 stage('Update')     { updateFraudPreventionData(platform) }
 
