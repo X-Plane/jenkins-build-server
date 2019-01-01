@@ -29,7 +29,9 @@ def updateFraudPreventionData(String platform) {
             dir('fraud-prevention') {
                 String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
                 withCredentials([usernamePassword(credentialsId: 'customer-io', usernameVariable: 'CUSTOMER_IO_EMAIL', passwordVariable: 'CUSTOMER_IO_PASSWORD')]) {
-                    utils.chooseShell("../env/${binDir}/python3 update_fraud_prevention_data.py --commit --push", platform)
+                    sshagent(['tylers-ssh']) {
+                        utils.chooseShell("../env/${binDir}/python3 update_fraud_prevention_data.py --commit --push", platform)
+                    }
                 }
             }
         }
