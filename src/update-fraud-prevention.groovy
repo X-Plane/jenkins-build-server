@@ -28,7 +28,7 @@ def updateFraudPreventionData(String platform) {
             setUpPython3VirtualEnvironment(utils, platform)
             dir('fraud-prevention') {
                 String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
-                withCredentials([usernamePassword(credentialsId: 'customer-io', usernameVariable: 'CUSTOMER_IO_LOGIN', passwordVariable: 'CUSTOMER_IO_PASSWORD')]) {
+                withCredentials([usernamePassword(credentialsId: 'customer-io', usernameVariable: 'CUSTOMER_IO_EMAIL', passwordVariable: 'CUSTOMER_IO_PASSWORD')]) {
                     utils.chooseShell("../env/${binDir}/python3 update_fraud_prevention_data.py --commit --push", platform)
                 }
             }
