@@ -41,7 +41,7 @@ def updateFraudPreventionData(String platform) {
 
 def deployToProduction(String platform) {
     dir(getCheckoutDir(platform)) {
-        sshagent(['tylers-ssh']) {
+        sshagent(['wpengine-ssh']) {
             utils.chooseShell('git push git@git.wpengine.com:production/xplanedotcom.git', platform)
         }
     }
