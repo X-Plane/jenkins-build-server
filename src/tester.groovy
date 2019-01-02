@@ -51,7 +51,7 @@ def doCheckout() {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    List to_nuke = ['*.png', 'Resources/shaders/bin/']
+    List to_nuke = ['*.png', 'tests/*.old', 'Resources/shaders/bin/']
     if(isRenderingRegression) {
         to_nuke.push('regression_images')
     }
