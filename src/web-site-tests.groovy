@@ -22,7 +22,7 @@ try {
             color: 'danger',
             message: "Hey <@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}console|Console Log> | <${BUILD_URL}|Build Info>")
     if(tag.contains('Critical')) {
-        pagerDuty("Web site test of ${tag} failed")
+        notifyPagerDuty("Web site test of ${tag} failed")
     }
     throw e
 }
@@ -78,20 +78,12 @@ def doArchive(String platform) {
     }
 }
 
-def pagerDuty(String msg) {
-    API_ACCESS_KEY = 'a5fc7b93193044118fc1b5be9c7ef082'
-    httpRequest(customHeaders: [
-                [name: 'Authorization', value: "Token token=${API_ACCESS_KEY}"],
-            ],
-            contentType: 'APPLICATION_JSON',
-            httpMode: 'POST',
-            requestBody: """{
-                "service_key": '${API_ACCESS_KEY}',
-                "event_type": "trigger",
-                "description": '${msg}',
-                "client": "Jenkins Automated Web Site Tests",
-                "client_url": '${BUILD_URL}console'
-            }""",
-            url: 'https://events.pagerduty.com/generic/2010-04-15/create_event.json',
-            validResponseCodes: '200')
+def notifyPagerDuty(String title) {
+    API_KEY = 'a5fc7b93193044118fc1b5be9c7ef082'
+    pagerduty(
+            resolve: false,
+            serviceKey: API_KEY,
+            incDescription: title,
+            incDetail: "${BUILD_URL}console"
+    )
 }
