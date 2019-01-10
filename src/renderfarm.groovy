@@ -7,7 +7,12 @@
 def environment = [:]
 environment['branch_name'] = xptools_branch_name
 environment['send_emails'] = 'true'
-utils.setEnvironment(environment, this.&notify, this.steps, platform)
+environment['build_type'] = build_type
+environment['build_windows'] = 'false'
+environment['build_mac'] = 'true'
+environment['build_linux'] = 'false'
+environment['build_all_apps'] = 'true'
+utils.setEnvironment(environment, this.&notify, this.steps)
 
 String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
 
