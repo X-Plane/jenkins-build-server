@@ -26,8 +26,11 @@ stage('Checkout xptools')        { node(nodeType) { checkoutXpTools(platform) } 
 stage('Build xptools')           { node(nodeType) { buildXpTools(platform) } }
 stage('Archive RenderFarm')      { node(nodeType) { archiveRenderFarm(platform) } }
 stage('Checkout rendering_code') { node(nodeType) { checkoutRenderingCode(platform) } }
-stage('Build DSFs')              { node(nodeType) { buildDsfs(platform) } }
-stage('Archive DSFs')            { node(nodeType) { archiveDsfs(platform) } }
+try {
+    stage('Build DSFs')          { node(nodeType) { buildDsfs(platform) } }
+} finally {
+    stage('Archive DSFs')        { node(nodeType) { archiveDsfs(platform) } }
+}
 
 String getXpToolsDir(platform)       { return utils.getJenkinsDir('xptools',        platform) }
 String getRenderingCodeDir(platform) { return utils.getJenkinsDir('rendering_code', platform) }
@@ -110,7 +113,7 @@ def checkoutRenderingCode(String platform) {
 def buildDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         try {
-            sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./make_world_one_final.sh --quiet 2>> errors.txt'
+            sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./make_world_one_final.sh --quiet 2> errors.txt'
             sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./zip_dsf.sh'
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'DSF build', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
@@ -121,6 +124,7 @@ def buildDsfs(String platform) {
 def archiveDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         try {
+            archiveArtifacts artifacts: 'errors.txt', fingerprint: true, onlyIfSuccessful: false
             sh 'tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf'
             sh 'find ../rendering_data/OUTPUT-dsf -type f | wc -l'
         } catch (e) {
