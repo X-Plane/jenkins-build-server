@@ -14,7 +14,8 @@ environment['build_linux'] = 'false'
 environment['build_all_apps'] = 'true'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
-String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+//String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+String nodeType = 'renderfarm'
 
 xptools_directory = '/jenkins/xptools'
 rendering_code_directory = '/jenkins/rendering_code'
@@ -39,6 +40,7 @@ def checkoutXpTools(String platform) {
 }
 
 def buildXpTools(String platform) {
+    // TODO: Add arch argument to the compiler for the fastest builds possible
     dir(getXpToolsDir(platform)) {
         try {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
