@@ -122,7 +122,7 @@ def archiveDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         try {
             sh 'tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf'
-            sh 'find OUTPUT-dsf -type f | wc -l'
+            sh 'find ../rendering_data/OUTPUT-dsf -type f | wc -l'
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'DSF archive', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
         }
