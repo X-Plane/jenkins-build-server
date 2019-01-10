@@ -3,6 +3,8 @@
 // xptools_branch_name
 // build_for_mobile ("bool")
 // build_type (DebugOpt|Debug|Release)
+// clean_xptools ("bool")
+// clean_dsfs ("bool")
 
 def environment = [:]
 environment['branch_name'] = xptools_branch_name
@@ -46,11 +48,13 @@ def buildXpTools(String platform) {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme RenderFarm -config ${build_type} -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-            utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}",
-                    "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
-                    'make clean'
-            ], platform)
+            if(utils.toRealBool(clean_xptools)) {
+                utils.chooseShellByPlatformMacWinLin([
+                        "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}",
+                        "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
+                        'make clean'
+                ], platform)
+            }
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} -archivePath RenderFarm.xcarchive archive ${pipe_to_xcpretty}",
@@ -96,12 +100,14 @@ def checkoutRenderingCode(String platform) {
         throw e
     }
 
+    if(utils.toRealBool(clean_dsfs)) {
+        sh './clean_output.sh'
+    }
 }
 
 def buildDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         try {
-            sh './clean_output.sh'
             sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./make_world_one_final.sh --quiet 2>> errors.txt'
             sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./zip_dsf.sh'
             sh 'tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf'
