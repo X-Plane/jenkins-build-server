@@ -53,7 +53,7 @@ def buildXpTools(String platform) {
             ], platform)
 
             utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} archive ${pipe_to_xcpretty}",
+                    "${xcodebuildBoilerplate} -archivePath RenderFarm.xcarchive archive ${pipe_to_xcpretty}",
                     "\"${tool 'MSBuild'}\" /t:RenderFarm /m /p:Configuration=\"${build_type}\" ${projectFile}",
                     "make -s -C . conf=${build_type} RenderFarm"
             ], platform)
@@ -67,9 +67,6 @@ def archiveRenderFarm(String platform) {
     try {
         dir(getXpToolsDir(platform)) {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
-            if(utils.isMac(platform)) {
-                zip(zipFile: 'RenderFarm.app.zip', archive: false, dir: 'RenderFarm.xcarchive/Products/Applications/RenderFarm.app')
-            }
             def productPaths = utils.addPrefix(getExpectedXpToolsProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\RenderFarm\\', "build/Linux/${build_type}/"], platform))
             archiveWithDropbox(productPaths, utils.getArchiveDirAndEnsureItExists(platform, 'RenderFarm'), true, utils, false)
 
@@ -77,11 +74,6 @@ def archiveRenderFarm(String platform) {
             String rcBuildDir = getRenderingCodeDir(platform) + build_type + utils.getDirChar(platform)
             for(String p : products) {
                 utils.copyFilePatternToDest(p, rcBuildDir)
-            }
-            dir(rcBuildDir) {
-                for(def file : findFiles(glob: '*.zip')) {
-                    unzip(zipFile: file, quiet: true)
-                }
             }
         }
     } catch (e) {
@@ -93,7 +85,7 @@ def archiveRenderFarm(String platform) {
 }
 
 List<String> getExpectedXpToolsProducts(String platform) {
-    return [utils.chooseByPlatformMacWinLin(['RenderFarm.app.zip', 'RenderFarm.exe', 'RenderFarm'], platform)]
+    return [utils.chooseByPlatformMacWinLin(['RenderFarm.xcarchive/Products/usr/local/bin/RenderFarm', 'RenderFarm.exe', 'RenderFarm'], platform)]
 }
 
 def checkoutRenderingCode(String platform) {
