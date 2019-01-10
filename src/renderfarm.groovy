@@ -57,6 +57,10 @@ def buildXpTools(String platform) {
                     "\"${tool 'MSBuild'}\" /t:RenderFarm /m /p:Configuration=\"${build_type}\" ${projectFile}",
                     "make -s -C . conf=${build_type} RenderFarm"
             ], platform)
+
+            if(utils.isMac(platform)) {
+                sh "${xcodebuildBoilerplate} archive ${pipe_to_xcpretty}"
+            }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'RenderFarm', xptools_branch_name, utils.getCommitId(platform), platform, e)
         }
