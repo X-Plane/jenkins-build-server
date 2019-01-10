@@ -6,7 +6,7 @@
 
 def environment = [:]
 environment['branch_name'] = xptools_branch_name
-environment['send_emails'] = 'true'
+environment['send_emails'] = send_emails
 environment['build_type'] = build_type
 environment['build_windows'] = 'false'
 environment['build_mac'] = 'true'
