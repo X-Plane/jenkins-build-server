@@ -76,7 +76,7 @@ def archiveRenderFarm(String platform) {
 
             // Copy into place for rendering_code scripts to find
             String rcBuildDir = getRenderingCodeDir(platform) + build_type + utils.getDirChar(platform)
-            for(String p : products) {
+            for(String p : productPaths) {
                 utils.copyFilePatternToDest(p, rcBuildDir)
             }
         }
@@ -101,7 +101,9 @@ def checkoutRenderingCode(String platform) {
     }
 
     if(utils.toRealBool(clean_dsfs)) {
-        sh './clean_output.sh'
+        dir(getRenderingCodeDir(platform)) {
+            sh './clean_output.sh'
+        }
     }
 }
 
