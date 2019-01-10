@@ -112,10 +112,19 @@ def buildDsfs(String platform) {
         try {
             sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./make_world_one_final.sh --quiet 2>> errors.txt'
             sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./zip_dsf.sh'
+        } catch (e) {
+            notifyDeadBuild(utils.&sendEmail, 'DSF build', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
+        }
+    }
+}
+
+def archiveDsfs(String platform) {
+    dir(getRenderingCodeDir(platform)) {
+        try {
             sh 'tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf'
             sh 'find OUTPUT-dsf -type f | wc -l'
         } catch (e) {
-            notifyDeadBuild(utils.&sendEmail, 'DSF build', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
+            notifyDeadBuild(utils.&sendEmail, 'DSF archive', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
         }
     }
 }
