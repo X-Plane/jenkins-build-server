@@ -49,8 +49,15 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
 }
 
 
+String getDirChar(String platform='') {
+    return chooseByPlatformNixWin("/", "\\", platform)
+}
+String getJenkinsDir(String subdir, String platform='') {
+    String jenkins = chooseByPlatformNixWin("/jenkins/", "C:\\jenkins\\", platform)
+    return jenkins + subdir + getDirChar(platform)
+}
 String getCheckoutDir(String platform='') {
-    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\", platform)
+    return getJenkinsDir("design-${directory_suffix}", platform)
 }
 
 String getCommitId(String platform='') {
@@ -277,6 +284,10 @@ def filesExist(List expectedProducts) {
 
 def moveFilePatternToDest(String filePattern, String dest) {
     chooseShellByPlatformNixWin("mv \"$filePattern\" \"${dest}\"",  "move /Y \"${filePattern}\" \"${dest}\"")
+}
+
+def copyFilePatternToDest(String filePattern, String dest) {
+    chooseShellByPlatformNixWin("cp \"$filePattern\" \"${dest}\"",  "copy /Y \"${filePattern}\" \"${dest}\"")
 }
 
 
