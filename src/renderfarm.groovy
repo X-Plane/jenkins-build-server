@@ -44,7 +44,7 @@ def buildXpTools(String platform) {
     dir(getXpToolsDir(platform)) {
         try {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
-            String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target RenderFarm -config ${build_type} -project ${projectFile}"
+            String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme RenderFarm -config ${build_type} -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}",
@@ -53,14 +53,10 @@ def buildXpTools(String platform) {
             ], platform)
 
             utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} build ${pipe_to_xcpretty}",
+                    "${xcodebuildBoilerplate} archive ${pipe_to_xcpretty}",
                     "\"${tool 'MSBuild'}\" /t:RenderFarm /m /p:Configuration=\"${build_type}\" ${projectFile}",
                     "make -s -C . conf=${build_type} RenderFarm"
             ], platform)
-
-            if(utils.isMac(platform)) {
-                sh "${xcodebuildBoilerplate} archive ${pipe_to_xcpretty}"
-            }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'RenderFarm', xptools_branch_name, utils.getCommitId(platform), platform, e)
         }
