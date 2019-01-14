@@ -49,22 +49,29 @@ def buildXpTools(String platform) {
     // TODO: Add arch argument to the compiler for the fastest builds possible
     dir(getXpToolsDir(platform)) {
         try {
-            String projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
-            String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme RenderFarm -config ${build_type} -project ${projectFile}"
-            String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-            if(utils.toRealBool(clean_xptools)) {
+            String archiveDir = utils.getArchiveDirAndEnsureItExists(platform, 'RenderFarm')
+            List<String> toBuild = getExpectedXpToolsProducts(platform)
+            echo 'Expecting to build: ' + toBuild.join(', ')
+            if(utils.copyBuildProductsFromArchive(toBuild, platform, 'RenderFarm')) {
+                echo "This commit was already built for ${platform} in ${archiveDir}"
+            } else {
+                String projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
+                String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme RenderFarm -config ${build_type} -project ${projectFile}"
+                String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+                if(utils.toRealBool(clean_xptools)) {
+                    utils.chooseShellByPlatformMacWinLin([
+                            "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}",
+                            "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
+                            'make clean'
+                    ], platform)
+                }
+
                 utils.chooseShellByPlatformMacWinLin([
-                        "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}",
-                        "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
-                        'make clean'
+                        "${xcodebuildBoilerplate} -archivePath RenderFarm.xcarchive archive ${pipe_to_xcpretty}",
+                        "\"${tool 'MSBuild'}\" /t:RenderFarm /m /p:Configuration=\"${build_type}\" ${projectFile}",
+                        "make -s -C . conf=${build_type} RenderFarm"
                 ], platform)
             }
-
-            utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} -archivePath RenderFarm.xcarchive archive ${pipe_to_xcpretty}",
-                    "\"${tool 'MSBuild'}\" /t:RenderFarm /m /p:Configuration=\"${build_type}\" ${projectFile}",
-                    "make -s -C . conf=${build_type} RenderFarm"
-            ], platform)
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'RenderFarm', xptools_branch_name, utils.getCommitId(platform), platform, e)
         }

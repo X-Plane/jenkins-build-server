@@ -138,8 +138,8 @@ def nukeIfExist(List<String> files, String platform) {
     }
 }
 
-boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
-    String archiveDir = getArchiveDir(platform)
+boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {
+    String archiveDir = getArchiveDir(platform, archiveSubdir)
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
         echo "Copying products from ${archiveDir} on ${platform}"
