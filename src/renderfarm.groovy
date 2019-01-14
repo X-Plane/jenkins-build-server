@@ -5,6 +5,7 @@
 // build_type (DebugOpt|Debug|Release)
 // clean_xptools ("bool")
 // clean_dsfs ("bool")
+// verbose ("bool")
 
 def environment = [:]
 environment['branch_name'] = xptools_branch_name
@@ -112,8 +113,9 @@ def checkoutRenderingCode(String platform) {
 
 def buildDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
+        String quietFlag = utils.toRealBool(verbose) ? '' : '--quiet'
         try {
-            sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./make_world_one_final.sh --quiet 2> errors.txt'
+            sh "./run_block_multi.sh -180 -80 179 73 \$(nproc) ./make_world_one_final.sh ${quietFlag} 2> errors.txt"
             sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./zip_dsf.sh'
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'DSF build', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
