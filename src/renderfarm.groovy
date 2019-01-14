@@ -123,7 +123,7 @@ def buildDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         String quietFlag = utils.toRealBool(verbose) ? '' : '--quiet'
         try {
-            sh "./run_block_multi.sh -180 -80 179 73 \$(nproc) ./make_world_one_final.sh ${quietFlag} --comp_dsf > rf_output.txt 2> errors.txt"
+            sh "./run_block_multi.sh -180 -80 179 73 \$(nproc) ./make_world_one_final.sh ${quietFlag} --comp_dsf 2> errors.txt"
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'DSF build', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
         }
