@@ -149,7 +149,7 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
             chooseShellByPlatformNixWin("cp \"${archiveDir}${p}\" .", "copy \"${archiveDir}${p}\" .", platform)
         }
         if(isMac(platform)) {
-            sh "unzip -o '*.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
+            unzip(glob: '*.zip', quiet: true)
         }
         return true
     }
