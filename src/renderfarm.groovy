@@ -134,7 +134,7 @@ def buildDsfs(String platform) {
 def archiveDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         try {
-            archiveArtifacts artifacts: ['errors.txt', 'rf_output.txt'], fingerprint: true, onlyIfSuccessful: false
+            archiveArtifacts artifacts: ['errors.txt', 'rf_output.txt'].join(', '), fingerprint: true, onlyIfSuccessful: false
             sh 'tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf'
             sh 'find ../rendering_data/OUTPUT-dsf -type f | wc -l'
         } catch (e) {
