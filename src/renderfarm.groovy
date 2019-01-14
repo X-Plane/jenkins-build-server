@@ -50,9 +50,7 @@ def buildXpTools(String platform) {
     dir(getXpToolsDir(platform)) {
         try {
             String archiveDir = utils.getArchiveDirAndEnsureItExists(platform, 'RenderFarm')
-            List<String> toBuild = getExpectedXpToolsProducts(platform)
-            echo 'Expecting to build: ' + toBuild.join(', ')
-            if(utils.copyBuildProductsFromArchive(toBuild, platform, 'RenderFarm')) {
+            if(utils.copyBuildProductsFromArchive(getExpectedXpToolsProductsArchived(platform), platform, 'RenderFarm')) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
             } else {
                 String projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
@@ -101,6 +99,9 @@ def archiveRenderFarm(String platform) {
 
 List<String> getExpectedXpToolsProducts(String platform) {
     return [utils.chooseByPlatformMacWinLin(['RenderFarm.xcarchive/Products/usr/local/bin/RenderFarm', 'RenderFarm.exe', 'RenderFarm'], platform)]
+}
+List<String> getExpectedXpToolsProductsArchived(String platform) {
+    return [utils.chooseByPlatformMacWinLin(['RenderFarm', 'RenderFarm.exe', 'RenderFarm'], platform)]
 }
 
 def checkoutRenderingCode(String platform) {
