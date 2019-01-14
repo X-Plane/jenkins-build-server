@@ -115,7 +115,7 @@ def buildDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         String quietFlag = utils.toRealBool(verbose) ? '' : '--quiet'
         try {
-            sh "./run_block_multi.sh -180 -80 179 73 \$(nproc) ./make_world_one_final.sh ${quietFlag} 2> errors.txt"
+            sh "./run_block_multi.sh -180 -80 179 73 \$(nproc) ./make_world_one_final.sh ${quietFlag} > rf_output.txt 2> errors.txt"
             sh './run_block_multi.sh -180 -80 179 73 $(nproc) ./zip_dsf.sh'
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'DSF build', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
@@ -126,7 +126,7 @@ def buildDsfs(String platform) {
 def archiveDsfs(String platform) {
     dir(getRenderingCodeDir(platform)) {
         try {
-            archiveArtifacts artifacts: 'errors.txt', fingerprint: true, onlyIfSuccessful: false
+            archiveArtifacts artifacts: ['errors.txt', 'rf_output.txt'], fingerprint: true, onlyIfSuccessful: false
             sh 'tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf'
             sh 'find ../rendering_data/OUTPUT-dsf -type f | wc -l'
         } catch (e) {
