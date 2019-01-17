@@ -215,11 +215,11 @@ int getThreadsOnNode(Node node) {
 @NonCPS
 String inferPlatform(Node node) {
     if(node.labelString.contains('indows')) {
-        return 'windows'
+        return 'Windows'
     } else if(node.labelString.contains('inux')) {
-        return 'linux'
+        return 'Linux'
     } else {
-        return 'mac'
+        return 'macOS'
     }
 }
 
