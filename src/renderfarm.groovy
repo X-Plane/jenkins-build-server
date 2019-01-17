@@ -21,13 +21,19 @@ environment['build_linux'] = 'false'
 environment['build_all_apps'] = 'true'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
-//String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
 String nodeType = 'renderfarm'
 
 xptools_directory = '/jenkins/xptools'
 rendering_code_directory = '/jenkins/rendering_code'
-rfNodes = getNodesWithLabel('renderfarm')
-totalThreads = getTotalThreadsOnNodes(rfNodes)
+
+class NodeSpec {
+    static totalClusterThreads = 0
+    String name
+    String platform
+    int threads
+}
+
+rfNodes = getNodesToRunOn()
 
 stage('Checkout xptools')        { forEachNode(this.&checkoutXpTools) }
 stage('Build xptools')           { forEachNode(this.&buildXpTools) }
@@ -48,11 +54,9 @@ def forEachNode(Closure c) {
 
     def threadIdx = 0
     def stepsForParallel = [:]
-    for(int i = 0; i < rfNodes.size(); ++i) {
-        String name = rfNodes[i].getNodeName()
-        threads = getThreadsOnNode(rfNodes[i])
-        stepsForParallel[name] = { node(name) { closure(threadIdx, threadIdx + threads, inferPlatform(rfNodes[i])) } }
-        threadIdx += threads
+    for(NodeSpec n : rfNodes) {
+        stepsForParallel[n.name] = { node(n.name) { closure(threadIdx, threadIdx + n.threads, n.platform) } }
+        threadIdx += n.threads
     }
 
     parallel stepsForParallel
@@ -136,7 +140,7 @@ def checkoutRenderingCode(int nodeThreadBegin, int nodeThreadEnd, String platfor
     }
 
     dir(getRenderingCodeDir(platform)) {
-        sh 'rm errors.txt'
+        sh 'rm -f errors.txt'
         if(utils.toRealBool(clean_dsfs)) {
             sh './clean_output.sh'
         }
@@ -151,8 +155,8 @@ def buildDsfs(int nodeThreadBegin, int nodeThreadEnd, int phase, String platform
         def y_global_min = lat_min as Integer
         def y_global_max = lat_max as Integer
 
-        def x_chunk_size = (x_global_max - x_global_min) / totalThreads
-        def y_chunk_size = (y_global_max - y_global_min) / totalThreads
+        def x_chunk_size = (x_global_max - x_global_min) / NodeSpec.totalClusterThreads
+        def y_chunk_size = (y_global_max - y_global_min) / NodeSpec.totalClusterThreads
 
         int x_low = x_global_min + floor(nodeThreadBegin * x_chunk_size)
         int y_low = y_global_min + floor(nodeThreadBegin * y_chunk_size)
@@ -187,30 +191,21 @@ def archiveDsfs(int nodeThreadBegin, int nodeThreadEnd, String platform) {
 }
 
 @NonCPS
-def getNodesWithLabel(String label) {
+List<Node> getNodesWithLabel(String label) {
     def nodes = []
-    jenkins.model.Jenkins.instance.computers.each { c ->
-        if (c.node.labelString.contains(label)) {
-            nodes.add(c.node)
+    def allNodes = Jenkins.getInstance().getNodes()
+    for(def node : allNodes) {
+        if (node.labelString.contains(label)) {
+            nodes.add(node)
         }
     }
     return nodes
 }
 
 @NonCPS
-static int getTotalThreadsOnNodes(nodes) {
-    int totalThreads = 0
-    for(def n : nodes) {
-        totalThreads += getThreadsOnNode(n)
-    }
-    return totalThreads
-}
-
-
-@NonCPS
-static int getThreadsOnNode(node) {
+int getThreadsOnNode(Node node) {
     for(int threads : 2..128) {
-        if (node.labelString.contains("$threads-threads")) {
+        if (node.labelString.contains("${threads}-threads")) {
             return threads
         }
     }
@@ -218,7 +213,7 @@ static int getThreadsOnNode(node) {
 }
 
 @NonCPS
-static String inferPlatform(node) {
+String inferPlatform(Node node) {
     if(node.labelString.contains('indows')) {
         return 'windows'
     } else if(node.labelString.contains('inux')) {
@@ -228,3 +223,17 @@ static String inferPlatform(node) {
     }
 }
 
+@NonCPS
+List<NodeSpec> getNodesToRunOn() {
+    List<NodeSpec> out = []
+    List<Node> nativeNodes = getNodesWithLabel('renderfarm')
+    for(int i = 0; i < nativeNodes.size(); ++i) {
+        NodeSpec n = new NodeSpec()
+        n.name = nativeNodes[i].getNodeName()
+        n.platform = inferPlatform(nativeNodes[i])
+        n.threads = getThreadsOnNode(nativeNodes[i])
+        n.totalClusterThreads += n.threads
+        out.add(n)
+    }
+    return out
+}
