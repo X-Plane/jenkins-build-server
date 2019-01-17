@@ -6,6 +6,10 @@
 // clean_xptools ("bool")
 // clean_dsfs ("bool")
 // verbose ("bool")
+// lon_min
+// lon_max
+// lat_min
+// lat_max
 
 def environment = [:]
 environment['branch_name'] = xptools_branch_name
@@ -22,21 +26,40 @@ String nodeType = 'renderfarm'
 
 xptools_directory = '/jenkins/xptools'
 rendering_code_directory = '/jenkins/rendering_code'
+rfNodes = getNodesWithLabel('renderfarm')
+totalThreads = getTotalThreadsOnNodes(rfNodes)
 
-stage('Checkout xptools')        { node(nodeType) { checkoutXpTools(platform) } }
-stage('Build xptools')           { node(nodeType) { buildXpTools(platform) } }
-stage('Archive RenderFarm')      { node(nodeType) { archiveRenderFarm(platform) } }
-stage('Checkout rendering_code') { node(nodeType) { checkoutRenderingCode(platform) } }
+stage('Checkout xptools')        { forEachNode(this.&checkoutXpTools) }
+stage('Build xptools')           { forEachNode(this.&buildXpTools) }
+stage('Archive RenderFarm')      { forEachNode(this.&archiveRenderFarm) }
+stage('Checkout rendering_code') { forEachNode(this.&checkoutRenderingCode) }
 try {
-    stage('Build DSFs')          { node(nodeType) { buildDsfs(platform) } }
+    stage('Build DSFs Phase 1')  { forEachNode(this.&buildDsfsPhase0) }
+    stage('Build DSFs Phase 2')  { forEachNode(this.&buildDsfsPhase1) }
 } finally {
-    stage('Archive DSFs')        { node(nodeType) { archiveDsfs(platform) } }
+    stage('Archive DSFs')        { forEachNode(this.&archiveDsfs) }
 }
 
 String getXpToolsDir(platform)       { return utils.getJenkinsDir('xptools',        platform) }
 String getRenderingCodeDir(platform) { return utils.getJenkinsDir('rendering_code', platform) }
 
-def checkoutXpTools(String platform) {
+def forEachNode(Closure c) {
+    def closure = c
+
+    def threadIdx = 0
+    def stepsForParallel = [:]
+    for(int i = 0; i < rfNodes.size(); ++i) {
+        String name = rfNodes[i].getNodeName()
+        threads = getThreadsOnNode(rfNodes[i])
+        stepsForParallel[name] = { node(name) { closure(threadIdx, threadIdx + threads, inferPlatform(rfNodes[i])) } }
+        threadIdx += threads
+    }
+
+    parallel stepsForParallel
+}
+
+
+def checkoutXpTools(int nodeThreadBegin, int nodeThreadEnd, String platform) {
     try {
         xplaneCheckout(xptools_branch_name, getXpToolsDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
     } catch(e) {
@@ -45,7 +68,7 @@ def checkoutXpTools(String platform) {
     }
 }
 
-def buildXpTools(String platform) {
+def buildXpTools(int nodeThreadBegin, int nodeThreadEnd, String platform) {
     // TODO: Add arch argument to the compiler for the fastest builds possible
     dir(getXpToolsDir(platform)) {
         try {
@@ -76,7 +99,7 @@ def buildXpTools(String platform) {
     }
 }
 
-def archiveRenderFarm(String platform) {
+def archiveRenderFarm(int nodeThreadBegin, int nodeThreadEnd, String platform) {
     try {
         dir(getXpToolsDir(platform)) {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
@@ -104,7 +127,7 @@ List<String> getExpectedXpToolsProductsArchived(String platform) {
     return [utils.chooseByPlatformMacWinLin(['RenderFarm', 'RenderFarm.exe', 'RenderFarm'], platform)]
 }
 
-def checkoutRenderingCode(String platform) {
+def checkoutRenderingCode(int nodeThreadBegin, int nodeThreadEnd, String platform) {
     try {
         xplaneCheckout(rendering_code_branch_name, getRenderingCodeDir(platform), platform, 'ssh://dev.x-plane.com/admin/git-xplane/rendering_code.git')
     } catch(e) {
@@ -112,33 +135,96 @@ def checkoutRenderingCode(String platform) {
         throw e
     }
 
-    if(utils.toRealBool(clean_dsfs)) {
-        dir(getRenderingCodeDir(platform)) {
+    dir(getRenderingCodeDir(platform)) {
+        sh 'rm errors.txt'
+        if(utils.toRealBool(clean_dsfs)) {
             sh './clean_output.sh'
         }
     }
 }
 
-def buildDsfs(String platform) {
+def buildDsfs(int nodeThreadBegin, int nodeThreadEnd, int phase, String platform) {
     dir(getRenderingCodeDir(platform)) {
         String quietFlag = utils.toRealBool(verbose) ? '' : '--quiet'
+        def x_global_min = lon_min as Integer
+        def x_global_max = lon_max as Integer
+        def y_global_min = lat_min as Integer
+        def y_global_max = lat_max as Integer
+
+        def x_chunk_size = (x_global_max - x_global_min) / totalThreads
+        def y_chunk_size = (y_global_max - y_global_min) / totalThreads
+
+        int x_low = x_global_min + floor(nodeThreadBegin * x_chunk_size)
+        int y_low = y_global_min + floor(nodeThreadBegin * y_chunk_size)
+        int x_high = x_global_min + floor(nodeThreadEnd * x_chunk_size)
+        int y_high = y_global_min + floor(nodeThreadEnd * y_chunk_size)
         try {
-            sh "./run_block_multi.sh -180 -80 179 73 \$(nproc) ./make_world_one_final.sh ${quietFlag} --comp_dsf 2> errors.txt"
+            echo "This node will run the range from ${x_low} -> ${x_high} and ${y_low} -> ${y_high}"
+            sh "./run_block_multi_networked.sh ${x_low} ${y_low} ${x_high} ${y_high} \$(nproc) ${phase} ./make_world_one_final.sh ${quietFlag} --comp_dsf 2>> errors_${env.NODE_NAME}.txt"
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'DSF build', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
         }
     }
 }
 
-def archiveDsfs(String platform) {
+def buildDsfsPhase0(int nodeThreadBegin, int nodeThreadEnd, String platform) { buildDsfs(nodeThreadBegin, nodeThreadEnd, 0, platform) }
+def buildDsfsPhase1(int nodeThreadBegin, int nodeThreadEnd, String platform) { buildDsfs(nodeThreadBegin, nodeThreadEnd, 1, platform) }
+
+def archiveDsfs(int nodeThreadBegin, int nodeThreadEnd, String platform) {
     dir(getRenderingCodeDir(platform)) {
         try {
-            archiveArtifacts artifacts: ['errors.txt', 'rf_output.txt'].join(', '), fingerprint: true, onlyIfSuccessful: false
-            sh 'tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf'
-            sh 'find ../rendering_data/OUTPUT-dsf -type f | wc -l'
+            archiveArtifacts artifacts: ["errors_${env.NODE_NAME}.txt"].join(', '), fingerprint: true, onlyIfSuccessful: false
+            if(nodeThreadBegin == 0) {
+                sh "tar -cf ../rendering_data/OUTPUT-dsf.tar ../rendering_data/OUTPUT-dsf"
+                def fileCount = sh(returnStdout: true, script: 'find ../rendering_data/OUTPUT-dsf -type f | wc -l').trim()
+                echo "Found $fileCount DSFs total"
+                assert fileCount > 1000
+            }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'DSF archive', rendering_code_branch_name, utils.getCommitId(platform), platform, e)
         }
+    }
+}
+
+@NonCPS
+def getNodesWithLabel(String label) {
+    def nodes = []
+    jenkins.model.Jenkins.instance.computers.each { c ->
+        if (c.node.labelString.contains(label)) {
+            nodes.add(c.node)
+        }
+    }
+    return nodes
+}
+
+@NonCPS
+static int getTotalThreadsOnNodes(nodes) {
+    int totalThreads = 0
+    for(def n : nodes) {
+        totalThreads += getThreadsOnNode(n)
+    }
+    return totalThreads
+}
+
+
+@NonCPS
+static int getThreadsOnNode(node) {
+    for(int threads : 2..128) {
+        if (node.labelString.contains("$threads-threads")) {
+            return threads
+        }
+    }
+    return 0
+}
+
+@NonCPS
+static String inferPlatform(node) {
+    if(node.labelString.contains('indows')) {
+        return 'windows'
+    } else if(node.labelString.contains('inux')) {
+        return 'linux'
+    } else {
+        return 'mac'
     }
 }
 
