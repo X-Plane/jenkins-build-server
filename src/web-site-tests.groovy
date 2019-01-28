@@ -47,14 +47,16 @@ def getCommitId() {
 def testFunnel(String platform) {
     dir(getCheckoutDir(platform)) {
         String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts')
+        String dirChar = utils.getDirChar(platform)
+        String python3Path = utils.chooseByPlatformNixWin('python3', '"C:\\Program Files\\Python37\\python.exe"')
         try {
-            utils.chooseShell('virtualenv env -p python3', platform)
-            utils.chooseShell("env/${binDir}/pip install -r package_requirements.txt", platform)
+            utils.chooseShell("virtualenv env -p ${python3Path}", platform)
+            utils.chooseShell("env${dirChar}${binDir}${dirChar}pip install -r package_requirements.txt", platform)
         } catch(e) {
             notifyBuild("Web site test setup failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
             throw e
         }
-        utils.chooseShell("env/${binDir}/behave --tags=${tag}", platform)
+        utils.chooseShell("env${dirChar}${binDir}${dirChar}behave --tags=${tag}", platform)
     }
 }
 
