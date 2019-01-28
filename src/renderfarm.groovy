@@ -80,7 +80,7 @@ def buildXpTools(int nodeThreadBegin, int nodeThreadEnd, String platform) {
             if(utils.copyBuildProductsFromArchive(getExpectedXpToolsProductsArchived(platform), platform, 'RenderFarm')) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
             } else {
-                String projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
+                String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
                 String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme RenderFarm -config ${build_type} -project ${projectFile}"
                 String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
                 if(utils.toRealBool(clean_xptools)) {
