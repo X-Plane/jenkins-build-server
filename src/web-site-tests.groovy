@@ -13,7 +13,7 @@ def run(Closure c) {
 }
 
 String getCheckoutDir(platform) {
-    return utils.chooseByPlatformNixWin('/jenkins/website/', 'C:\\jenkins\\website\\', platform)
+    return utils.chooseByPlatformNixWin("/jenkins/website-${tag}/", "C:\\jenkins\\website-${tag}\\", platform)
 }
 
 def doCheckout(String platform) {
