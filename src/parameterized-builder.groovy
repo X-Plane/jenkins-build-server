@@ -121,6 +121,7 @@ def doBuild(String platform) {
             }
 
             if(utils.isWindows(platform)) {
+                evSignWindows()
                 buildAndArchiveShaders()
             }
         } catch (e) {
@@ -131,6 +132,49 @@ def doBuild(String platform) {
                     color: 'danger',
                     message: "${heyYourBuild} of `${branch_name}` failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
         }
+    }
+}
+
+def evSignWindows() {
+    if(utils.isReleaseBuild()) {
+        for(String product : utils.getExpectedXPlaneProducts('Windows')) {
+            if(product.toLowerCase().endsWith('.exe')) {
+                evSignExecutable(product)
+            }
+        }
+    }
+}
+
+def evSignExecutable(String executable) {
+    List<String> timestampServers = [
+            "http://timestamp.digicert.com",
+            "http://sha256timestamp.ws.symantec.com/sha256/timestamp",
+            "http://timestamp.globalsign.com/scripts/timstamp.dll",
+            "https://timestamp.geotrust.com/tsa",
+            "http://timestamp.verisign.com/scripts/timstamp.dll",
+            "http://timestamp.comodoca.com/rfc3161",
+            "http://timestamp.wosign.com",
+            "http://tsa.startssl.com/rfc3161",
+            "http://time.certum.pl",
+            "https://freetsa.org",
+            "http://dse200.ncipher.com/TSS/HttpTspServer",
+            "http://tsa.safecreative.org",
+            "http://zeitstempel.dfn.de",
+            "https://ca.signfiles.com/tsa/get.aspx",
+            "http://services.globaltrustfinder.com/adss/tsa",
+            "https://tsp.iaik.tugraz.at/tsp/TspRequest",
+            "http://timestamp.apple.com/ts01",
+    ]
+    withCredentials([string(credentialsId: 'windows-hardware-signing-token', variable: 'tokenPass')]) {
+        for(String timestampServer : timestampServers) {
+            // Joerg says: these servers occasionally get overloaded or go down, causing the signing to fail.
+            // We'll try them all before returning an error
+            try {
+                bat "C:\\jenkins\\_signing\\etokensign.exe C:\\jenkins\\_signing\\laminar.cer \"te-10ee6b01-fc46-429c-a412-d6996404ebce\" \"${tokenPass}\" \"${timestampServer}\" \"${executable}\""
+                return
+            } catch(e) { }
+        }
+        throw Exception('etokensign failed for executable ' + executable)
     }
 }
 
