@@ -5,8 +5,10 @@ def setEnvironment(environment, notifyStep, globalSteps=null, single_platform=fa
     notify = notifyStep
     branch_name = environment['branch_name']
     send_emails = toRealBool(environment['send_emails'])
-    pmt_subject = environment['pmt_subject']
-    pmt_from = environment['pmt_from']
+    //pmt_subject = environment['pmt_subject']
+    //pmt_from = environment['pmt_from']
+    pmt_subject = ''
+    pmt_from = ''
     directory_suffix = environment['directory_suffix']
     build_windows = toRealBool(environment['build_windows'])
     build_mac = toRealBool(environment['build_mac'])
@@ -50,8 +52,15 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
 }
 
 
+String getDirChar(String platform='') {
+    return chooseByPlatformNixWin("/", "\\", platform)
+}
+String getJenkinsDir(String subdir, String platform='') {
+    String jenkins = chooseByPlatformNixWin("/jenkins/", "C:\\jenkins\\", platform)
+    return jenkins + subdir + getDirChar(platform)
+}
 String getCheckoutDir(String platform='') {
-    return chooseByPlatformNixWin("/jenkins/design-${directory_suffix}/", "C:\\jenkins\\design-${directory_suffix}\\", platform)
+    return getJenkinsDir("design-${directory_suffix}", platform)
 }
 
 String getCommitId(String platform='') {
@@ -132,8 +141,8 @@ def nukeIfExist(List<String> files, String platform) {
     }
 }
 
-boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
-    String archiveDir = getArchiveDir(platform)
+boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {
+    String archiveDir = getArchiveDir(platform, archiveSubdir)
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
         echo "Copying products from ${archiveDir} on ${platform}"
@@ -143,10 +152,9 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform) {
             chooseShellByPlatformNixWin("cp \"${archiveDir}${p}\" .", "copy \"${archiveDir}${p}\" .", platform)
         }
         if(isMac(platform)) {
-            sh "unzip -o '*.app.zip'" // single-quotes necessary so that the silly unzip command doesn't think we're specifying files within the first expanded arg
-            try {
-                sh "unzip -o '*.dSYM.zip'"
-            } catch(e) { }
+            for(z in findFiles(glob: '*.zip')) {
+                unzip(zipFile: z, quiet: true)
+            }
         }
         return true
     }
@@ -281,6 +289,10 @@ def filesExist(List expectedProducts) {
 
 def moveFilePatternToDest(String filePattern, String dest) {
     chooseShellByPlatformNixWin("mv \"$filePattern\" \"${dest}\"",  "move /Y \"${filePattern}\" \"${dest}\"")
+}
+
+def copyFilePatternToDest(String filePattern, String dest) {
+    chooseShellByPlatformNixWin("cp \"$filePattern\" \"${dest}\"",  "copy /Y \"${filePattern}\" \"${dest}\"")
 }
 
 

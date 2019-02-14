@@ -1,11 +1,11 @@
 // If this is an email-triggered build, the branch/tag/commit to build is in the email's subject line
-branch_name = pmt_subject ? pmt_subject.trim() : branch_name
+//branch_name = pmt_subject ? pmt_subject.trim() : branch_name
 
 def environment = [:]
 environment['branch_name'] = branch_name
 environment['send_emails'] = send_emails
-environment['pmt_subject'] = pmt_subject
-environment['pmt_from'] = pmt_from
+//environment['pmt_subject'] = pmt_subject
+//environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
@@ -32,7 +32,7 @@ utils.setEnvironment(environment, this.&notify)
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
     stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
-    stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
+    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, true) }
     stage('Build') {
         if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
             runOn3Platforms(this.&doBuild)
@@ -52,12 +52,12 @@ try {
     }
 }
 
-def runOn3Platforms(Closure c) {
+def runOn3Platforms(Closure c, boolean force_windows=false) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows) { node('windows') { timeout(60 * 2) { closure('Windows') } } } },
-            'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
-            'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
+            'Windows' : { if(utils.build_windows || force_windows) { node('windows') { timeout(60 * 2) { closure('Windows') } } } },
+            'macOS'   : { if(utils.build_mac)                      { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
+            'Linux'   : { if(utils.build_linux)                    { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
     )
 }
 
@@ -121,6 +121,7 @@ def doBuild(String platform) {
             }
 
             if(utils.isWindows(platform)) {
+                evSignWindows()
                 buildAndArchiveShaders()
             }
         } catch (e) {
@@ -134,13 +135,65 @@ def doBuild(String platform) {
     }
 }
 
+def evSignWindows() {
+    if(utils.isReleaseBuild()) {
+        for(String product : utils.getExpectedXPlaneProducts('Windows')) {
+            if(product.toLowerCase().endsWith('.exe')) {
+                evSignExecutable(product)
+            }
+        }
+    }
+}
+
+def evSignExecutable(String executable) {
+    List<String> timestampServers = [
+            "http://timestamp.digicert.com",
+            "http://sha256timestamp.ws.symantec.com/sha256/timestamp",
+            "http://timestamp.globalsign.com/scripts/timstamp.dll",
+            "https://timestamp.geotrust.com/tsa",
+            "http://timestamp.verisign.com/scripts/timstamp.dll",
+            "http://timestamp.comodoca.com/rfc3161",
+            "http://timestamp.wosign.com",
+            "http://tsa.startssl.com/rfc3161",
+            "http://time.certum.pl",
+            "https://freetsa.org",
+            "http://dse200.ncipher.com/TSS/HttpTspServer",
+            "http://tsa.safecreative.org",
+            "http://zeitstempel.dfn.de",
+            "https://ca.signfiles.com/tsa/get.aspx",
+            "http://services.globaltrustfinder.com/adss/tsa",
+            "https://tsp.iaik.tugraz.at/tsp/TspRequest",
+            "http://timestamp.apple.com/ts01",
+    ]
+    withCredentials([string(credentialsId: 'windows-hardware-signing-token', variable: 'tokenPass')]) {
+        for(String timestampServer : timestampServers) {
+            // Joerg says: these servers occasionally get overloaded or go down, causing the signing to fail.
+            // We'll try them all before returning an error
+            try {
+                bat "C:\\jenkins\\_signing\\etokensign.exe C:\\jenkins\\_signing\\laminar.cer \"te-10ee6b01-fc46-429c-a412-d6996404ebce\" \"${tokenPass}\" \"${timestampServer}\" \"${executable}\""
+                return
+            } catch(e) { }
+        }
+        throw Exception('etokensign failed for executable ' + executable)
+    }
+}
+
 def buildAndArchiveShaders() {
     dir(utils.getCheckoutDir('Windows')) {
         String dropboxPath = utils.getArchiveDirAndEnsureItExists('Windows')
         String destSlashesEscaped = utils.escapeSlashes(dropboxPath)
         String shadersZip = 'shaders_bin.zip'
-        if(!fileExists(destSlashesEscaped + shadersZip)) {
-            bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -O1'
+        if(!fileExists(destSlashesEscaped + shadersZip) || utils.toRealBool(force_build)) {
+            try {
+                bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet'
+            } catch(e) {
+                if(fileExists('gfx-cc.dmp')) {
+                    archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
+                } else {
+                    echo 'Failed to find gfx-cc.dmp'
+                }
+                throw e
+            }
             zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
             archiveWithDropbox([shadersZip], dropboxPath, true, utils)
         }

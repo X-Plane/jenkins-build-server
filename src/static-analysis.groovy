@@ -1,8 +1,8 @@
 def environment = [:]
 environment['branch_name'] = branch_name
 environment['send_emails'] = send_emails
-environment['pmt_subject'] = pmt_subject
-environment['pmt_from'] = pmt_from
+//environment['pmt_subject'] = pmt_subject
+//environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = 'static-analysis'
 environment['release_build'] = 'false'
 environment['steam_build'] = 'false'
