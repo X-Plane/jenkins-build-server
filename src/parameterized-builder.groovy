@@ -1,11 +1,11 @@
 // If this is an email-triggered build, the branch/tag/commit to build is in the email's subject line
-branch_name = pmt_subject ? pmt_subject.trim() : branch_name
+//branch_name = pmt_subject ? pmt_subject.trim() : branch_name
 
 def environment = [:]
 environment['branch_name'] = branch_name
 environment['send_emails'] = send_emails
-environment['pmt_subject'] = pmt_subject
-environment['pmt_from'] = pmt_from
+//environment['pmt_subject'] = pmt_subject
+//environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
