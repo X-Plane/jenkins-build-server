@@ -240,7 +240,10 @@ def doArchive(String platform) {
 }
 
 def notifySuccess() {
-    utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.")
+    boolean buildTriggeredByUser = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause) != null
+    if(buildTriggeredByUser && send_emails) {
+        utils.sendEmail("Re: ${branch_name} build", "SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.")
+    }
     String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
     String heyYourBuild = getSlackHeyYourBuild()
     slackSend(
