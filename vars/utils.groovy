@@ -153,7 +153,7 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
         }
         if(isMac(platform)) {
             for(z in findFiles(glob: '*.zip')) {
-                unzip(zipFile: z, quiet: true)
+                unzip(zipFile: z.name, quiet: true)
             }
         }
         return true
