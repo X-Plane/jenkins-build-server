@@ -251,9 +251,11 @@ def notifySuccess() {
     }
     String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
     String heyYourBuild = getSlackHeyYourBuild()
-    slackSend(
-            color: 'good',
-            message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+    try {
+        slackSend(
+                color: 'good',
+                message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+    } catch(e) { }
 }
 
 String getSlackHeyYourBuild() {
