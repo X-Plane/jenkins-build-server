@@ -183,7 +183,10 @@ def buildAndArchiveShaders() {
         String dropboxPath = utils.getArchiveDirAndEnsureItExists('Windows')
         String destSlashesEscaped = utils.escapeSlashes(dropboxPath)
         String shadersZip = 'shaders_bin.zip'
-        if(!fileExists(destSlashesEscaped + shadersZip) || utils.toRealBool(force_build)) {
+        if(fileExists(destSlashesEscaped + shadersZip) || utils.toRealBool(force_build)) {
+            echo 'Skipping shaders build since they already exist in Dropbox'
+            archiveArtifacts artifacts: destSlashesEscaped + shadersZip, fingerprint: true, onlyIfSuccessful: false
+        } else {
             try {
                 bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet'
             } catch(e) {
