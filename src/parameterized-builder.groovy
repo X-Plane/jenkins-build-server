@@ -69,11 +69,18 @@ boolean supportsCatch2Tests(String platform) {
     }
 }
 
+String getCatch2Executable(String platform) {
+    String appExt = utils.chooseByPlatformMacWinLin([".app", ".exe", '-x86_64'], platform)
+    return utils.addSuffix(["catch2_tests"], utils.app_suffix + appExt)[0]
+}
 List<String> getProducts(String platform) {
     List<String> products = utils.getExpectedXPlaneProducts(platform)
     if(utils.build_all_apps && supportsCatch2Tests(platform)) {
-        String appExtNormal = utils.chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
-        return products + utils.addSuffix(["catch2_tests"], utils.app_suffix + appExtNormal)
+        String catch2Exe = getCatch2Executable(platform)
+        if(utils.isMac(platform)) {
+            catch2Exe += '.zip'
+        }
+        return products + [catch2Exe]
     }
     return products
 }
