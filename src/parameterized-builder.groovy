@@ -44,6 +44,7 @@ try {
             )
         }
     }
+    stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
     stage('Notify')                        { notifySuccess() }
 } finally {
@@ -61,11 +62,27 @@ def runOn3Platforms(Closure c, boolean force_windows=false) {
     )
 }
 
+boolean supportsCatch2Tests(String platform) {
+    dir(utils.getCheckoutDir(platform)) {
+        String cmakeLists = readFile('source_code/app/X-Plane-f/CMakeLists.txt')
+        return cmakeLists.contains('catch2_tests')
+    }
+}
+
+List<String> getProducts(String platform) {
+    List<String> products = utils.getExpectedXPlaneProducts(platform)
+    if(utils.build_all_apps && supportsCatch2Tests(platform)) {
+        String appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
+        return products + addSuffix(["catch2_tests"], appExtNormal)
+    }
+    return products
+}
+
 def doCheckout(String platform) {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(utils.getExpectedXPlaneProducts(platform), cleanCommand, platform, utils)
+    clean(getProducts(platform), cleanCommand, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
         if(doClean) {
@@ -90,7 +107,7 @@ def doBuild(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
             def archiveDir = utils.getArchiveDirAndEnsureItExists(platform)
-            def toBuild = utils.getExpectedXPlaneProducts(platform)
+            def toBuild = getProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
             if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild, platform)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
@@ -137,7 +154,7 @@ def doBuild(String platform) {
 
 def evSignWindows() {
     if(utils.isReleaseBuild()) {
-        for(String product : utils.getExpectedXPlaneProducts('Windows')) {
+        for(String product : getProducts('Windows')) {
             if(product.toLowerCase().endsWith('.exe')) {
                 evSignExecutable(product)
             }
@@ -207,6 +224,14 @@ def getBuildToolConfiguration() {
     return utils.getBuildToolConfiguration()
 }
 
+def doUnitTest(String platform) {
+    if(supportsCatch2Tests(platform)) {
+        dir(utils.getCheckoutDir(platform)) {
+            echo "TODO: Actually unit test"
+        }
+    }
+}
+
 def doArchive(String platform) {
     try {
         def checkoutDir = utils.getCheckoutDir(platform)
@@ -220,7 +245,7 @@ def doArchive(String platform) {
                 sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
             }
 
-            List prods = utils.getExpectedXPlaneProducts(platform)
+            List prods = getProducts(platform)
             // Kit the installers for deployment
             if(utils.needsInstallerKitting(platform)) {
                 String installer = utils.getExpectedXPlaneProducts(platform, true).last()
