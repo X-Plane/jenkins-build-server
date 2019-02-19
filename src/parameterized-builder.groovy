@@ -72,7 +72,7 @@ boolean supportsCatch2Tests(String platform) {
 List<String> getProducts(String platform) {
     List<String> products = utils.getExpectedXPlaneProducts(platform)
     if(utils.build_all_apps && supportsCatch2Tests(platform)) {
-        String appExtNormal = chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
+        String appExtNormal = utils.chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
         return products + addSuffix(["catch2_tests"], appExtNormal)
     }
     return products
