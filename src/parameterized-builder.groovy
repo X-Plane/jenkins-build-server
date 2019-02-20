@@ -241,7 +241,13 @@ def doUnitTest(String platform) {
             }
             try {
                 utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${testXmlTarget}", "${exe} -r junit > ${testXmlTarget}", platform)
-            } catch(e) { }
+            } catch(e) {
+                String heyYourBuild = getSlackHeyYourBuild()
+                String logUrl = "${BUILD_URL}flowGraphTable/"
+                slackSend(
+                        color: 'danger',
+                        message: "${heyYourBuild} of `${branch_name}` compiled, but it failed unit testing | <${BUILD_URL}|Build Info>")
+            }
             junit keepLongStdio: true, testResults: testXmlTarget
         }
     }
