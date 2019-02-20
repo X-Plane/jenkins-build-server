@@ -66,7 +66,7 @@ def runOn3Platforms(Closure c, boolean force_windows=false) {
 boolean supportsCatch2Tests(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
-            return !readFile('source_code/test/catch2_tests/CMakeLists.txt').empty()
+            return fileExists('source_code/test/catch2_tests/CMakeLists.txt')
         } catch(e) { }
         return false
     }
