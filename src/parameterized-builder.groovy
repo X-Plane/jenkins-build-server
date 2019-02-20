@@ -150,12 +150,12 @@ def doBuild(String platform) {
                 buildAndArchiveShaders()
             }
         } catch (e) {
-            notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
             String heyYourBuild = getSlackHeyYourBuild()
             String logUrl = "${BUILD_URL}flowGraphTable/"
             slackSend(
                     color: 'danger',
                     message: "${heyYourBuild} of `${branch_name}` failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
+            notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
     }
 }
@@ -295,23 +295,27 @@ def notifySuccess() {
     }
     String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
     String heyYourBuild = getSlackHeyYourBuild()
-    try {
-        slackSend(
-                color: 'good',
-                message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
-    } catch(e) { }
+    if(!heyYourBuild.contains('Autotriggered')) {
+        try {
+            slackSend(
+                    color: 'good',
+                    message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+        } catch(e) { }
+    }
 }
 
 String getSlackHeyYourBuild() {
-    def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
-    if(userCause != null) {
-        String slackUserId = jenkinsToSlackUserId(userCause.getUserId())
-        if(slackUserId.isEmpty()) {
-            return 'Manual build'
-        } else {
-            return "Hey <@${slackUserId}>, your build"
+    try {
+        def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
+        if(userCause != null) {
+            String slackUserId = jenkinsToSlackUserId(userCause.getUserId())
+            if(slackUserId.isEmpty()) {
+                return 'Manual build'
+            } else {
+                return "Hey <@${slackUserId}>, your build"
+            }
         }
-    }
+    } catch(e) { }
     return 'Autotriggered build'
 }
 
