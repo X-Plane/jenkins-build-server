@@ -265,8 +265,8 @@ def doArchive(String platform) {
 
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
-                sh "find . -name '*.app' -exec zip -r '{}'.zip '{}' \\;"
-                sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
+                sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
+                sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
             }
 
             List prods = getProducts(platform)
@@ -275,9 +275,9 @@ def doArchive(String platform) {
                 String installer = utils.getExpectedXPlaneProducts(platform, true).last()
                 String zip_target = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                 utils.chooseShellByPlatformMacWinLin([
-                        "zip -r ${zip_target} \"X-Plane 11 Installer.app\"",
+                        "zip -rq ${zip_target} \"X-Plane 11 Installer.app\"",
                         "zip -j ${zip_target} \"X-Plane 11 Installer.exe\"",
-                        "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -j ${zip_target} \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
+                        "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -jq ${zip_target} \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
                 ], platform)
                 prods.push(zip_target)
             }
