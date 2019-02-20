@@ -14,8 +14,6 @@ environment['build_all_apps'] = build_all_apps
 environment['build_type'] = build_type
 utils.setEnvironment(environment, this.&notify)
 
-testXmlTarget = 'test_report.xml'
-
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
 // This is where the magic happens.
@@ -72,6 +70,10 @@ boolean supportsCatch2Tests(String platform) {
     }
 }
 
+String testXmlTarget(platform) {
+    return "test_report_${platform}.xml"
+}
+
 String getCatch2Executable(String platform) {
     String appExt = utils.chooseByPlatformMacWinLin([".app", ".exe", '-x86_64'], platform)
     return utils.addSuffix(["catch2_tests"], utils.app_suffix + appExt)[0]
@@ -92,7 +94,7 @@ def doCheckout(String platform) {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(getProducts(platform) + [testXmlTarget], cleanCommand, platform, utils)
+    clean(getProducts(platform) + [testXmlTarget(platform)], cleanCommand, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
         if(doClean) {
@@ -242,8 +244,10 @@ def doUnitTest(String platform) {
                 exe += '/Contents/MacOS/catch2_tests' + utils.app_suffix
             }
             try {
-                utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${testXmlTarget}", "${exe} -r junit > ${testXmlTarget}", platform)
-                archiveWithDropbox([testXmlTarget], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
+                String xml = testXmlTarget(platform)
+                utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${xml}", "${exe} -r junit > ${xml}", platform)
+                archiveWithDropbox([xml], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
+                junit keepLongStdio: true, testResults: testXmlTarget
             } catch(e) {
                 String heyYourBuild = getSlackHeyYourBuild()
                 String logUrl = "${BUILD_URL}flowGraphTable/"
@@ -251,7 +255,6 @@ def doUnitTest(String platform) {
                         color: 'danger',
                         message: "${heyYourBuild} of `${branch_name}` compiled, but it failed unit testing | <${BUILD_URL}|Build Info>")
             }
-            junit keepLongStdio: true, testResults: testXmlTarget
         }
     }
 }
