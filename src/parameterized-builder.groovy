@@ -125,12 +125,12 @@ def doBuild(String platform) {
                 buildAndArchiveShaders()
             }
         } catch (e) {
-            notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
             String heyYourBuild = getSlackHeyYourBuild()
             String logUrl = "${BUILD_URL}flowGraphTable/"
             slackSend(
                     color: 'danger',
                     message: "${heyYourBuild} of `${branch_name}` failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
+            notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
     }
 }
