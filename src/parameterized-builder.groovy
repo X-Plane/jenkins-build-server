@@ -65,8 +65,10 @@ def runOn3Platforms(Closure c, boolean force_windows=false) {
 
 boolean supportsCatch2Tests(String platform) {
     dir(utils.getCheckoutDir(platform)) {
-        String cmakeLists = readFile('source_code/app/X-Plane-f/CMakeLists.txt')
-        return cmakeLists.contains('catch2_tests')
+        try {
+            return !readFile('source_code/test/catch2_tests/CMakeLists.txt').empty()
+        } catch(e) { }
+        return false
     }
 }
 
@@ -241,6 +243,7 @@ def doUnitTest(String platform) {
             }
             try {
                 utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${testXmlTarget}", "${exe} -r junit > ${testXmlTarget}", platform)
+                archiveWithDropbox([testXmlTarget], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
             } catch(e) {
                 String heyYourBuild = getSlackHeyYourBuild()
                 String logUrl = "${BUILD_URL}flowGraphTable/"
