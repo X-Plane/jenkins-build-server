@@ -14,6 +14,7 @@ environment['build_all_apps'] = build_all_apps
 environment['build_type'] = build_type
 utils.setEnvironment(environment, this.&notify)
 
+testXmlTarget = 'test_report.xml'
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -89,7 +90,7 @@ def doCheckout(String platform) {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(getProducts(platform), cleanCommand, platform, utils)
+    clean(getProducts(platform) + [testXmlTarget], cleanCommand, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
         if(doClean) {
@@ -234,7 +235,14 @@ def getBuildToolConfiguration() {
 def doUnitTest(String platform) {
     if(supportsCatch2Tests(platform)) {
         dir(utils.getCheckoutDir(platform)) {
-            echo "TODO: Actually unit test"
+            String exe = getCatch2Executable(platform)
+            if(utils.isMac(platform)) {
+                exe += '/Contents/MacOS/catch2_tests' + utils.app_suffix
+            }
+            try {
+                utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${testXmlTarget}", "${exe} -r junit > ${testXmlTarget}", platform)
+            } catch(e) { }
+            junit keepLongStdio: true, testResults: testXmlTarget
         }
     }
 }
