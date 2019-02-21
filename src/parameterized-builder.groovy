@@ -243,11 +243,10 @@ def doUnitTest(String platform) {
             if(utils.isMac(platform)) {
                 exe += '/Contents/MacOS/catch2_tests' + utils.app_suffix
             }
+            String xml = testXmlTarget(platform)
             try {
-                String xml = testXmlTarget(platform)
                 utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${xml}", "${exe} -r junit > ${xml}", platform)
                 archiveWithDropbox([xml], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
-                junit keepLongStdio: true, testResults: testXmlTarget
             } catch(e) {
                 String heyYourBuild = getSlackHeyYourBuild()
                 String logUrl = "${BUILD_URL}flowGraphTable/"
@@ -255,6 +254,7 @@ def doUnitTest(String platform) {
                         color: 'danger',
                         message: "${heyYourBuild} of `${branch_name}` compiled, but it failed unit testing | <${BUILD_URL}|Build Info>")
             }
+            junit keepLongStdio: true, testResults: xml
         }
     }
 }
