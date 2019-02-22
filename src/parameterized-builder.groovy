@@ -14,6 +14,8 @@ environment['build_all_apps'] = build_all_apps
 environment['build_type'] = build_type
 utils.setEnvironment(environment, this.&notify)
 
+alerted_via_slack = false
+
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
 // This is where the magic happens.
@@ -45,7 +47,7 @@ try {
     }
     stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify')                        { notifySuccess() }
+    stage('Notify')                        { if(!alerted_via_slack) { notifySuccess() } }
 } finally {
     if(utils.build_windows) {
         node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
@@ -159,6 +161,7 @@ def doBuild(String platform) {
             slackSend(
                     color: 'danger',
                     message: "${heyYourBuild} of `${branch_name}` failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
+            alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
     }
@@ -245,7 +248,7 @@ def doUnitTest(String platform) {
             }
             String xml = testXmlTarget(platform)
             try {
-                utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${xml}", "${exe} -r junit > ${xml}", platform)
+                utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${xml}", "${exe} /r junit > ${xml}", platform)
                 archiveWithDropbox([xml], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
             } catch(e) {
                 String heyYourBuild = getSlackHeyYourBuild()
@@ -253,6 +256,7 @@ def doUnitTest(String platform) {
                 slackSend(
                         color: 'danger',
                         message: "${heyYourBuild} of `${branch_name}` compiled, but it failed unit testing | <${BUILD_URL}|Build Info>")
+                alerted_via_slack = true
             }
             junit keepLongStdio: true, testResults: xml
         }
@@ -306,6 +310,7 @@ def notifySuccess() {
             slackSend(
                     color: 'good',
                     message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+            alerted_via_slack = true
         } catch(e) { }
     }
 }
