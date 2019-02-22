@@ -248,7 +248,7 @@ def doUnitTest(String platform) {
             }
             String xml = testXmlTarget(platform)
             try {
-                utils.utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${xml}", "${exe} /r junit > ${xml}", platform)
+                utils.chooseShellByPlatformNixWin("./${exe} -r junit > ${xml}", "${exe} /r junit > ${xml}", platform)
                 archiveWithDropbox([xml], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
             } catch(e) {
                 String heyYourBuild = getSlackHeyYourBuild()
