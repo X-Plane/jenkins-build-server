@@ -14,6 +14,7 @@ environment['build_all_apps'] = build_all_apps
 environment['build_type'] = build_type
 utils.setEnvironment(environment, this.&notify)
 
+alerted_via_slack = false
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -44,8 +45,9 @@ try {
             )
         }
     }
+    stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify')                        { notifySuccess() }
+    stage('Notify')                        { if(!alerted_via_slack) { notifySuccess() } }
 } finally {
     if(utils.build_windows) {
         node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
@@ -61,11 +63,40 @@ def runOn3Platforms(Closure c, boolean force_windows=false) {
     )
 }
 
+boolean supportsCatch2Tests(String platform) {
+    dir(utils.getCheckoutDir(platform)) {
+        try {
+            return fileExists('source_code/test/catch2_tests/CMakeLists.txt')
+        } catch(e) { }
+        return false
+    }
+}
+
+String testXmlTarget(platform) {
+    return "test_report_${platform}.xml"
+}
+
+String getCatch2Executable(String platform) {
+    String appExt = utils.chooseByPlatformMacWinLin([".app", ".exe", '-x86_64'], platform)
+    return utils.addSuffix(["catch2_tests"], utils.app_suffix + appExt)[0]
+}
+List<String> getProducts(String platform) {
+    List<String> products = utils.getExpectedXPlaneProducts(platform)
+    if(utils.build_all_apps && supportsCatch2Tests(platform)) {
+        String catch2Exe = getCatch2Executable(platform)
+        if(utils.isMac(platform)) {
+            catch2Exe += '.zip'
+        }
+        return products + [catch2Exe]
+    }
+    return products
+}
+
 def doCheckout(String platform) {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(utils.getExpectedXPlaneProducts(platform), cleanCommand, platform, utils)
+    clean(getProducts(platform) + [testXmlTarget(platform)], cleanCommand, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
         if(doClean) {
@@ -90,7 +121,7 @@ def doBuild(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
             def archiveDir = utils.getArchiveDirAndEnsureItExists(platform)
-            def toBuild = utils.getExpectedXPlaneProducts(platform)
+            def toBuild = getProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
             if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild, platform)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
@@ -130,6 +161,7 @@ def doBuild(String platform) {
             slackSend(
                     color: 'danger',
                     message: "${heyYourBuild} of `${branch_name}` failed | <${logUrl}|Console Log (split by machine/task/subtask)> | <${BUILD_URL}|Build Info>")
+            alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
     }
@@ -137,7 +169,7 @@ def doBuild(String platform) {
 
 def evSignWindows() {
     if(utils.isReleaseBuild()) {
-        for(String product : utils.getExpectedXPlaneProducts('Windows')) {
+        for(String product : getProducts('Windows')) {
             if(product.toLowerCase().endsWith('.exe')) {
                 evSignExecutable(product)
             }
@@ -207,6 +239,30 @@ def getBuildToolConfiguration() {
     return utils.getBuildToolConfiguration()
 }
 
+def doUnitTest(String platform) {
+    if(supportsCatch2Tests(platform)) {
+        dir(utils.getCheckoutDir(platform)) {
+            String exe = getCatch2Executable(platform)
+            if(utils.isMac(platform)) {
+                exe += '/Contents/MacOS/catch2_tests' + utils.app_suffix
+            }
+            String xml = testXmlTarget(platform)
+            try {
+                utils.chooseShellByPlatformNixWin("./${exe} -r junit -o ${xml}", "${exe} /r junit /o ${xml}", platform)
+                archiveWithDropbox([xml], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
+            } catch(e) {
+                String heyYourBuild = getSlackHeyYourBuild()
+                String logUrl = "${BUILD_URL}flowGraphTable/"
+                slackSend(
+                        color: 'danger',
+                        message: "${heyYourBuild} of `${branch_name}` compiled, but it failed unit testing | <${BUILD_URL}|Build Info>")
+                alerted_via_slack = true
+            }
+            junit keepLongStdio: true, testResults: xml
+        }
+    }
+}
+
 def doArchive(String platform) {
     try {
         def checkoutDir = utils.getCheckoutDir(platform)
@@ -216,19 +272,19 @@ def doArchive(String platform) {
 
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
-                sh "find . -name '*.app' -exec zip -r '{}'.zip '{}' \\;"
-                sh "find . -name '*.dSYM' -exec zip -r '{}'.zip '{}' \\;"
+                sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
+                sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
             }
 
-            List prods = utils.getExpectedXPlaneProducts(platform)
+            List prods = getProducts(platform)
             // Kit the installers for deployment
             if(utils.needsInstallerKitting(platform)) {
                 String installer = utils.getExpectedXPlaneProducts(platform, true).last()
                 String zip_target = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                 utils.chooseShellByPlatformMacWinLin([
-                        "zip -r ${zip_target} \"X-Plane 11 Installer.app\"",
+                        "zip -rq ${zip_target} \"X-Plane 11 Installer.app\"",
                         "zip -j ${zip_target} \"X-Plane 11 Installer.exe\"",
-                        "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -j ${zip_target} \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
+                        "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -jq ${zip_target} \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
                 ], platform)
                 prods.push(zip_target)
             }
@@ -254,6 +310,7 @@ def notifySuccess() {
             slackSend(
                     color: 'good',
                     message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+            alerted_via_slack = true
         } catch(e) { }
     }
 }
