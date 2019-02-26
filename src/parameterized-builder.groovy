@@ -180,7 +180,7 @@ def doBuild(String platform) {
 
                 if(doClean) {
                     utils.chooseShellByPlatformMacWinLin([
-                            "set -o pipefail && xcodebuild -project ${projectFile} clean ${pipe_to_xcpretty} && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                            "set -o pipefail && xcodebuild -project ${projectFile} clean ${pipe_to_xcpretty} && xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                             "\"${msBuild}\" ${projectFile} /t:Clean",
                             'cd design_linux && make clean'
                     ], platform)
