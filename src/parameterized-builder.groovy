@@ -136,6 +136,9 @@ def doCheckout(String platform) {
 
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
+        if('TEST' in products_to_build) {
+            getArt(checkoutDir)
+        }
     } catch(e) {
         notifyBrokenCheckout(utils.&sendEmail, 'X-Plane', branch_name, platform, e)
     }
