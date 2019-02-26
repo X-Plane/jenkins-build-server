@@ -135,7 +135,8 @@ def doCheckout(String platform) {
     }
 
     try {
-        xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
+        String checkoutDir = utils.getCheckoutDir(platform)
+        xplaneCheckout(branch_name, checkoutDir, platform)
         if(products_to_build.contains('TEST')) {
             getArt(checkoutDir)
         }
