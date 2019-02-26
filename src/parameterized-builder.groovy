@@ -275,7 +275,7 @@ def buildAndArchiveShaders() {
 }
 
 def doUnitTest(String platform) {
-    if(supportsCatch2Tests(platform)) {
+    if(supportsCatch2Tests(platform) && 'TEST' in products_to_build) {
         dir(utils.getCheckoutDir(platform)) {
             String exe = getCatch2Executable(platform)
             if(utils.isMac(platform)) {
