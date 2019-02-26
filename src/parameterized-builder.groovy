@@ -40,7 +40,7 @@ try {
     stage('Build') {
         if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
             runOn3Platforms(this.&doBuild)
-        } else { // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
+        } else if(products_to_build.contains('SHADERS')) { // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
             parallel (
                     'Windows' : {                           node('windows') { buildAndArchiveShaders() } },
                     'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { doBuild('macOS')   } } } },
@@ -123,7 +123,7 @@ def doCheckout(String platform) {
     clean(getProducts(platform) + [testXmlTarget(platform)], cleanCommand, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
-        if(doClean) {
+        if(doClean && products_to_build.contains('SHADERS')) {
             for (String shaderDir : ['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl']) {
                 String relPath = utils.isWindows(platform) ? 'Resources\\shaders\\bin\\' + shaderDir : 'Resources/shaders/bin/' + shaderDir
                 try {
@@ -197,7 +197,10 @@ def doBuild(String platform) {
 
             if(utils.isWindows(platform)) {
                 evSignWindows()
-                buildAndArchiveShaders()
+
+                if(products_to_build.contains('SHADERS')) {
+                    buildAndArchiveShaders()
+                }
             }
         } catch (e) {
             String heyYourBuild = getSlackHeyYourBuild()
