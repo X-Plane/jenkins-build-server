@@ -96,7 +96,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
     List<String> appNamesForWinSymbols = []
     for(element in getAvailableApps(platform)) {
         if(element.key in products_to_build) {
-            String nameWithSuffix = element.value + app_suffix
+            String nameWithSuffix = element.value + utils.app_suffix
             // On Linux, the installer drops the app extension (sigh)
             filesWithExt.push(nameWithSuffix + (utils.isLinux(platform) && element.key == 'INS' ? '' : appExtNormal))
             // and on Windows, only the installer's symbols include the app suffix...
