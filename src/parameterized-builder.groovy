@@ -95,7 +95,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
     List<String> filesWithExt = []
     List<String> appNamesForWinSymbols = []
     getAvailableApps(platform).each { appAndName ->
-        if(appAndName.key in products_to_build) {
+        if(products_to_build.contains(appAndName.key)) {
             String nameWithSuffix = appAndName.value + utils.app_suffix
             // On Linux, the installer drops the app extension (sigh)
             filesWithExt.push(nameWithSuffix + (utils.isLinux(platform) && appAndName.key == 'INS' ? '' : appExtNormal))
@@ -107,7 +107,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
     boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
     if(needsSymbols) {
         def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        String macAppsWithSymbols = 'SIM' in products_to_build ? ['X-Plane'] : []
+        String macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
         def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
         if(utils.isWindows(platform)) {
             platformSymbols += utils.addSuffix(appNamesForWinSymbols, ".pdb")
@@ -136,7 +136,7 @@ def doCheckout(String platform) {
 
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform)
-        if('TEST' in products_to_build) {
+        if(products_to_build.contains('TEST')) {
             getArt(checkoutDir)
         }
     } catch(e) {
@@ -151,7 +151,7 @@ List<String> getBuildTargets(String platform) {
     def windowsTargets = [SIM: "${winPrefix}\\app\\X-Plane-f\\X-Plane.vcxproj", AFL: "${winPrefix}\\app\\Airfoil-Maker-f\\Airfoil-Maker.vcxproj", PLN: "${winPrefix}\\app\\Plane-Maker-f\\Plane-Maker.vcxproj", INS: "${winPrefix}\\app\\Installer-f\\X-Plane-Installer.vcxproj", TEST: "${winPrefix}\\test\\catch2_tests\\catch2_tests.vcxproj"]
     def platformTargets = utils.chooseByPlatformNixWin(nixTargets, windowsTargets, platform)
     getAvailableApps(platform).each { appAndName ->
-        if(appAndName.key in products_to_build) {
+        if(products_to_build.contains(appAndName.key)) {
             out.push(platformTargets[appAndName.key])
         }
     }
@@ -278,7 +278,7 @@ def buildAndArchiveShaders() {
 }
 
 def doUnitTest(String platform) {
-    if(supportsCatch2Tests(platform) && 'TEST' in products_to_build) {
+    if(supportsCatch2Tests(platform) && products_to_build.contains('TEST')) {
         dir(utils.getCheckoutDir(platform)) {
             String exe = getCatch2Executable(platform)
             if(utils.isMac(platform)) {
@@ -302,7 +302,7 @@ def doUnitTest(String platform) {
 }
 
 boolean needsInstallerKitting(String platform='') {
-    return 'INS' in products_to_build && isReleaseBuild() && !isSteamBuild() && isNix(platform)
+    return products_to_build.contains('INS') && isReleaseBuild() && !isSteamBuild() && isNix(platform)
 }
 
 def doArchive(String platform) {
@@ -321,7 +321,7 @@ def doArchive(String platform) {
             List prods = getProducts(platform)
             // Kit the installers for deployment
             if(needsInstallerKitting(platform)) {
-                String installer = getProducts(platform, true).find { el -> 'Installer' in el }.replace('.zip', '') // takes the first match
+                String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
                 String zip_target = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                 utils.chooseShellByPlatformMacWinLin([
                         "zip -rq ${zip_target} \"${installer}\"",
