@@ -145,7 +145,6 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
     String archiveDir = getArchiveDir(platform, archiveSubdir)
     List archivedProductPaths = addPrefix(expectedProducts, archiveDir)
     if(filesExist(archivedProductPaths)) {
-        echo "Copying products from ${archiveDir} on ${platform}"
         // Copy them back to our working directories for the sake of working with them
         archiveDir = fixWindowsPathConventions(archiveDir, platform)
         for(def p : expectedProducts) {
@@ -164,7 +163,6 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
 String fixWindowsPathConventions(String path, String platform) {
     if(platform.endsWith('GitBash')) {
         String out = path.replace('C:\\', '/c/').replace('D:\\', '/d/').replace('\\', '/').replace(' ', '\\ ')
-        echo "Transformed ${path} to ${out} for Git Bash"
         return out
     }
     return path
@@ -313,12 +311,10 @@ def chooseShellByPlatformNixWin(String nixCommand, String winCommand, String pla
 }
 def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
     if(isWindows(platform) && !platform.endsWith('GitBash')) {
-        echo "Running bat for ${platform}"
         bat macWinLinCommands[1]
     } else if(isMac(platform)) {
         sh macWinLinCommands[0]
     } else {
-        echo "Running sh for ${platform}"
         sh macWinLinCommands[2]
     }
 }
