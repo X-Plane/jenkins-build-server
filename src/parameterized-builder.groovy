@@ -303,7 +303,7 @@ def doUnitTest(String platform) {
 }
 
 boolean needsInstallerKitting(String platform='') {
-    return products_to_build.contains('INS') && isReleaseBuild() && !isSteamBuild() && isNix(platform)
+    return products_to_build.contains('INS') && utils.isReleaseBuild() && !utils.isSteamBuild()
 }
 
 def doArchive(String platform) {
