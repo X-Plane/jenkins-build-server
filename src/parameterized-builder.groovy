@@ -147,9 +147,9 @@ List<String> getBuildTargets(String platform) {
     String winPrefix = "design_vstudio\\source_code"
     def windowsTargets = [SIM: "${winPrefix}\\app\\X-Plane-f\\X-Plane.vcxproj", AFL: "${winPrefix}\\app\\Airfoil-Maker-f\\Airfoil-Maker.vcxproj", PLN: "${winPrefix}\\app\\Plane-Maker-f\\Plane-Maker.vcxproj", INS: "${winPrefix}\\app\\Installer-f\\X-Plane-Installer.vcxproj", TEST: "${winPrefix}\\test\\catch2_tests\\catch2_tests.vcxproj"]
     def platformTargets = utils.chooseByPlatformNixWin(nixTargets, windowsTargets, platform)
-    for(element in getAvailableApps(platform)) {
-        if(element.key in products_to_build) {
-            out.push(platformTargets[element.key])
+    getAvailableApps(platform).each { appAndName ->
+        if(appAndName.key in products_to_build) {
+            out.push(platformTargets[appAndName.key])
         }
     }
     return out
