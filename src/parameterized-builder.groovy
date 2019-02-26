@@ -10,11 +10,14 @@ environment['directory_suffix'] = directory_suffix
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
-environment['build_all_apps'] = build_all_apps
+environment['build_all_apps'] = 'true'
 environment['build_type'] = build_type
+environment['products_to_build'] = products_to_build
 utils.setEnvironment(environment, this.&notify)
 
 alerted_via_slack = false
+doClean = utils.toRealBool(clean_build)
+forceBuild = utils.toRealBool(force_build)
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -80,21 +83,42 @@ String getCatch2Executable(String platform) {
     String appExt = utils.chooseByPlatformMacWinLin([".app", ".exe", '-x86_64'], platform)
     return utils.addSuffix(["catch2_tests"], utils.app_suffix + appExt)[0]
 }
-List<String> getProducts(String platform) {
-    List<String> products = utils.getExpectedXPlaneProducts(platform)
-    if(utils.build_all_apps && supportsCatch2Tests(platform)) {
-        String catch2Exe = getCatch2Executable(platform)
-        if(utils.isMac(platform)) {
-            catch2Exe += '.zip'
-        }
-        return products + [catch2Exe]
+def getAvailableApps(String platform) {
+    def availableApps = [SIM: 'X-Plane', AFL: 'Airfoil Maker', PLN: 'Plane Maker', INS: 'X-Plane 11 Installer']
+    if(supportsCatch2Tests(platform)) {
+        availableApps['TEST'] = 'catch2_tests'
     }
-    return products
+    return availableApps
+}
+List<String> getProducts(String platform, boolean ignoreSymbols=false) {
+    String appExtNormal = utils.chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
+    List<String> filesWithExt = []
+    List<String> appNamesForWinSymbols = []
+    for(element in getAvailableApps(platform)) {
+        if(element.key in products_to_build) {
+            String nameWithSuffix = element.value + app_suffix
+            // On Linux, the installer drops the app extension (sigh)
+            filesWithExt.push(nameWithSuffix + (utils.isLinux(platform) && element.key == 'INS' ? '' : appExtNormal))
+            // and on Windows, only the installer's symbols include the app suffix...
+            appNamesForWinSymbols.push(element.key == 'INS' ? nameWithSuffix : element.value)
+        }
+    }
+
+    boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
+    if(needsSymbols) {
+        def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
+        String macAppsWithSymbols = 'SIM' in products_to_build ? ['X-Plane'] : []
+        def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
+        if(utils.isWindows(platform)) {
+            platformSymbols += utils.addSuffix(appNamesForWinSymbols, ".pdb")
+        }
+        filesWithExt += platformSymbols
+    }
+    return filesWithExt
 }
 
 def doCheckout(String platform) {
     // Nuke previous products
-    boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
     clean(getProducts(platform) + [testXmlTarget(platform)], cleanCommand, platform, utils)
 
@@ -117,38 +141,54 @@ def doCheckout(String platform) {
     }
 }
 
+List<String> getBuildTargets(String platform) {
+    List<String> out = []
+    def nixTargets = [SIM: 'X-Plane', AFL: 'Airfoil-Maker', PLN: 'Plane-Maker', INS: 'X-Plane-Installer', TEST: 'catch2_tests']
+    String winPrefix = "design_vstudio\\source_code"
+    def windowsTargets = [SIM: "${winPrefix}\\app\\X-Plane-f\\X-Plane.vcxproj", AFL: "${winPrefix}\\app\\Airfoil-Maker-f\\Airfoil-Maker.vcxproj", PLN: "${winPrefix}\\app\\Plane-Maker-f\\Plane-Maker.vcxproj", INS: "${winPrefix}\\app\\Installer-f\\X-Plane-Installer.vcxproj", TEST: "${winPrefix}\\test\\catch2_tests\\catch2_tests.vcxproj"]
+    def platformTargets = utils.chooseByPlatformNixWin(nixTargets, windowsTargets, platform)
+    for(element in getAvailableApps(platform)) {
+        if(element.key in products_to_build) {
+            out.push(platformTargets[element.key])
+        }
+    }
+    return out
+}
+
 def doBuild(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
             def archiveDir = utils.getArchiveDirAndEnsureItExists(platform)
             def toBuild = getProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
-            if(!utils.toRealBool(force_build) && utils.copyBuildProductsFromArchive(toBuild, platform)) {
+            if(!forceBuild && utils.copyBuildProductsFromArchive(toBuild, platform)) {
                 echo "This commit was already built for ${platform} in ${archiveDir}"
             } else { // Actually build some stuff!
-                def config = getBuildToolConfiguration()
+                String config = utils.getBuildToolConfiguration()
 
                 // Generate our project files
                 utils.chooseShellByPlatformMacWinLin(['./cmake.sh --no_gfxcc', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc"], platform)
 
-                def projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
+                String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
-                def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+                String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+                String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
 
-                String target = utils.build_all_apps ? "ALL_BUILD" : "X-Plane"
-                if(utils.toRealBool(clean_build)) {
+                if(doClean) {
                     utils.chooseShellByPlatformMacWinLin([
                             "set -o pipefail && xcodebuild -project ${projectFile} clean ${pipe_to_xcpretty} && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
-                            "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
+                            "\"${msBuild}\" ${projectFile} /t:Clean",
                             'cd design_linux && make clean'
                     ], platform)
                 }
 
-                utils.chooseShellByPlatformMacWinLin([
-                        "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build ${pipe_to_xcpretty}",
-                        "\"${tool 'MSBuild'}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} design_vstudio\\" + (utils.build_all_apps ? "X-System.sln" : "source_code\\app\\X-Plane-f\\X-Plane.vcxproj"),
-                        "cd design_linux && make -j\$(nproc) " + (utils.build_all_apps ? '' : "X-Plane")
-                ], platform)
+                for(String target in getBuildTargets(platform)) {
+                    utils.chooseShellByPlatformMacWinLin([
+                            "set -o pipefail && xcodebuild -scheme \"${target}\" -config \"${config}\" -project ${projectFile} build ${pipe_to_xcpretty}",
+                            "\"${msBuild}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /p:ProductVersion=11.${env.BUILD_NUMBER} ${target}",
+                            "cd design_linux && make -j\$(nproc) ${target}"
+                    ], platform)
+                }
             }
 
             if(utils.isWindows(platform)) {
@@ -215,7 +255,6 @@ def buildAndArchiveShaders() {
         String dropboxPath = utils.getArchiveDirAndEnsureItExists('Windows')
         String destSlashesEscaped = utils.escapeSlashes(dropboxPath)
         String shadersZip = 'shaders_bin.zip'
-        boolean forceBuild = utils.toRealBool(force_build)
         if(!forceBuild && utils.copyBuildProductsFromArchive([shadersZip], 'Windows')) {
             echo 'Skipping shaders build since they already exist in Dropbox'
         } else {
@@ -233,10 +272,6 @@ def buildAndArchiveShaders() {
         }
         archiveWithDropbox([shadersZip], dropboxPath, true, utils)
     }
-}
-
-def getBuildToolConfiguration() {
-    return utils.getBuildToolConfiguration()
 }
 
 def doUnitTest(String platform) {
@@ -263,6 +298,10 @@ def doUnitTest(String platform) {
     }
 }
 
+boolean needsInstallerKitting(String platform='') {
+    return 'INS' in products_to_build && isReleaseBuild() && !isSteamBuild() && isNix(platform)
+}
+
 def doArchive(String platform) {
     try {
         def checkoutDir = utils.getCheckoutDir(platform)
@@ -278,12 +317,12 @@ def doArchive(String platform) {
 
             List prods = getProducts(platform)
             // Kit the installers for deployment
-            if(utils.needsInstallerKitting(platform)) {
-                String installer = utils.getExpectedXPlaneProducts(platform, true).last()
+            if(needsInstallerKitting(platform)) {
+                String installer = getProducts(platform, true).find { el -> 'Installer' in el }.replace('.zip', '') // takes the first match
                 String zip_target = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                 utils.chooseShellByPlatformMacWinLin([
-                        "zip -rq ${zip_target} \"X-Plane 11 Installer.app\"",
-                        "zip -j ${zip_target} \"X-Plane 11 Installer.exe\"",
+                        "zip -rq ${zip_target} \"${installer}\"",
+                        "zip -j ${zip_target} \"${installer}\"",
                         "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -jq ${zip_target} \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
                 ], platform)
                 prods.push(zip_target)
