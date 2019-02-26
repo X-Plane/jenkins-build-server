@@ -107,7 +107,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
     boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
     if(needsSymbols) {
         def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        String macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
+        List<String> macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
         def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
         if(utils.isWindows(platform)) {
             platformSymbols += utils.addSuffix(appNamesForWinSymbols, ".pdb")
