@@ -94,13 +94,13 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
     String appExtNormal = utils.chooseByPlatformMacWinLin([".app.zip", ".exe", '-x86_64'], platform)
     List<String> filesWithExt = []
     List<String> appNamesForWinSymbols = []
-    for(element in getAvailableApps(platform)) {
-        if(element.key in products_to_build) {
-            String nameWithSuffix = element.value + utils.app_suffix
+    getAvailableApps(platform).each { appAndName ->
+        if(appAndName.key in products_to_build) {
+            String nameWithSuffix = appAndName.value + utils.app_suffix
             // On Linux, the installer drops the app extension (sigh)
-            filesWithExt.push(nameWithSuffix + (utils.isLinux(platform) && element.key == 'INS' ? '' : appExtNormal))
+            filesWithExt.push(nameWithSuffix + (utils.isLinux(platform) && appAndName.key == 'INS' ? '' : appExtNormal))
             // and on Windows, only the installer's symbols include the app suffix...
-            appNamesForWinSymbols.push(element.key == 'INS' ? nameWithSuffix : element.value)
+            appNamesForWinSymbols.push(appAndName.key == 'INS' ? nameWithSuffix : appAndName.value)
         }
     }
 
