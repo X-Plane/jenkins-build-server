@@ -117,21 +117,22 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
     return filesWithExt
 }
 
+def nukeFolders(List<String> paths) { fileOperations(paths.collect { folderDeleteOperation(it) }) }
+def nukeFolder(      String  path ) { fileOperations(folderDeleteOperation(path)) }
+def nukeFiles(  List<String> files) { fileOperations(paths.collect { fileDeleteOperation(includes: it) }) }
+def nukeFile(        String  file ) { fileOperations(fileDeleteOperation(includes: file)) }
+
 def doCheckout(String platform) {
     // Nuke previous products
-    cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(getProducts(platform) + [testXmlTarget(platform)], cleanCommand, platform, utils)
+    nukeFolder(utils.chooseByPlatformMacWinLin(['design_xcode', 'design_vstudio', 'design_linux'], platform))
+    clean(getProducts(platform) + [testXmlTarget(platform)], null, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
         if(doClean && products_to_build.contains('SHADERS')) {
-            for (String shaderDir : ['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl']) {
-                String relPath = utils.isWindows(platform) ? 'Resources\\shaders\\bin\\' + shaderDir : 'Resources/shaders/bin/' + shaderDir
-                try {
-                    utils.chooseShellByPlatformNixWin("rm -Rf ${relPath}", "rd /s /q ${relPath}", platform)
-                } catch (e) { }
-            }
+            String shaderDir = utils.chooseByPlatformNixWin('Resources/shaders/bin/', 'Resources\\shaders\\bin\\', platform)
+            nukeFolders(utils.addPrefix(['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl'], shaderDir))
         }
-        utils.nukeIfExist(['shaders_bin.zip'], platform)
+        nukeFiles(['shaders_bin.zip'])
     }
 
     try {
@@ -162,7 +163,7 @@ List<String> getBuildTargets(String platform) {
 def doBuild(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
-            def archiveDir = utils.getArchiveDirAndEnsureItExists(platform)
+            def archiveDir = getArchiveDirAndEnsureItExists(platform)
             def toBuild = getProducts(platform)
             echo 'Expecting to build: ' + toBuild.join(', ')
             if(!forceBuild && utils.copyBuildProductsFromArchive(toBuild, platform)) {
@@ -259,7 +260,7 @@ def evSignExecutable(String executable) {
 
 def buildAndArchiveShaders() {
     dir(utils.getCheckoutDir('Windows')) {
-        String dropboxPath = utils.getArchiveDirAndEnsureItExists('Windows')
+        String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
         String destSlashesEscaped = utils.escapeSlashes(dropboxPath)
         String shadersZip = 'shaders_bin.zip'
         if(!forceBuild && utils.copyBuildProductsFromArchive([shadersZip], 'Windows')) {
@@ -291,7 +292,7 @@ def doUnitTest(String platform) {
             String xml = testXmlTarget(platform)
             try {
                 utils.chooseShellByPlatformNixWin("./${exe} -r junit -o ${xml}", "${exe} /r junit /o ${xml}", platform)
-                archiveWithDropbox([xml], utils.getArchiveDirAndEnsureItExists(platform), true, utils, false)
+                archiveWithDropbox([xml], getArchiveDirAndEnsureItExists(platform), true, utils, false)
             } catch(e) {
                 String heyYourBuild = getSlackHeyYourBuild()
                 String logUrl = "${BUILD_URL}flowGraphTable/"
@@ -309,11 +310,17 @@ boolean needsInstallerKitting(String platform='') {
     return products_to_build.contains('INS') && utils.isReleaseBuild() && !utils.isSteamBuild()
 }
 
+def getArchiveDirAndEnsureItExists(String platform, String optionalSubdir='') {
+    String path = utils.getArchiveDir(platform, optionalSubdir)
+    fileOperations([folderCreateOperation(path)])
+    return path
+}
+
 def doArchive(String platform) {
     try {
         def checkoutDir = utils.getCheckoutDir(platform)
         dir(checkoutDir) {
-            def dropboxPath = utils.getArchiveDirAndEnsureItExists(platform)
+            def dropboxPath = getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
             // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
@@ -326,13 +333,16 @@ def doArchive(String platform) {
             // Kit the installers for deployment
             if(needsInstallerKitting(platform)) {
                 String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
-                String zip_target = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
-                utils.chooseShellByPlatformMacWinLin([
-                        "zip -rq ${zip_target} \"${installer}\"",
-                        "zip -j ${zip_target} \"${installer}\"",
-                        "cp \"${installer}\" \"X-Plane 11 Installer Linux\" && zip -jq ${zip_target} \"X-Plane 11 Installer Linux\" && rm \"X-Plane 11 Installer Linux\"",
-                ], platform)
-                prods.push(zip_target)
+                String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
+                if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
+                    String renamedInstaller = "X-Plane 11 Installer Linux"
+                    fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
+                    zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
+                    nukeFile(renamedInstaller)
+                } else {
+                    zip(zipFile: zipTarget, archive: false, glob: installer)
+                }
+                prods.push(zipTarget)
             }
             archiveWithDropbox(prods, dropboxPath, true, utils)
         }
