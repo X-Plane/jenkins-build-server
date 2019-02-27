@@ -119,7 +119,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
 
 def nukeFolders(List<String> paths) { fileOperations(paths.collect { folderDeleteOperation(it) }) }
 def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path)]) }
-def nukeFiles(  List<String> files) { fileOperations(paths.collect { fileDeleteOperation(includes: it) }) }
+def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
 def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
 
 def doCheckout(String platform) {
