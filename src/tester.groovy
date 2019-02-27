@@ -269,9 +269,14 @@ def doArchive() {
                     for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
                         def dest = "${screenshotName}_${platform}.png"
                         try {
-                            utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
+                            utils.moveFilePatternToDest("${screenshotName}.png", dest)
                             products.push(dest)
-                        } catch(e) { } // No error if it doesn't exist
+                        } catch(e1) { // check the *old* screenshot naming style (with a numeric suffix)
+                            try {
+                                utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
+                                products.push(dest)
+                            } catch(e2) { } // No error if it doesn't exist at all
+                        }
                     }
                 }
             } finally {
