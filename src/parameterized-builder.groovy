@@ -117,6 +117,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
     return filesWithExt
 }
 
+// Docs here: https://github.com/jenkinsci/file-operations-plugin
 def nukeFolders(List<String> paths) { fileOperations(paths.collect { folderDeleteOperation(it) }) }
 def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path)]) }
 def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
