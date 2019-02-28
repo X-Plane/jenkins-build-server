@@ -54,7 +54,7 @@ def doBuild(String platform) {
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} build ${pipe_to_xcpretty}",
                     "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release|x64\" ${projectFile}",
-                    "make -s -C . conf=release_opt WED"
+                    "make -s -C . conf=release_opt -j\$(nproc) WED"
             ], platform)
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)
