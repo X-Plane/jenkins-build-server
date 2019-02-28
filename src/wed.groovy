@@ -9,6 +9,7 @@ environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['dev_build'] = 'false'
+environment['override_checkout_dir'] = 'xptools'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 try {

@@ -26,6 +26,8 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
         assert environment.containsKey('build_type')
         build_type = environment['build_type']
     }
+
+    override_checkout_dir = environment.containsKey('override_checkout_dir') ? environment['override_checkout_dir'] : ''
     app_suffix = build_type.contains('_Prod') ? '' : '_' + build_type
 
     node = globalSteps ? globalSteps.&node : null
@@ -66,7 +68,7 @@ String getJenkinsDir(String subdir, String platform='') {
     return jenkins + subdir + getDirChar(platform)
 }
 String getCheckoutDir(String platform='') {
-    return getJenkinsDir("design-${directory_suffix}", platform)
+    return getJenkinsDir(override_checkout_dir ? override_checkout_dir : "design-${directory_suffix}", platform)
 }
 
 String getCommitId(String platform='') {
