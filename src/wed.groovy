@@ -53,7 +53,7 @@ def doBuild(String platform) {
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} build ${pipe_to_xcpretty}",
-                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release\" ${projectFile}",
+                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release|x64\" ${projectFile}",
                     "make -s -C . conf=release_opt WED"
             ], platform)
         } catch (e) {
