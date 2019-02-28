@@ -52,7 +52,7 @@ def doBuildAndArchive(String platform) {
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} -archivePath WED.xcarchive archive ${pipe_to_xcpretty}",
-                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release|x64\" ${projectFile}",
+                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release\" ${projectFile}",
                     "make -s -C . conf=release_opt -j\$(nproc) WED"
             ], platform)
         } catch (e) {
