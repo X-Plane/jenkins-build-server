@@ -30,6 +30,13 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
 
     node = globalSteps ? globalSteps.&node : null
     parallel = globalSteps ? globalSteps.&parallel : null
+    try {
+        fileOperations        = globalSteps ? globalSteps.&fileOperations        : null
+        folderDeleteOperation = globalSteps ? globalSteps.&folderDeleteOperation : null
+        fileDeleteOperation   = globalSteps ? globalSteps.&fileDeleteOperation   : null
+        folderCreateOperation = globalSteps ? globalSteps.&folderCreateOperation : null
+        fileCopyOperation     = globalSteps ? globalSteps.&fileCopyOperation     : null
+    } catch(e) { /* no file operations plugin installed */ }
 }
 
 def replyToTrigger(String msg, String errorMsg='') {
@@ -100,9 +107,13 @@ String getArchiveDir(String platform='', String optionalSubdir='') {
 
 String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
     String out = getArchiveDir(platform, optionalSubdir)
-    try {
-        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
-    } catch(e) { } // ignore errors if it already exists
+    if(fileOperations && folderCreateOperation) {
+        fileOperations([folderCreateOperation(out)])
+    } else {
+        try {
+            chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
+        } catch(e) { } // ignore errors if it already exists
+    }
     return out
 }
 
@@ -138,6 +149,15 @@ def nukeIfExist(List<String> files, String platform) {
             chooseShellByPlatformNixWin("rm -Rf ${f}", "del \"${f}\"", platform)
         } catch(e) { } // No old executables lying around? No problem!
     }
+}
+
+def nukeFolders(List<String> paths) { fileOperations(paths.collect { folderDeleteOperation(it) }) }
+def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path)]) }
+def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
+def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
+
+def copyFile(String source, String dest) {
+    fileOperations([fileCopyOperation(includes: source, targetLocation: dest)])
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {
