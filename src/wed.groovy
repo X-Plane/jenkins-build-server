@@ -4,11 +4,11 @@ environment['send_emails'] = send_emails
 environment['pmt_subject'] = ''
 environment['directory_suffix'] = ''
 environment['pmt_from'] = ''
-environment['release_build'] = release_build
+environment['release_build'] = 'true'
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
-environment['dev_build'] = dev_build
+environment['dev_build'] = 'false'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 try {
@@ -31,18 +31,19 @@ def doCheckout(String platform) {
 def doBuild(String platform) {
     dir(getWedCheckoutDir(platform)) {
         try {
-            def projectFile = utils.chooseByPlatformNixWin("SceneryTools_xcode6.xcodeproj", "msvc\\XPTools.sln", platform)
-            def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target WED -config Release -project ${projectFile}"
-            def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+            String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
+            String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target WED -config Release -project ${projectFile}"
+            String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+            String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
             utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty}",
-                    "\"${tool 'MSBuild'}\" ${projectFile} /t:Clean",
+                    "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                    "\"${msBuild}\" ${projectFile} /t:Clean",
                     'make clean'
             ], platform)
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} build ${pipe_to_xcpretty}",
-                    "\"${tool 'MSBuild'}\" /t:WorldEditor /m /p:Configuration=\"Release\" ${projectFile}",
+                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release\" ${projectFile}",
                     "make -s -C . conf=release_opt WED"
             ], platform)
         } catch (e) {
@@ -56,7 +57,7 @@ def doArchive(String platform) {
         dir(getWedCheckoutDir(platform)) {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
-                sh 'zip -r WED.app.zip WED.xcarchive/Products/Applications/WED.app'
+                zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
             }
             def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\', 'build/Linux/release_opt/'], platform))
             archiveWithDropbox(productPaths, utils.getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
