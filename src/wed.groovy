@@ -32,14 +32,14 @@ def runOn3Platforms(Closure c) {
 def doCheckout(String platform) {
     clean(getExpectedWedProducts(platform), [], platform, utils)
     try {
-        xplaneCheckout(branch_name, getWedCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
+        xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
     } catch(e) {
         notifyBrokenCheckout(utils.&sendEmail, 'WED', branch_name, platform, e)
     }
 }
 
 def doBuild(String platform) {
-    dir(getWedCheckoutDir(platform)) {
+    dir(utils.getCheckoutDir(platform)) {
         try {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target WED -config Release -project ${projectFile}"
@@ -64,7 +64,7 @@ def doBuild(String platform) {
 
 def doArchive(String platform) {
     try {
-        dir(getWedCheckoutDir(platform)) {
+        dir(utils.getCheckoutDir(platform)) {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
                 zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
@@ -82,9 +82,6 @@ def doArchive(String platform) {
 
 List<String> getExpectedWedProducts(String platform) {
     return [utils.chooseByPlatformMacWinLin(['WED.app.zip', 'WorldEditor.exe', 'WED'], platform)]
-}
-String getWedCheckoutDir(String platform) {
-    return utils.chooseByPlatformNixWin("/jenkins/xptools/", "C:\\jenkins\\xptools\\", platform)
 }
 
 
