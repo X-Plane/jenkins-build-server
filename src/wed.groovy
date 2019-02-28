@@ -41,7 +41,7 @@ def doBuildAndArchive(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
-            String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target WED -config Release -project ${projectFile}"
+            String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
             String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
             utils.chooseShellByPlatformMacWinLin([
