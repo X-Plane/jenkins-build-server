@@ -109,7 +109,7 @@ String getArchiveDir(String platform='', String optionalSubdir='') {
 
 String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
     String out = getArchiveDir(platform, optionalSubdir)
-    if(fileOperations && folderCreateOperation) {
+    if(false && fileOperations && folderCreateOperation) {
         fileOperations([folderCreateOperation(out)])
     } else {
         try {

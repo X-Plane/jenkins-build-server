@@ -65,7 +65,7 @@ def doBuildAndArchive(String platform) {
                 zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
             }
             def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\', 'build/Linux/release_opt/'], platform))
-            archiveWithDropbox(productPaths, utils.getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
+            archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
         } catch (e) {
             utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
                     "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
@@ -77,6 +77,12 @@ def doBuildAndArchive(String platform) {
 
 List<String> getExpectedWedProducts(String platform) {
     return [utils.chooseByPlatformMacWinLin(['WED.app.zip', 'WorldEditor.exe', 'WED'], platform)]
+}
+
+String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
+    String out = getArchiveDir(platform, optionalSubdir)
+    fileOperations([folderCreateOperation(out)])
+    return out
 }
 
 
