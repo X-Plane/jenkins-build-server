@@ -80,7 +80,7 @@ List<String> getExpectedWedProducts(String platform) {
 }
 
 String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
-    String out = getArchiveDir(platform, optionalSubdir)
+    String out = utils.getArchiveDir(platform, optionalSubdir)
     fileOperations([folderCreateOperation(out)])
     return out
 }
