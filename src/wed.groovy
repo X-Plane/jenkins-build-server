@@ -12,11 +12,20 @@ environment['dev_build'] = 'false'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 try {
-    utils.do3PlatformStage('Checkout', this.&doCheckout)
-    utils.do3PlatformStage('Build',    this.&doBuild)
-    utils.do3PlatformStage('Archive',  this.&doArchive)
+    stage('Checkout') { runOn3Platforms(this.&doCheckout) }
+    stage('Build')    { runOn3Platforms(this.&doBuild)    }
+    stage('Archive')  { runOn3Platforms(this.&doArchive)  }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+}
+
+def runOn3Platforms(Closure c) {
+    def closure = c
+    parallel (
+            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+    )
 }
 
 def doCheckout(String platform) {
