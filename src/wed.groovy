@@ -14,8 +14,7 @@ utils.setEnvironment(environment, this.&notify, this.steps)
 
 try {
     stage('Checkout') { runOn3Platforms(this.&doCheckout) }
-    stage('Build')    { runOn3Platforms(this.&doBuild)    }
-    stage('Archive')  { runOn3Platforms(this.&doArchive)  }
+    stage('Build & Archive') { runOn3Platforms(this.&doBuildAndArchive)    }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
 }
@@ -38,7 +37,7 @@ def doCheckout(String platform) {
     }
 }
 
-def doBuild(String platform) {
+def doBuildAndArchive(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
@@ -59,24 +58,20 @@ def doBuild(String platform) {
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)
         }
-    }
-}
 
-def doArchive(String platform) {
-    try {
-        dir(utils.getCheckoutDir(platform)) {
+        try {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
                 zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
             }
             def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\', 'build/Linux/release_opt/'], platform))
             archiveWithDropbox(productPaths, utils.getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
+        } catch (e) {
+            utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
+                    "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
+                    e.toString())
+            throw e
         }
-    } catch (e) {
-        utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
-                "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
-                e.toString())
-        throw e
     }
 }
 
