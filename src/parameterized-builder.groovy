@@ -109,10 +109,12 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
         def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
         List<String> macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
         def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
-        if(utils.isWindows(platform)) {
-            platformSymbols += utils.addSuffix(appNamesForWinSymbols, ".pdb")
-        }
         filesWithExt += platformSymbols
+    }
+
+    boolean needsWinPdb = !ignoreSymbols && utils.isWindows(platform) && (needsSymbols || (binding.hasVariable('want_windows_pdb') && utils.toRealBool(want_windows_pdb)))
+    if(needsWinPdb) {
+        filesWithExt.push(utils.addSuffix(appNamesForWinSymbols, ".pdb"))
     }
     return filesWithExt
 }
