@@ -114,7 +114,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
 
     boolean needsWinPdb = !ignoreSymbols && utils.isWindows(platform) && (build_type.contains('NODEV_OPT_Prod') || utils.toRealBool(want_windows_pdb))
     if(needsWinPdb) {
-        filesWithExt.push(utils.addSuffix(appNamesForWinSymbols, ".pdb"))
+        filesWithExt += utils.addSuffix(appNamesForWinSymbols, ".pdb")
     }
     return filesWithExt
 }
