@@ -43,7 +43,7 @@ def doBuildAndArchive(String platform) {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-            String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
+            String msBuild = utils.isWindows(platform) ? "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild" : ''
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                     "\"${msBuild}\" ${projectFile} /t:Clean",
@@ -52,7 +52,7 @@ def doBuildAndArchive(String platform) {
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} -archivePath WED.xcarchive archive ${pipe_to_xcpretty}",
-                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release\" ${projectFile}",
+                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release\" /p:Platform=\"x64\" ${projectFile}",
                     "make -s -C . conf=release_opt -j\$(nproc) WED"
             ], platform)
         } catch (e) {
