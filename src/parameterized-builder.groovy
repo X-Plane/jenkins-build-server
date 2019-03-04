@@ -135,7 +135,7 @@ def doCheckout(String platform) {
             String shaderDir = utils.chooseByPlatformNixWin('Resources/shaders/bin/', 'Resources\\shaders\\bin\\', platform)
             nukeFolders(utils.addPrefix(['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl'], shaderDir))
         }
-        nukeFiles(['shaders_bin.zip'])
+        nukeFiles(['*.zip'])
     }
 
     try {
