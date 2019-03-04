@@ -100,7 +100,7 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
             // On Linux, the installer drops the app extension (sigh)
             filesWithExt.push(nameWithSuffix + (utils.isLinux(platform) && appAndName.key == 'INS' ? '' : appExtNormal))
             // and on Windows, only the installer's symbols include the app suffix...
-            appNamesForWinSymbols.push(appAndName.key == 'INS' ? nameWithSuffix : appAndName.value)
+            appNamesForWinSymbols.push(nameWithSuffix)
         }
     }
 
