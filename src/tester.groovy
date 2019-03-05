@@ -193,8 +193,7 @@ def doTest() {
                 }
                 echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
-            String setupVenv = "${venvPath}virtualenv env -p ${venvPath}python3.6 && env/${binSubdir}/pip3 install -r package_requirements.txt"
-            echo setupVenv
+            String setupVenv = "${venvPath}virtualenv env -p ${venvPath}python3 && env/${binSubdir}/pip3 install -r package_requirements.txt"
             sh setupVenv
 
             def errorToThrow = null
