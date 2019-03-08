@@ -28,7 +28,6 @@ String nodeType = platform.startsWith('Windows') ? 'windows' : (platform == 'Lin
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
 }
-logFilesToArchive = []
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE TESTS
@@ -205,6 +204,13 @@ def doTest() {
                 } catch(e) {
                     echo "Test ${testsToRun} exited with error, but we won't actually die until all test scripts have completed. Error was: ${e}"
                     errorToThrow = e // Continue running the rest of the tests!
+                    try {
+                        dir(checkoutDir) {
+                            String logDest = "Log_${platform}_failed.txt"
+                            utils.moveFilePatternToDest("Log.txt", logDest)
+                            archiveWithDropbox(logDest, getArchiveDir(), false, utils)
+                        }
+                    } catch(e2) { }
                 }
             }
 
@@ -213,14 +219,6 @@ def doTest() {
             }
         } catch(e) {
             echo "Caught error: ${e}"
-            try {
-                dir(checkoutDir) {
-                    String logDest = "Log_${platform}_failed.txt"
-                    utils.moveFilePatternToDest("Log.txt", logDest)
-                    logFilesToArchive.push(logDest)
-                }
-            } catch(e2) { }
-
             def commitId = utils.getCommitId(platform)
             utils.sendEmail("Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Auto-testing of commit ${commitId} from the branch ${branch_name} failed.",
@@ -248,7 +246,7 @@ def doTest() {
 def doArchive() {
     try {
         dir(checkoutDir) {
-            List products = logFilesToArchive
+            List products = []
             try {
                 if(isFpsTest) {
                     String dest = "fps_test_results_${platform}_${cpu}_${gpu}.csv"
