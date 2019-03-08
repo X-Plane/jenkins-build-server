@@ -288,7 +288,7 @@ def doArchive() {
                         // A failure in archiving any of these does *not* result in a test failure.
                         '*.png',
                         // Grab any log files that the test_runner gave us from instances that crashed
-                        'Log_crashed_*.png']
+                        'Log_crashed_*.txt']
                 for(String pattern : extraFilePatterns) {
                     for(def file : findFiles(glob: pattern)) {
                         if(!products.contains(file.name)) {
