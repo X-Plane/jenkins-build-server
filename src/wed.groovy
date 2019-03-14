@@ -66,7 +66,7 @@ def doBuildAndArchive(String platform) {
             if(utils.isMac(platform)) {
                 zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
             }
-            archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
+            archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils, false)
         } catch (e) {
             utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
                     "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
