@@ -30,7 +30,7 @@ def runOn3Platforms(Closure c) {
 }
 
 def doCheckout(String platform) {
-    clean(getExpectedWedProducts(platform) + ['*.zip', '*.WorldEditor'], [], platform, utils)
+    clean(getWedExe(platform) + ['*.zip', '*.WorldEditor'], [], platform, utils)
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
