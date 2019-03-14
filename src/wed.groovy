@@ -30,7 +30,7 @@ def runOn3Platforms(Closure c) {
 }
 
 def doCheckout(String platform) {
-    clean([getWedExe(platform), '*.zip', '*.WorldEditor'], [], platform, utils)
+    clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
@@ -81,7 +81,7 @@ def doBuildAndArchive(String platform) {
                     bat "rd /s /q \"${targetZipName}\""
                 } catch(e) { }
                 utils.chooseShell("mkdir ${targetZipName}", platform)
-                utils.copyFilePatternToDest(productPaths.first(), "${targetZipName}/${exe}")
+                utils.copyFilePatternToDest(exePath, "${targetZipName}/${exe}")
                 utils.copyFilePatternToDest("src/WEDCore/${readme}", "${targetZipName}/${readme}")
                 zip(zipFile: targetZip, archive: false, dir: targetZipName)
             }
