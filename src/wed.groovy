@@ -106,9 +106,11 @@ def doBuildAndArchive(String platform) {
 
 def finalizeUpload(String platform) {
     if(publish_as_version && publish_as_version.length() == 5) { // we copied files to the live server
-        for(def p : ['macOS', 'Windows', 'Linux']) {
-            def zipName = getPublishableZipName(p)
-            sh "ssh dev.x-plane.com chmod o+r /shared/download/tools/${zipName}.zip"
+        sshagent(['tylers-ssh']) {
+            for(def p : ['macOS', 'Windows', 'Linux']) {
+                def zipName = getPublishableZipName(p)
+                sh "ssh tyler@dev.x-plane.com chmod o+r /shared/download/tools/${zipName}.zip"
+            }
         }
     }
 }
