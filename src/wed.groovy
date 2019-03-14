@@ -64,7 +64,9 @@ def doBuildAndArchive(String platform) {
             ], platform)
 
             if(shouldPublish && utils.isWindows(platform)) {
-                utils.evSignExecutable(exePath)
+                withCredentials([string(credentialsId: 'windows-hardware-signing-token', variable: 'tokenPass')]) {
+                    utils.evSignExecutable(exePath)
+                }
             }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)

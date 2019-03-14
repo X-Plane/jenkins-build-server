@@ -32,7 +32,6 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
 
     node = globalSteps ? globalSteps.&node : null
     parallel = globalSteps ? globalSteps.&parallel : null
-    withCredentials = globalSteps ? globalSteps.&withCredentials : null
     try {
         fileOperations        = globalSteps ? globalSteps.&fileOperations        : null
         folderDeleteOperation = globalSteps ? globalSteps.&folderDeleteOperation : null
@@ -225,17 +224,15 @@ def evSignExecutable(String executable) {
             "https://tsp.iaik.tugraz.at/tsp/TspRequest",
             "http://timestamp.apple.com/ts01",
     ]
-    withCredentials([string(credentialsId: 'windows-hardware-signing-token', variable: 'tokenPass')]) {
-        for(String timestampServer : timestampServers) {
-            // Joerg says: these servers occasionally get overloaded or go down, causing the signing to fail.
-            // We'll try them all before returning an error
-            try {
-                bat "C:\\jenkins\\_signing\\etokensign.exe C:\\jenkins\\_signing\\laminar.cer \"te-10ee6b01-fc46-429c-a412-d6996404ebce\" \"${tokenPass}\" \"${timestampServer}\" \"${executable}\""
-                return
-            } catch(e) { }
-        }
-        throw Exception('etokensign failed for executable ' + executable)
+    for(String timestampServer : timestampServers) {
+        // Joerg says: these servers occasionally get overloaded or go down, causing the signing to fail.
+        // We'll try them all before returning an error
+        try {
+            bat "C:\\jenkins\\_signing\\etokensign.exe C:\\jenkins\\_signing\\laminar.cer \"te-10ee6b01-fc46-429c-a412-d6996404ebce\" \"${tokenPass}\" \"${timestampServer}\" \"${executable}\""
+            return
+        } catch(e) { }
     }
+    throw Exception('etokensign failed for executable ' + executable)
 }
 
 // $&@#* Jenkins.
