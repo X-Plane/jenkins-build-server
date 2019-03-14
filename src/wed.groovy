@@ -71,7 +71,7 @@ def doBuildAndArchive(String platform) {
         try {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
-                sh "zip -qr ${targetZip} WED.xcarchive/Products/Applications/*"
+                sh "pushd WED.xcarchive/Products/Applications/ && zip -qr ../../../${targetZip} WED.app && popd"
                 sh "zip -qj ${targetZip} src/WEDCore/${readme}"
             } else if(utils.isLinux(platform)) {
                 sh "zip -qrj ${targetZip} ${exePath} src/WEDCore/${readme}"
