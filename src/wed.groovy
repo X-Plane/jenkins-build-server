@@ -85,7 +85,7 @@ def doBuildAndArchive(String platform) {
                 utils.copyFilePatternToDest("src/WEDCore/${readme}", "${targetZipName}/${readme}")
                 zip(zipFile: targetZip, archive: false, dir: targetZipName)
             }
-            archiveWithDropbox(targetZip, getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils, false)
+            archiveWithDropbox([targetZip], getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils, false)
         } catch (e) {
             utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
                     "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
