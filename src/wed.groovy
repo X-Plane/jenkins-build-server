@@ -12,6 +12,8 @@ environment['dev_build'] = 'false'
 environment['override_checkout_dir'] = 'xptools'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
+shouldPublish = publish_as_version && publish_as_version.length() == 5
+
 try {
     stage('Checkout') { runOn3Platforms(this.&doCheckout) }
     stage('Build & Archive') { runOn3Platforms(this.&doBuildAndArchive)    }
@@ -41,6 +43,9 @@ def doCheckout(String platform) {
 
 def doBuildAndArchive(String platform) {
     dir(utils.getCheckoutDir(platform)) {
+        String exe = getWedExe(platform)
+        String exePath = utils.addPrefix([exe], utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))[0]
+
         try {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
@@ -57,13 +62,14 @@ def doBuildAndArchive(String platform) {
                     "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release\" /p:Platform=\"x64\" ${projectFile}",
                     "make -s -C . conf=release_opt -j\$(nproc) WED"
             ], platform)
+
+            if(shouldPublish && utils.isWindows(platform)) {
+                utils.evSignExecutable(exePath)
+            }
         } catch (e) {
             notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)
         }
 
-
-        String exe = getWedExe(platform)
-        String exePath = utils.addPrefix([exe], utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))[0]
         String readme = 'README.WorldEditor'
         String targetZipName = getPublishableZipName(platform)
         String targetZip = "${targetZipName}.zip"
@@ -93,7 +99,7 @@ def doBuildAndArchive(String platform) {
             throw e
         }
 
-        if(publish_as_version && publish_as_version.length() == 5) { // we want to copy it to the live server
+        if(shouldPublish) { // we want to copy it to the live server
             sshPublisher(publishers: [
                     sshPublisherDesc(
                             configName: 'DevTools',
@@ -105,7 +111,7 @@ def doBuildAndArchive(String platform) {
 }
 
 def finalizeUpload(String platform) {
-    if(publish_as_version && publish_as_version.length() == 5) { // we copied files to the live server
+    if(shouldPublish) { // we copied files to the live server
         sshagent(['tylers-ssh']) {
             for(def p : ['macOS', 'Windows', 'Linux']) {
                 def zipName = getPublishableZipName(p)

@@ -32,6 +32,7 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
 
     node = globalSteps ? globalSteps.&node : null
     parallel = globalSteps ? globalSteps.&parallel : null
+    withCredentials = globalSteps ? globalSteps.&withCredentials : null
     try {
         fileOperations        = globalSteps ? globalSteps.&fileOperations        : null
         folderDeleteOperation = globalSteps ? globalSteps.&folderDeleteOperation : null
@@ -201,6 +202,40 @@ boolean isSteamBuild() {
 }
 boolean needsInstallerKitting(String platform='') {
     return build_all_apps && isReleaseBuild() && !isSteamBuild() && isNix(platform)
+}
+
+
+def evSignExecutable(String executable) {
+    List<String> timestampServers = [
+            "http://timestamp.digicert.com",
+            "http://sha256timestamp.ws.symantec.com/sha256/timestamp",
+            "http://timestamp.globalsign.com/scripts/timstamp.dll",
+            "https://timestamp.geotrust.com/tsa",
+            "http://timestamp.verisign.com/scripts/timstamp.dll",
+            "http://timestamp.comodoca.com/rfc3161",
+            "http://timestamp.wosign.com",
+            "http://tsa.startssl.com/rfc3161",
+            "http://time.certum.pl",
+            "https://freetsa.org",
+            "http://dse200.ncipher.com/TSS/HttpTspServer",
+            "http://tsa.safecreative.org",
+            "http://zeitstempel.dfn.de",
+            "https://ca.signfiles.com/tsa/get.aspx",
+            "http://services.globaltrustfinder.com/adss/tsa",
+            "https://tsp.iaik.tugraz.at/tsp/TspRequest",
+            "http://timestamp.apple.com/ts01",
+    ]
+    withCredentials([string(credentialsId: 'windows-hardware-signing-token', variable: 'tokenPass')]) {
+        for(String timestampServer : timestampServers) {
+            // Joerg says: these servers occasionally get overloaded or go down, causing the signing to fail.
+            // We'll try them all before returning an error
+            try {
+                bat "C:\\jenkins\\_signing\\etokensign.exe C:\\jenkins\\_signing\\laminar.cer \"te-10ee6b01-fc46-429c-a412-d6996404ebce\" \"${tokenPass}\" \"${timestampServer}\" \"${executable}\""
+                return
+            } catch(e) { }
+        }
+        throw Exception('etokensign failed for executable ' + executable)
+    }
 }
 
 // $&@#* Jenkins.
