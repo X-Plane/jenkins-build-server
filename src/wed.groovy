@@ -29,7 +29,7 @@ def runOn3Platforms(Closure c) {
 }
 
 def doCheckout(String platform) {
-    clean(getExpectedWedProducts(platform) + ['*.zip', '*.WorldEditor'], [], platform, utils)
+    clean(getExpectedWedProducts(platform) + ['*.zip', '*.WorldEditor', getPublishableZipName() + '*'], [], platform, utils)
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
     } catch(e) {
@@ -76,24 +76,24 @@ def doBuildAndArchive(String platform) {
         }
 
         if(publish_as_version && publish_as_version.length() == 5) { // we want to copy it to the live server
-            String shortPlatform = utils.chooseByPlatformMacWinLin(['mac', 'win', 'lin'], platform)
-            String targetZip = "wed_${shortPlatform}_${publish_as_version}.zip"
+            String targetZipName = getPublishableZipName(platform)
+            String targetZip = "${targetZipName}.zip"
 
             String readme = 'README.WorldEditor'
-            fileOperations([fileCopyOperation(includes: "src/WEDCore/${readme}", targetLocation: readme)])
 
             if(utils.isMac(platform)) {
-                fileOperations([fileRenameOperation(includes: productPaths.first(), targetLocation: targetZip)])
-                sh "zip -j ${targetZip} ${readme}"
+                utils.copyFilePatternToDest(productPaths.first(), targetZip)
+                sh "zip -j ${targetZip} src/WEDCore/${readme}"
             } else {
                 // Move the EXE to the root directory so that the final ZIP will be "flat"
-                fileOperations([fileCopyOperation(includes: productPaths.first(), targetLocation: expectedProducts.first())])
-                zip(zipFile: targetZip, archive: false, glob: "${readme}, ${expectedProducts.first()}")
+                utils.copyFilePatternToDest(productPaths.first(), "${targetZipName}/${expectedProducts.first()}")
+                utils.copyFilePatternToDest("src/WEDCore/${readme}", "${targetZipName}/${readme}")
+                zip(zipFile: targetZip, archive: false, dir: targetZipName)
             }
             sshPublisher(publishers: [
                     sshPublisherDesc(
                             configName: 'DevTools',
-                            transfers: [sshTransfer(sourceFiles: targetZip, execCommand: "chmod o+r /shared/download/tools/${targetZip}")],
+                            transfers: [sshTransfer(sourceFiles: targetZip, execCommand: "chmod o+r ${targetZip}")],
                     )
             ])
         }
@@ -102,6 +102,11 @@ def doBuildAndArchive(String platform) {
 
 List<String> getExpectedWedProducts(String platform) {
     return [utils.chooseByPlatformMacWinLin(['WED.app.zip', 'WorldEditor.exe', 'WED'], platform)]
+}
+
+String getPublishableZipName(String platform) {
+    String shortPlatform = utils.chooseByPlatformMacWinLin(['mac', 'win', 'lin'], platform)
+    return "wed_${shortPlatform}_${publish_as_version}"
 }
 
 String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
