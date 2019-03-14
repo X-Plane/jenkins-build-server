@@ -59,7 +59,8 @@ def doBuildAndArchive(String platform) {
             notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)
         }
 
-        def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))
+        List<String> expectedProducts = getExpectedWedProducts(platform);
+        List<String> productPaths = utils.addPrefix(expectedProducts, utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))
 
         try {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
@@ -82,10 +83,12 @@ def doBuildAndArchive(String platform) {
             fileOperations([fileCopyOperation(includes: "src/WEDCore/${readme}", targetLocation: readme)])
 
             if(utils.isMac(platform)) {
-                fileOperations([fileRenameOperation(includes: productPaths[0], targetLocation: targetZip)])
+                fileOperations([fileRenameOperation(includes: productPaths.first(), targetLocation: targetZip)])
                 sh "zip -j ${targetZip} ${readme}"
             } else {
-                zip(zipFile: targetZip, archive: false, glob: "${productPaths[0]} , ${readme}")
+                // Move the EXE to the root directory so that the final ZIP will be "flat"
+                fileOperations([fileCopyOperation(includes: productPaths.first(), targetLocation: expectedProducts.first())])
+                zip(zipFile: targetZip, archive: false, glob: "${readme}, ${expectedProducts.first()}")
             }
             sshPublisher(publishers: [
                     sshPublisherDesc(
