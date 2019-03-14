@@ -82,18 +82,18 @@ def doBuildAndArchive(String platform) {
             } catch(e) { }
 
             String readme = 'README.WorldEditor'
-            fileOperations([fileCopyOperation(includes: 'src/WEDCore/${readme}', targetLocation: readme)])
+            fileOperations([fileCopyOperation(includes: "src/WEDCore/${readme}", targetLocation: readme)])
 
             if(utils.isMac(platform)) {
                 fileOperations([fileRenameOperation(includes: productPaths[0], targetLocation: targetZip)])
                 sh "zip -j ${targetZip} ${readme}"
             } else {
-                zip(zipFile: targetZip, archive: false, glob: "${productPaths[0]},${readme}")
+                zip(zipFile: targetZip, archive: false, glob: "${productPaths[0]} , ${readme}")
             }
             sshPublisher(publishers: [
                     sshPublisherDesc(
                             configName: 'DevTools',
-                            transfers: sshTransfer(sourceFiles: targetZip)
+                            transfers: [sshTransfer(sourceFiles: targetZip)]
                     )
             ])
 
