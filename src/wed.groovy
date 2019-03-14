@@ -29,7 +29,7 @@ def runOn3Platforms(Closure c) {
 }
 
 def doCheckout(String platform) {
-    clean(getExpectedWedProducts(platform) + ['*.zip', '*.WorldEditor', getPublishableZipName() + '*'], [], platform, utils)
+    clean(getExpectedWedProducts(platform) + ['*.zip', '*.WorldEditor', getPublishableZipName(platform) + '*'], [], platform, utils)
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
     } catch(e) {
