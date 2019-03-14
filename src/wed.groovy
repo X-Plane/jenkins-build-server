@@ -59,18 +59,45 @@ def doBuildAndArchive(String platform) {
             notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)
         }
 
+        def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))
+
         try {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
                 zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
             }
-            def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))
             archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
         } catch (e) {
             utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
                     "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
                     e.toString())
             throw e
+        }
+
+        if(publish_as_version && publish_as_version.length() == 5) { // we want to copy it to the live server
+            String shortPlatform = utils.chooseByPlatformMacWinLin(['mac', 'win', 'lin'], platform)
+            String targetZip = "wed_${shortPlatform}_${publish_as_version}.zip"
+            try {
+                fileOperations([fileDeleteOperation(targetZip)])
+            } catch(e) { }
+
+            String readme = 'README.WorldEditor'
+            fileOperations([fileCopyOperation(includes: 'src/WEDCore/${readme}', targetLocation: readme)])
+
+            if(utils.isMac(platform)) {
+                fileOperations([fileRenameOperation(includes: productPaths[0], targetLocation: targetZip)])
+                sh "zip -j ${targetZip} ${readme}"
+            } else {
+                zip(zipFile: targetZip, archive: false, glob: "${productPaths[0]},${readme}")
+            }
+            sshPublisher(publishers: [
+                    sshPublisherDesc(
+                            configName: 'DevTools',
+                            transfers: sshTransfer(sourceFiles: targetZip)
+                    )
+            ])
+
+            fileOperations([fileDeleteOperation(readme)])
         }
     }
 }
