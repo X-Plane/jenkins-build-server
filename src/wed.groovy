@@ -64,7 +64,7 @@ def doBuildAndArchive(String platform) {
             if(utils.isMac(platform)) {
                 zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
             }
-            def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\', 'build/Linux/release_opt/'], platform))
+            def productPaths = utils.addPrefix(getExpectedWedProducts(platform), utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))
             archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils)
         } catch (e) {
             utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
