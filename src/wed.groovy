@@ -82,7 +82,7 @@ def doBuildAndArchive(String platform) {
                 } catch(e) { }
                 utils.chooseShell("mkdir ${targetZipName}", platform)
                 utils.copyFilePatternToDest(exePath, "${targetZipName}/${exe}")
-                utils.copyFilePatternToDest("src/WEDCore/${readme}", "${targetZipName}/${readme}")
+                utils.copyFilePatternToDest("src\\WEDCore\\${readme}", "${targetZipName}\\${readme}")
                 zip(zipFile: targetZip, archive: false, dir: targetZipName)
             }
             archiveWithDropbox([targetZip], getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils, false)
