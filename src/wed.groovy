@@ -65,7 +65,7 @@ def doBuildAndArchive(String platform) {
         try {
             // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
             if(utils.isMac(platform)) {
-                zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/WED.app')
+                zip(zipFile: 'WED.app.zip', archive: false, dir: 'WED.xcarchive/Products/Applications/')
             }
             archiveWithDropbox(productPaths, getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils, false)
         } catch (e) {
@@ -86,6 +86,7 @@ def doBuildAndArchive(String platform) {
                 sh "zip -j ${targetZip} src/WEDCore/${readme}"
             } else {
                 // Move the EXE to the root directory so that the final ZIP will be "flat"
+                utils.chooseShell("mkdir ${targetZipName}", platform)
                 utils.copyFilePatternToDest(productPaths.first(), "${targetZipName}/${expectedProducts.first()}")
                 utils.copyFilePatternToDest("src/WEDCore/${readme}", "${targetZipName}/${readme}")
                 zip(zipFile: targetZip, archive: false, dir: targetZipName)
