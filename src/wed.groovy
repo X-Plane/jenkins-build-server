@@ -29,7 +29,7 @@ def runOn3Platforms(Closure c) {
 }
 
 def doCheckout(String platform) {
-    clean(getExpectedWedProducts(platform), [], platform, utils)
+    clean(getExpectedWedProducts(platform) + ['*.zip', '*.WorldEditor'], [], platform, utils)
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
     } catch(e) {
@@ -77,9 +77,6 @@ def doBuildAndArchive(String platform) {
         if(publish_as_version && publish_as_version.length() == 5) { // we want to copy it to the live server
             String shortPlatform = utils.chooseByPlatformMacWinLin(['mac', 'win', 'lin'], platform)
             String targetZip = "wed_${shortPlatform}_${publish_as_version}.zip"
-            try {
-                fileOperations([fileDeleteOperation(targetZip)])
-            } catch(e) { }
 
             String readme = 'README.WorldEditor'
             fileOperations([fileCopyOperation(includes: "src/WEDCore/${readme}", targetLocation: readme)])
@@ -96,8 +93,6 @@ def doBuildAndArchive(String platform) {
                             transfers: [sshTransfer(sourceFiles: targetZip)]
                     )
             ])
-
-            fileOperations([fileDeleteOperation(readme)])
         }
     }
 }
