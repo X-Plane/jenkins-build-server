@@ -93,8 +93,7 @@ def doBuildAndArchive(String platform) {
             sshPublisher(publishers: [
                     sshPublisherDesc(
                             configName: 'DevTools',
-                            transfers: [sshTransfer(sourceFiles: targetZip)],
-                            execCommand: "chmod o+r /shared/download/tools/${targetZip} && chgrp users /shared/download/tools/${targetZip}"
+                            transfers: [sshTransfer(sourceFiles: targetZip, execCommand: "chmod o+r /shared/download/tools/${targetZip}")],
                     )
             ])
         }
