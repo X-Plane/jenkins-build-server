@@ -12,7 +12,7 @@ environment['dev_build'] = 'false'
 environment['override_checkout_dir'] = 'xptools'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
-shouldPublish = publish_as_version && publish_as_version.length() == 5
+shouldPublish = publish_as_version && publish_as_version.length() >= 5 && publish_as_version.length() <= 6
 
 try {
     stage('Checkout') { runOn3Platforms(this.&doCheckout) }
