@@ -36,6 +36,10 @@ def doCheckout(String platform) {
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
+
+        dir(utils.getCheckoutDir(platform)) {
+            utils.chooseShell('git submodule foreach --recursive git reset --hard', platform)
+        }
     } catch(e) {
         notifyBrokenCheckout(utils.&sendEmail, 'WED', branch_name, platform, e)
     }
