@@ -45,6 +45,9 @@ def doBuildAndArchive(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         if(utils.isNix(platform)) {
             dir('libs') {
+                if(utils.toRealBool(clean_libs)) {
+                    sh 'make clean'
+                }
                 sh 'make'
             }
         }
