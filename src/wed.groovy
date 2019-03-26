@@ -43,6 +43,12 @@ def doCheckout(String platform) {
 
 def doBuildAndArchive(String platform) {
     dir(utils.getCheckoutDir(platform)) {
+        if(utils.isNix(platform)) {
+            dir('libs') {
+                sh 'make'
+            }
+        }
+
         String exe = getWedExe(platform)
         String exePath = utils.addPrefix([exe], utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))[0]
 
@@ -51,11 +57,13 @@ def doBuildAndArchive(String platform) {
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
             String msBuild = utils.isWindows(platform) ? "C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild" : ''
-            utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
-                    "\"${msBuild}\" ${projectFile} /t:Clean",
-                    'make clean'
-            ], platform)
+            if(utils.toRealBool(clean_build)) {
+                utils.chooseShellByPlatformMacWinLin([
+                        "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                        "\"${msBuild}\" ${projectFile} /t:Clean",
+                        'make clean'
+                ], platform)
+            }
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} -archivePath WED.xcarchive  CODE_SIGN_STYLE=\"Manual\" CODE_SIGN_IDENTITY=\"Developer ID Application: Laminar Research (LPH4NFE92D)\" archive ${pipe_to_xcpretty}",
