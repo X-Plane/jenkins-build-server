@@ -27,6 +27,8 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
         build_type = environment['build_type']
     }
 
+    products_to_build = environment.containsKey('products_to_build') ? environment['products_to_build'] : ''
+
     override_checkout_dir = environment.containsKey('override_checkout_dir') ? environment['override_checkout_dir'] : ''
     app_suffix = build_type.contains('_Prod') ? '' : '_' + build_type
 
@@ -54,7 +56,8 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
         if(pmt_subject && pmt_from) {
             notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
         } else {
-            notify(subj, msg, errorMsg, recipient)
+            boolean hasParsedLog = products_to_build.contains('SIM') || products_to_build.contains('PLN') ||  products_to_build.contains('AFL') || products_to_build.contains('TEST')
+            notify(subj, msg, errorMsg, recipient, hasParsedLog)
         }
     }
 }
