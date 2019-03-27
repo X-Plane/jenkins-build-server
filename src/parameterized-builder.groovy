@@ -270,19 +270,30 @@ def buildAndArchiveShaders() {
             echo 'Skipping shaders build since they already exist in Dropbox'
         } else {
             try {
-                bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet'
+                retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet' }
             } catch(e) {
                 if(fileExists('gfx-cc.dmp')) {
                     archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
                 } else {
                     echo 'Failed to find gfx-cc.dmp'
                 }
+                echo 'ERROR: gfx-cc.exe crashed repeatedly; giving up on building shaders'
                 throw e
             }
             zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
         }
         archiveWithDropbox([shadersZip], dropboxPath, true, utils)
     }
+}
+
+def retry(Closure c, int max_tries=5) {
+    def closure = c
+    for(int i = 0; i < max_tries - 1; ++i) {
+        try {
+            return closure()
+        } catch(e) { }
+    }
+    return closure()
 }
 
 def doUnitTest(String platform) {
