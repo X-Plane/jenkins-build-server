@@ -20,9 +20,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         }
 
         if(utils.shellIsSh(platform) && fileExists('scripts/setup_submodules.sh')) {
-            try {
-                sh 'git rm --cached SDK/COMMON/xairnav/src/units/'
-            } catch(e) { }
+            sh(returnStatus: true, script: 'git rm --cached SDK/COMMON/xairnav/src/units/')
             dir(checkoutDir + 'scripts') {
                 sshagent(['tylers-ssh']) {
                     sh './setup_submodules.sh'
