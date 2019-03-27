@@ -5,10 +5,11 @@ error /Couldn't find any revision/
 error /\] .* [1-9]\d* Error/
 error /MissingPropertyException/
 error /clang: error:/
+error /ERROR: .+\n/
 error /\d+ errors generated/
-error /\/jenkins\/design-\w+\/source_code\/[\w-\.\/]+\.cpp:\d+:\d+: error: .+\n/
-error /C:\\jenkins\\design-\w+\\source_code\\[\w-\.\\]+\.cpp\(\d+\): error C\d+: .+\n/
-error \[x\] \/jenkins\/design-\w+\/source_code\/[\w-\.\/]+\.cpp:\d+:\d+: .+\n/
+error /\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+: error: .+\n/
+error /(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\): error C\d+: .+\n/
+error \[x\] \/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+: .+\n/
 
 start /\[Windows\] Checking out/
 start /\[Linux\] Checking out/
