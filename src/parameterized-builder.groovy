@@ -211,7 +211,7 @@ def doBuild(String platform) {
             String parsedLogUrl = "${BUILD_URL}parsed_console/"
             slackSend(
                     color: 'danger',
-                    message: "${heyYourBuild} of `${branch_name}` failed | <${parsedLogUrl}|Parsed Console Log> | <${BUILD_URL}|Build Info>")
+                    message: "${heyYourBuild} of `${branch_name}` failed on ${platform} | <${parsedLogUrl}|Parsed Console Log> | <${BUILD_URL}|Build Info>")
             alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
