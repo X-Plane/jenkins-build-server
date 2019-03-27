@@ -6,18 +6,15 @@ error /\] .* [1-9]\d* Error/
 error /MissingPropertyException/
 error /clang: error:/
 error /ERROR: .+\n/
+error /make: \*\*\* \[[\w\s-]+\] Error/
 error /\d+ errors generated/
-error /\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+: error: .+\n/
-error /(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\): error C\d+: .+\n/
-error \[x\] \/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+: .+\n/
+error /\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+: error:/
+error /(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\): error C\d+:/
+error \[x\] \/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:/
 
-start /\[Windows\] Checking out/
-start /\[Linux\] Checking out/
-start /\[(macOS|Windows|Linux)\] Checking out [a-f\d]{8}/
-start /\[(macOS|Windows|Linux)\] Running tests/
 start /t:Build/
-start /make -j4/
-start /\[macOS\] .* xcodebuild/
+start /make -j\d/
+start /\.xcodeproj build/
 start /Copying files from/
 
 info /This commit was already built/
