@@ -4,15 +4,11 @@ error /Failed\sin\sbranch/
 error /Couldn't\sfind\sany\srevision/
 error /MissingPropertyException/
 error /clang:\serror:/
-error /ERROR:\s/
-error /make:\s\*\*\*\s\[[\w\s-]+\]\sError/
-error /\d+\serrors\sgenerated/
-error /\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:\serror:/
-error /(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\):\serror\sC\d+:/
-error \[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:/
-
-start /t:Build/
-start /make\s-j\d/
-start /\.xcodeproj\sbuild/
+error /^ERROR:\s/
+error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
+error /^\d+\serrors\sgenerated/
+error /^\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:\serror:/
+error /^(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\):\serror\sC\d+:/
+error \^\[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:/
 
 info /This\scommit\swas\salready\sbuilt/
