@@ -2,7 +2,6 @@ error /ErrorCollector\.java/
 error /assertFailed/
 error /Failed\sin\sbranch/
 error /Couldn't\sfind\sany\srevision/
-error /\]\s.*\s[1-9]\d*\sError/
 error /MissingPropertyException/
 error /clang:\serror:/
 error /ERROR:\s/
