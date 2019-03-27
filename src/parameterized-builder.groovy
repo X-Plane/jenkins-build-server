@@ -52,9 +52,7 @@ try {
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
     stage('Notify')                        { if(!alerted_via_slack) { notifySuccess() } }
 } finally {
-    if(utils.build_windows) {
-        node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
-    }
+    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
 }
 
 def runOn3Platforms(Closure c, boolean force_windows=false) {
