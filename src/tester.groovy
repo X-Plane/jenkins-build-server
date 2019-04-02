@@ -144,7 +144,6 @@ def attemptCopyAndUnzipShaders(String platform) {
 
     for(String potentialZip : ['shaders_bin.zip', legacyZip]) {
         if(utils.copyBuildProductsFromArchive([potentialZip], platform)) {
-            echo('Unzipping ' + potentialZip + 'to resources directory')
             unzip(zipFile: potentialZip, dir: 'Resources/shaders/bin/', quiet: true)
             return true
         }
