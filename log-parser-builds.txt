@@ -14,5 +14,6 @@ error /^(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\
 error /^\[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:/
 error /.obj : error LNK\d+/
 error /: undefined reference to/
+error /xcodebuild: error:/
 
 info /This\scommit\swas\salready\sbuilt/
