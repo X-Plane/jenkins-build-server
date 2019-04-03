@@ -361,22 +361,18 @@ def chooseShellByPlatformNixWin(String nixCommand, String winCommand, String pla
     if(platform) {
         chooseShellByPlatformMacWinLin([nixCommand, winCommand, nixCommand], platform)
     } else if(isUnix()) {
-        echo "Running *nix sh ${nixCommand}"
         sh nixCommand
     } else {
-        echo "Running Windows bat ${winCommand}"
         bat winCommand
     }
 }
 def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
     if(isWindows(platform) && !platform.endsWith('GitBash')) {
-        echo "Running bat ${macWinLinCommands[1]}"
         bat macWinLinCommands[1]
     } else if(isMac(platform)) {
-        echo "Running Mac sh ${macWinLinCommands[0]}"
         sh macWinLinCommands[0]
     } else {
-        echo "Running Linux sh ${macWinLinCommands[2]}"
+        sh "echo 'Running *nix sh ${macWinLinCommands[2]}'"
         sh macWinLinCommands[2]
     }
 }
