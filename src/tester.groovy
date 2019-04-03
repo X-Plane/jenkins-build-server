@@ -34,7 +34,7 @@ node(nodeType) {
 // This is where the magic happens.
 //--------------------------------------------------------------------------------------------------------------------------------
 stage('Respond')             { utils.replyToTrigger("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
-stage('Checkout')            { node(nodeType) { doCheckout() } }
+stage('Checkout')            { node(nodeType) { timeout(60 * 2) { doCheckout() } } }
 try {
     stage('Test')            { node(nodeType) { timeout(60 * 12) { doTest() } } }
 } finally { // we want to archive regardless of whether the tests passed
