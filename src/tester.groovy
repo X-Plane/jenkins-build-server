@@ -82,12 +82,12 @@ def doCheckout() {
             String tpDir = utils.chooseByPlatformNixWin("/jenkins/third_party_testers/", "/c/jenkins/third_party_testers/", platform)
             dir(checkoutDir + 'Aircraft') {
                 try {
-                    sh "ln -s ${tpDir}Aircraft/ third_party"
+                    sh(returnStdout: true, script: "ln -s ${tpDir}Aircraft/ third_party")
                 } catch(e) { }
             }
             dir(checkoutDir + 'Custom Scenery') {
                 try {
-                    sh "find ${tpDir}Custom\\ Scenery/ -maxdepth 1 -mindepth 1 -type d -exec ln -s \'{}\' . \\;"
+                    sh(returnStdout: true, script: "find ${tpDir}Custom\\ Scenery/ -maxdepth 1 -mindepth 1 -type d -exec ln -s \'{}\' . \\;")
                 } catch(e) { }
             }
         }
