@@ -33,14 +33,20 @@ node(nodeType) {
 // RUN THE TESTS
 // This is where the magic happens.
 //--------------------------------------------------------------------------------------------------------------------------------
-stage('Respond')             { utils.replyToTrigger("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
-stage('Checkout')            { node(nodeType) { timeout(60 * 2) { doCheckout() } } }
 try {
-    stage('Test')            { node(nodeType) { timeout(60 * 12) { doTest() } } }
-} finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')         { node(nodeType) { doArchive() } }
+    stage('Respond')             { utils.replyToTrigger("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
+    stage('Checkout')            { node(nodeType) { timeout(60 * 2) { doCheckout() } } }
+    try {
+        stage('Test')            { node(nodeType) { timeout(60 * 12) { doTest() } } }
+    } finally { // we want to archive regardless of whether the tests passed
+        stage('Archive')         { node(nodeType) { doArchive() } }
+    }
+    stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
+} finally {
+    if(utils.isWindows(platform)) {
+        node(nodeType) { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
+    }
 }
-stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
 
 
 //--------------------------------------------------------------------------------------------------------------------------------
