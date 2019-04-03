@@ -27,10 +27,21 @@ def setEnvironment(environment, notifyStep, globalSteps=null, single_platform=fa
     } else {
         build_type = ''
     }
+
+    products_to_build = environment.containsKey('products_to_build') ? environment['products_to_build'] : ''
+
+    override_checkout_dir = environment.containsKey('override_checkout_dir') ? environment['override_checkout_dir'] : ''
     app_suffix = build_type.contains('_Prod') ? '' : '_' + build_type
 
     node = globalSteps ? globalSteps.&node : null
     parallel = globalSteps ? globalSteps.&parallel : null
+    try {
+        fileOperations        = globalSteps ? globalSteps.&fileOperations        : null
+        folderDeleteOperation = globalSteps ? globalSteps.&folderDeleteOperation : null
+        fileDeleteOperation   = globalSteps ? globalSteps.&fileDeleteOperation   : null
+        folderCreateOperation = globalSteps ? globalSteps.&folderCreateOperation : null
+        fileCopyOperation     = globalSteps ? globalSteps.&fileCopyOperation     : null
+    } catch(e) { /* no file operations plugin installed */ }
 }
 
 def replyToTrigger(String msg, String errorMsg='') {
@@ -46,7 +57,8 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
         if(pmt_subject && pmt_from) {
             notify("Re: ${pmt_subject}", msg, errorMsg, recipient ? recipient : pmt_from)
         } else {
-            notify(subj, msg, errorMsg, recipient)
+            boolean hasParsedLog = products_to_build.contains('SIM') || products_to_build.contains('PLN') ||  products_to_build.contains('AFL') || products_to_build.contains('TEST')
+            notify(subj, msg, errorMsg, recipient, hasParsedLog)
         }
     }
 }
@@ -60,7 +72,7 @@ String getJenkinsDir(String subdir, String platform='') {
     return jenkins + subdir + getDirChar(platform)
 }
 String getCheckoutDir(String platform='') {
-    return getJenkinsDir("design-${directory_suffix}", platform)
+    return getJenkinsDir(override_checkout_dir ? override_checkout_dir : "design-${directory_suffix}", platform)
 }
 
 String getCommitId(String platform='') {
@@ -101,9 +113,13 @@ String getArchiveDir(String platform='', String optionalSubdir='') {
 
 String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
     String out = getArchiveDir(platform, optionalSubdir)
-    try {
-        chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
-    } catch(e) { } // ignore errors if it already exists
+    if(false && fileOperations && folderCreateOperation) {
+        fileOperations([folderCreateOperation(out)])
+    } else {
+        try {
+            chooseShellByPlatformNixWin("mkdir ${out}", "mkdir \"${out}\"")
+        } catch(e) { } // ignore errors if it already exists
+    }
     return out
 }
 
@@ -139,6 +155,15 @@ def nukeIfExist(List<String> files, String platform) {
             chooseShellByPlatformNixWin("rm -Rf ${f}", "del \"${f}\"", platform)
         } catch(e) { } // No old executables lying around? No problem!
     }
+}
+
+def nukeFolders(List<String> paths) { fileOperations(paths.collect { folderDeleteOperation(it) }) }
+def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path)]) }
+def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
+def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
+
+def copyFile(String source, String dest) {
+    fileOperations([fileCopyOperation(includes: source, targetLocation: dest)])
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {
@@ -180,6 +205,38 @@ boolean isSteamBuild() {
 }
 boolean needsInstallerKitting(String platform='') {
     return build_all_apps && isReleaseBuild() && !isSteamBuild() && isNix(platform)
+}
+
+
+def evSignExecutable(String executable) {
+    List<String> timestampServers = [
+            "http://timestamp.digicert.com",
+            "http://sha256timestamp.ws.symantec.com/sha256/timestamp",
+            "http://timestamp.globalsign.com/scripts/timstamp.dll",
+            "https://timestamp.geotrust.com/tsa",
+            "http://timestamp.verisign.com/scripts/timstamp.dll",
+            "http://timestamp.comodoca.com/rfc3161",
+            "http://timestamp.wosign.com",
+            "http://tsa.startssl.com/rfc3161",
+            "http://time.certum.pl",
+            "https://freetsa.org",
+            "http://dse200.ncipher.com/TSS/HttpTspServer",
+            "http://tsa.safecreative.org",
+            "http://zeitstempel.dfn.de",
+            "https://ca.signfiles.com/tsa/get.aspx",
+            "http://services.globaltrustfinder.com/adss/tsa",
+            "https://tsp.iaik.tugraz.at/tsp/TspRequest",
+            "http://timestamp.apple.com/ts01",
+    ]
+    for(String timestampServer : timestampServers) {
+        // Joerg says: these servers occasionally get overloaded or go down, causing the signing to fail.
+        // We'll try them all before returning an error
+        try {
+            bat "C:\\jenkins\\_signing\\etokensign.exe C:\\jenkins\\_signing\\laminar.cer \"te-10ee6b01-fc46-429c-a412-d6996404ebce\" \"${tokenPass}\" \"${timestampServer}\" \"${executable}\""
+            return
+        } catch(e) { }
+    }
+    throw Exception('etokensign failed for executable ' + executable)
 }
 
 // $&@#* Jenkins.

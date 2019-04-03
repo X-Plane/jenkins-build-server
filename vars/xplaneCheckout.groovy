@@ -7,9 +7,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 sh "git fetch --tags"
                 sh "git reset --hard"
                 sh "git checkout ${branchName}"
-                try {
-                    sh "git pull"
-                } catch(e) { } // If we're in detached HEAD mode, pull will fail
+                sh(returnStatus: true, script: "git pull") // If we're in detached HEAD mode, pull will fail
             }
         } else {
             checkout(
@@ -22,9 +20,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         }
 
         if(utils.shellIsSh(platform) && fileExists('scripts/setup_submodules.sh')) {
-            try {
-                sh 'git rm --cached SDK/COMMON/xairnav/src/units/'
-            } catch(e) { }
+            sh(returnStatus: true, script: 'git rm --cached SDK/COMMON/xairnav/src/units/')
             dir(checkoutDir + 'scripts') {
                 sshagent(['tylers-ssh']) {
                     sh './setup_submodules.sh'

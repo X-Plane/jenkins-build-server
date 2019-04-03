@@ -1,0 +1,19 @@
+ok /ERROR:\sCould\snot\sparse\sresponse\sfrom\sslack/
+
+error /ErrorCollector\.java/
+error /assertFailed/
+error /Failed\sin\sbranch/
+error /Couldn't\sfind\sany\srevision/
+error /MissingPropertyException/
+error /clang:\serror:/
+error /^ERROR:\s/
+error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
+error /^\d+\serrors\sgenerated/
+error /^\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:\serror:/
+error /^(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\):\serror\sC\d+:/
+error /^\[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:/
+error /.obj : error LNK\d+/
+error /: undefined reference to/
+error /xcodebuild: error:/
+
+info /This\scommit\swas\salready\sbuilt/
