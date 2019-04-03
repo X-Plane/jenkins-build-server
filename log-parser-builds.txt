@@ -16,5 +16,7 @@ error /.obj : error LNK\d+/
 error /: undefined reference to/
 error /xcodebuild: error:/
 error /Segmentation fault/
+error / --- FAILED/
+error /X-Plane ended with exit code/
 
 info /This\scommit\swas\salready\sbuilt/
