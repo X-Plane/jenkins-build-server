@@ -15,5 +15,6 @@ error /^\[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hp
 error /.obj : error LNK\d+/
 error /: undefined reference to/
 error /xcodebuild: error:/
+error /Segmentation fault/
 
 info /This\scommit\swas\salready\sbuilt/
