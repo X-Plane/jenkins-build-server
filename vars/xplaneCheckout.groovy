@@ -1,11 +1,19 @@
 def call(String branchName='', String checkoutDir='', String platform='', String repo='ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git') {
+    if(!fileExists("${checkoutDir}.git")) {
+        if(isUnix() || platform.contains('Bash')) {
+            sh "git clone ${repo} ${checkoutDir}"
+        } else {
+            bat "git clone ${repo} ${checkoutDir}"
+        }
+    }
+
     dir(checkoutDir) {
         echo "Checking out ${branchName} on ${platform}"
         if(platform == 'Linux' || platform.contains('Bash')) {
             sshagent(['tylers-ssh']) {
                 sh "git branch"
-                sh "git fetch --tags"
-                sh "git reset --hard"
+                sh(returnStdout: true, script: "git fetch --tags")
+                sh(returnStdout: true, script: "git reset --hard")
                 sh "git checkout ${branchName}"
                 sh(returnStatus: true, script: "git pull") // If we're in detached HEAD mode, pull will fail
             }

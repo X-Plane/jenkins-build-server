@@ -372,7 +372,6 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
     } else if(isMac(platform)) {
         sh macWinLinCommands[0]
     } else {
-        sh "echo 'Running *nix sh ${macWinLinCommands[2]}'"
         sh macWinLinCommands[2]
     }
 }
