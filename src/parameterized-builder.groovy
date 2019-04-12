@@ -337,40 +337,42 @@ def getArchiveDirAndEnsureItExists(String platform, String optionalSubdir='') {
 }
 
 def doArchive(String platform) {
-    try {
-        def checkoutDir = utils.getCheckoutDir(platform)
-        dir(checkoutDir) {
-            def dropboxPath = getArchiveDirAndEnsureItExists(platform)
-            echo "Copying files from ${checkoutDir} to ${dropboxPath}"
+    if(products_to_build == 'SHADERS') { // if we haven't already archived everything we needed!
+        try {
+            def checkoutDir = utils.getCheckoutDir(platform)
+            dir(checkoutDir) {
+                def dropboxPath = getArchiveDirAndEnsureItExists(platform)
+                echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
-            // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
-            if(utils.isMac(platform)) {
-                sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
-                sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
-            }
-
-            List prods = getProducts(platform)
-            // Kit the installers for deployment
-            if(needsInstallerKitting(platform)) {
-                String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
-                String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
-                if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
-                    String renamedInstaller = "X-Plane 11 Installer Linux"
-                    fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
-                    zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
-                    nukeFile(renamedInstaller)
-                } else {
-                    zip(zipFile: zipTarget, archive: false, glob: installer)
+                // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
+                if(utils.isMac(platform)) {
+                    sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
+                    sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
                 }
-                prods.push(zipTarget)
+
+                List prods = getProducts(platform)
+                // Kit the installers for deployment
+                if(needsInstallerKitting(platform)) {
+                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
+                    String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
+                    if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
+                        String renamedInstaller = "X-Plane 11 Installer Linux"
+                        fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
+                        zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
+                        nukeFile(renamedInstaller)
+                    } else {
+                        zip(zipFile: zipTarget, archive: false, glob: installer)
+                    }
+                    prods.push(zipTarget)
+                }
+                archiveWithDropbox(prods, dropboxPath, true, utils)
             }
-            archiveWithDropbox(prods, dropboxPath, true, utils)
+        } catch (e) {
+            utils.sendEmail("Jenkins archive step failed on ${platform} [${branch_name}]",
+                    "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing build products.",
+                    e.toString())
+            throw e
         }
-    } catch (e) {
-        utils.sendEmail("Jenkins archive step failed on ${platform} [${branch_name}]",
-                "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing build products.",
-                e.toString())
-        throw e
     }
 }
 
