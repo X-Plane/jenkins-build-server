@@ -345,8 +345,8 @@ def moveFilePatternToDest(String filePattern, String dest) {
     chooseShellByPlatformNixWin("mv \"$filePattern\" \"${dest}\"",  "move /Y \"${filePattern}\" \"${dest}\"")
 }
 
-def copyFilePatternToDest(String filePattern, String dest) {
-    chooseShellByPlatformNixWin("cp \"$filePattern\" \"${dest}\"",  "copy /Y \"${filePattern}\" \"${dest}\"")
+def copyFilePatternToDest(String filePattern, String dest, String platform='') {
+    chooseShellByPlatformNixWin("cp \"$filePattern\" \"${dest}\"",  "copy /Y \"${filePattern}\" \"${dest}\"", platform)
 }
 
 
