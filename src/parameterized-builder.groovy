@@ -265,7 +265,9 @@ def buildAndArchiveShaders() {
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
 
         def hash = fingerprint('Resources\\**\\*.xsv scripts\\shaders\\gfx-cc.exe') // Need to hash both the shader source files and gfx-cc itself
-        String shaderCachePath = utils.getArchiveRoot('Windows') + "\\shader_cache\\${hash}.zip"
+        String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
+        fileOperations([folderCreateOperation(shaderCacheDir)])
+        String shaderCachePath = "${shaderCacheDir}${hash}.zip"
         boolean cacheExists = fileExists(shaderCachePath)
         if(!forceBuild && cacheExists) {
             echo 'Skipping shaders build since they already exist in Dropbox'
