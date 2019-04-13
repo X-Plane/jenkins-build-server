@@ -264,6 +264,15 @@ def buildAndArchiveShaders() {
         String shadersZip = 'shaders_bin.zip'
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
 
+        def just_xsv = fingerprint('Resources\\**\\*.xsv')
+        def just_xsv2 = fingerprint('Resources/**/*.xsv')
+        def just_gfxcc = fingerprint('scripts\\shaders\\gfx-cc.exe')
+        def just_gfxcc2 = fingerprint('scripts/shaders/gfx-cc.exe')
+        echo "XSV fp: ${just_xsv}"
+        echo "XSV fp (unix slashes): ${just_xsv2}"
+        echo "gfxcc fp: ${just_gfxcc}"
+        echo "gfxcc fp (unix slashes): ${just_gfxcc2}"
+
         def hash = fingerprint('Resources\\**\\*.xsv scripts\\shaders\\gfx-cc.exe') // Need to hash both the shader source files and gfx-cc itself
         String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
         fileOperations([folderCreateOperation(shaderCacheDir)])
