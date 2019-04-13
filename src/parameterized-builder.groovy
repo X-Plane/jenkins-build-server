@@ -264,19 +264,15 @@ def buildAndArchiveShaders() {
         String shadersZip = 'shaders_bin.zip'
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
 
-        def just_xsv = fingerprint('Resources\\**\\*.xsv')
-        def just_xsv2 = fingerprint('Resources/**/*.xsv')
-        def just_gfxcc = fingerprint('scripts\\shaders\\gfx-cc.exe')
-        def just_gfxcc2 = fingerprint('scripts/shaders/gfx-cc.exe')
-        echo "XSV fp: ${just_xsv}"
-        echo "XSV fp (unix slashes): ${just_xsv2}"
-        echo "gfxcc fp: ${just_gfxcc}"
-        echo "gfxcc fp (unix slashes): ${just_gfxcc2}"
+        // Need to hash both the shader source files and gfx-cc itself
+        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\bin\\*.xsv | Select -ExpandProperty Hash').trim() +
+                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe   | Select -ExpandProperty Hash').trim()
+        echo allHashes
+        String combinedHash = powershell("\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()")
 
-        def hash = fingerprint('Resources\\**\\*.xsv scripts\\shaders\\gfx-cc.exe') // Need to hash both the shader source files and gfx-cc itself
         String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
         fileOperations([folderCreateOperation(shaderCacheDir)])
-        String shaderCachePath = "${shaderCacheDir}${hash}.zip"
+        String shaderCachePath = "${shaderCacheDir}${combinedHash}.zip"
         boolean cacheExists = fileExists(shaderCachePath)
         if(!forceBuild && cacheExists) {
             echo 'Skipping shaders build since they already exist in Dropbox'
@@ -308,7 +304,7 @@ def retry(Closure c, int max_tries=5) {
     for(int i = 0; i < max_tries - 1; ++i) {
         try {
             return closure()
-        } catch(e) { }
+        } catch(e) { sleep(10) }
     }
     return closure()
 }
