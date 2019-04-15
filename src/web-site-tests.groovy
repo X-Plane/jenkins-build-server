@@ -1,6 +1,8 @@
 stage('Checkout')     { run(this.&doCheckout) }
 try {
     stage('Test')     { run(this.&testFunnel) }
+} catch(e) {
+    slackSend(color: 'danger', message: "Hey <@UAG6R8LHJ>, the web site test of `${tag}` failed | <${parsedLogUrl}|Parsed Console Log> | <${BUILD_URL}|Build Info>")
 } finally { // we want to archive regardless of whether the tests passed
     stage('Archive')  { run(this.&doArchive) }
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
