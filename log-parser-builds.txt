@@ -18,5 +18,7 @@ error /xcodebuild: error:/
 error /Segmentation fault/
 error / --- FAILED/
 error /X-Plane ended with exit code/
+error /Failing scenarios:/
+error /AssertionError/
 
 info /This\scommit\swas\salready\sbuilt/

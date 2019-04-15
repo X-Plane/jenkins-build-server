@@ -3,6 +3,7 @@ try {
     stage('Test')     { run(this.&testFunnel) }
 } finally { // we want to archive regardless of whether the tests passed
     stage('Archive')  { run(this.&doArchive) }
+    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
 }
 
 
