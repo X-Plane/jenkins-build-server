@@ -265,8 +265,9 @@ def buildAndArchiveShaders() {
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
 
         // Need to hash both the shader source files and gfx-cc itself
-        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\bin\\*.xsv | Select -ExpandProperty Hash') +
-                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe   | Select -ExpandProperty Hash')
+        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv | Select -ExpandProperty Hash') +
+                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\**\\*.glsl  | Select -ExpandProperty Hash') +
+                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe  | Select -ExpandProperty Hash')
         String combinedHash = powershell("\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()")
 
         String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
