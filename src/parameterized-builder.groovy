@@ -344,7 +344,7 @@ def getArchiveDirAndEnsureItExists(String platform, String optionalSubdir='') {
 }
 
 def doArchive(String platform) {
-    if(products_to_build == 'SHADERS') { // if we haven't already archived everything we needed!
+    if(products_to_build != 'SHADERS') { // if we haven't already archived everything we needed!
         try {
             def checkoutDir = utils.getCheckoutDir(platform)
             dir(checkoutDir) {
