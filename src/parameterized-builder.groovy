@@ -272,6 +272,9 @@ def buildAndArchiveShaders() {
         String combinedHash = powershell("\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()")
         echo "Combined hash is: ${combinedHash}"
 
+        if(skip_shader_build)
+            return
+
         String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
         fileOperations([folderCreateOperation(shaderCacheDir)])
         String shaderCachePath = "${shaderCacheDir}${combinedHash}.zip"
