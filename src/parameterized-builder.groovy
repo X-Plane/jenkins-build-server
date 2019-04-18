@@ -268,7 +268,9 @@ def buildAndArchiveShaders() {
         String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv | Select -ExpandProperty Hash') +
                            powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\**\\*.glsl  | Select -ExpandProperty Hash') +
                            powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe  | Select -ExpandProperty Hash')
+        echo "Shader + gfx-cc hashes are:\n${allHashes}"
         String combinedHash = powershell("\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()")
+        echo "Combined hash is: ${combinedHash}"
 
         String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
         fileOperations([folderCreateOperation(shaderCacheDir)])
