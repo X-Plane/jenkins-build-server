@@ -265,11 +265,11 @@ def buildAndArchiveShaders() {
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
 
         // Need to hash both the shader source files and gfx-cc itself
-        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv | Select -ExpandProperty Hash') +
-                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\**\\*.glsl  | Select -ExpandProperty Hash') +
-                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe  | Select -ExpandProperty Hash')
+        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv  | Select -ExpandProperty Hash') +
+                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.glsl | Select -ExpandProperty Hash') +
+                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe   | Select -ExpandProperty Hash')
         echo "Shader + gfx-cc hashes are:\n${allHashes}"
-        String combinedHash = powershell("\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()")
+        String combinedHash = powershell(returnStdout: true, script: eamv"\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()")
         echo "Combined hash is: ${combinedHash}"
 
         if(skip_shader_build)
@@ -280,7 +280,7 @@ def buildAndArchiveShaders() {
         String shaderCachePath = "${shaderCacheDir}${combinedHash}.zip"
         boolean cacheExists = fileExists(shaderCachePath)
         if(!forceBuild && cacheExists) {
-            echo 'Skipping shaders build since they already exist in Dropbox'
+            echo "Skipping shaders build since they already exist in Dropbox (combined hash ${combinedHash})"
             utils.copyFilePatternToDest(shaderCachePath, shadersZip)
         } else {
             try {
