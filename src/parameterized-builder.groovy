@@ -268,7 +268,7 @@ def buildAndArchiveShaders() {
         String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv  | Select -ExpandProperty Hash') +
                            powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.glsl | Select -ExpandProperty Hash') +
                            powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe   | Select -ExpandProperty Hash')
-        String combinedHash = powershell(returnStdout: true, script: "\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()")
+        String combinedHash = powershell(returnStdout: true, script: "\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()").replaceAll("\\s","")
 
         String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
         fileOperations([folderCreateOperation(shaderCacheDir)])
