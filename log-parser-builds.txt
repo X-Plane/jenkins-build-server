@@ -21,5 +21,6 @@ error /X-Plane ended with exit code/
 error /Failing scenarios:/
 error /AssertionError/
 error /not recognized as an internal or external command/
+error /build commands failed/
 
 info /This\scommit\swas\salready\sbuilt/
