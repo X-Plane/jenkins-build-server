@@ -181,11 +181,15 @@ def doBuild(String platform) {
                 String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
 
                 if(doClean) {
-                    utils.chooseShellByPlatformMacWinLin([
-                            "set -o pipefail && xcodebuild -project ${projectFile} clean ${pipe_to_xcpretty} && xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
-                            "\"${msBuild}\" ${projectFile} /t:Clean",
-                            'cd design_linux && make clean'
-                    ], platform)
+                    if(utils.isMac(platform)) {
+                        sh "rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*"
+                        sh "xcodebuild -project ${projectFile} clean"
+                        sh "xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean"
+                    } else {
+                        utils.chooseShellByPlatformNixWin(
+                                'cd design_linux && make clean',
+                                "\"${msBuild}\" ${projectFile} /t:Clean", platform)
+                    }
                 }
 
                 for(String target in getBuildTargets(platform)) {
