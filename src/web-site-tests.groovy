@@ -68,6 +68,7 @@ def getCommitId() {
 def testFunnel(String platform) {
     dir(getCheckoutDir(platform)) {
         setUpPython3VirtualEnvironment(utils, platform)
+        String dirChar = utils.getDirChar(platform)
         utils.chooseShell("env${dirChar}${binDir}${dirChar}behave --tags=${tag}", platform)
     }
 }
