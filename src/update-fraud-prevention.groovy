@@ -1,9 +1,13 @@
+String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+
 def environment = [:]
 environment['branch_name'] = 'master'
 environment['send_emails'] = 'true'
-utils.setEnvironment(environment, this.&notify, this.steps, platform)
+environment['build_windows'] = utils.isWindows(platform) ? 'true' : 'false'
+environment['build_mac'] = utils.isMac(platform) ? 'true' : 'false'
+environment['build_linux'] = utils.isLinux(platform) ? 'true' : 'false'
+utils.setEnvironment(environment, this.&notify, this.steps)
 
-String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
 
 stage('Checkout')   { node(nodeType) { doCheckout(platform) } }
 stage('Update')     { node(nodeType) { updateFraudPreventionData(platform) } }
