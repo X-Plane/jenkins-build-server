@@ -65,6 +65,10 @@ def runOn3Platforms(Closure c, boolean force_windows=false) {
 }
 
 boolean supportsCatch2Tests(String platform) {
+    if(utils.isSteamBuild()) {
+        return false
+    }
+
     dir(utils.getCheckoutDir(platform)) {
         try {
             return fileExists('source_code/test/catch2_tests/CMakeLists.txt')
