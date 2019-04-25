@@ -34,7 +34,11 @@ try {
 }
 finally { // we want to archive regardless of whether the tests passed
     stage('Archive')  { node(nodeType) { doArchive(platform) } }
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
+    node(nodeType) {
+        def curl = utils.chooseByPlatformNixWin('curl', 'C:\\msys64\\usr\\bin\\curl.exe')
+        utils.chooseShell("${curl} https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt -O", platform)
+        step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
+    }
 }
 
 String getCheckoutDir(platform) {
