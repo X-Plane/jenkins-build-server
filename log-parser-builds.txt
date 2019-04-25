@@ -15,5 +15,12 @@ error /^\[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hp
 error /.obj : error LNK\d+/
 error /: undefined reference to/
 error /xcodebuild: error:/
+error /Segmentation fault/
+error / --- FAILED/
+error /X-Plane ended with exit code/
+error /Failing scenarios:/
+error /AssertionError/
+error /not recognized as an internal or external command/
+error /build commands failed/
 
 info /This\scommit\swas\salready\sbuilt/

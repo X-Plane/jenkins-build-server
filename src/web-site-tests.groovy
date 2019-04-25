@@ -20,7 +20,7 @@ try {
 } catch(e) {
     slackSend(
             color: 'danger',
-            message: "Hey <@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}console|Console Log> | <${BUILD_URL}|Build Info>")
+            message: "Hey <@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}|Build Info>")
     if(tag.contains('Critical')) {
         notifyPagerDuty("Web site test of ${tag} failed")
     }
@@ -28,6 +28,7 @@ try {
 }
 finally { // we want to archive regardless of whether the tests passed
     stage('Archive')  { node(nodeType) { doArchive(platform) } }
+    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
 }
 
 String getCheckoutDir(platform) {

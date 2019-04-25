@@ -65,6 +65,10 @@ def runOn3Platforms(Closure c, boolean force_windows=false) {
 }
 
 boolean supportsCatch2Tests(String platform) {
+    if(utils.isSteamBuild()) {
+        return false
+    }
+
     dir(utils.getCheckoutDir(platform)) {
         try {
             return fileExists('source_code/test/catch2_tests/CMakeLists.txt')
@@ -181,11 +185,15 @@ def doBuild(String platform) {
                 String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
 
                 if(doClean) {
-                    utils.chooseShellByPlatformMacWinLin([
-                            "set -o pipefail && xcodebuild -project ${projectFile} clean ${pipe_to_xcpretty} && xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
-                            "\"${msBuild}\" ${projectFile} /t:Clean",
-                            'cd design_linux && make clean'
-                    ], platform)
+                    if(utils.isMac(platform)) {
+                        sh "rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*"
+                        sh "xcodebuild -project ${projectFile} clean"
+                        sh "xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean"
+                    } else {
+                        utils.chooseShellByPlatformNixWin(
+                                'cd design_linux && make clean',
+                                "\"${msBuild}\" ${projectFile} /t:Clean", platform)
+                    }
                 }
 
                 for(String target in getBuildTargets(platform)) {
@@ -261,11 +269,22 @@ def evSignExecutable(String executable) {
 
 def buildAndArchiveShaders() {
     dir(utils.getCheckoutDir('Windows')) {
-        String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
-        String destSlashesEscaped = utils.escapeSlashes(dropboxPath)
         String shadersZip = 'shaders_bin.zip'
-        if(!forceBuild && utils.copyBuildProductsFromArchive([shadersZip], 'Windows')) {
-            echo 'Skipping shaders build since they already exist in Dropbox'
+        String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
+
+        // Need to hash both the shader source files and gfx-cc itself
+        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv  | Select -ExpandProperty Hash') +
+                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.glsl | Select -ExpandProperty Hash') +
+                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe   | Select -ExpandProperty Hash')
+        String combinedHash = powershell(returnStdout: true, script: "\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()").replaceAll("\\s","")
+
+        String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
+        fileOperations([folderCreateOperation(shaderCacheDir)])
+        String shaderCachePath = "${shaderCacheDir}${combinedHash}.zip"
+        boolean cacheExists = fileExists(shaderCachePath)
+        if(!forceBuild && cacheExists) {
+            echo "Skipping shaders build since they already exist in Dropbox (combined hash ${combinedHash})"
+            utils.copyFilePatternToDest(shaderCachePath, shadersZip)
         } else {
             try {
                 retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet' }
@@ -280,6 +299,10 @@ def buildAndArchiveShaders() {
             }
             zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
         }
+
+        if(!cacheExists) {
+            utils.copyFilePatternToDest(shadersZip, shaderCachePath)
+        }
         archiveWithDropbox([shadersZip], dropboxPath, true, utils)
     }
 }
@@ -289,7 +312,7 @@ def retry(Closure c, int max_tries=5) {
     for(int i = 0; i < max_tries - 1; ++i) {
         try {
             return closure()
-        } catch(e) { }
+        } catch(e) { sleep(10) }
     }
     return closure()
 }
@@ -329,40 +352,42 @@ def getArchiveDirAndEnsureItExists(String platform, String optionalSubdir='') {
 }
 
 def doArchive(String platform) {
-    try {
-        def checkoutDir = utils.getCheckoutDir(platform)
-        dir(checkoutDir) {
-            def dropboxPath = getArchiveDirAndEnsureItExists(platform)
-            echo "Copying files from ${checkoutDir} to ${dropboxPath}"
+    if(products_to_build != 'SHADERS') { // if we haven't already archived everything we needed!
+        try {
+            def checkoutDir = utils.getCheckoutDir(platform)
+            dir(checkoutDir) {
+                def dropboxPath = getArchiveDirAndEnsureItExists(platform)
+                echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
-            // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
-            if(utils.isMac(platform)) {
-                sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
-                sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
-            }
-
-            List prods = getProducts(platform)
-            // Kit the installers for deployment
-            if(needsInstallerKitting(platform)) {
-                String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
-                String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
-                if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
-                    String renamedInstaller = "X-Plane 11 Installer Linux"
-                    fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
-                    zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
-                    nukeFile(renamedInstaller)
-                } else {
-                    zip(zipFile: zipTarget, archive: false, glob: installer)
+                // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
+                if(utils.isMac(platform)) {
+                    sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
+                    sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
                 }
-                prods.push(zipTarget)
+
+                List prods = getProducts(platform)
+                // Kit the installers for deployment
+                if(needsInstallerKitting(platform)) {
+                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
+                    String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
+                    if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
+                        String renamedInstaller = "X-Plane 11 Installer Linux"
+                        fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
+                        zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
+                        nukeFile(renamedInstaller)
+                    } else {
+                        zip(zipFile: zipTarget, archive: false, glob: installer)
+                    }
+                    prods.push(zipTarget)
+                }
+                archiveWithDropbox(prods, dropboxPath, true, utils)
             }
-            archiveWithDropbox(prods, dropboxPath, true, utils)
+        } catch (e) {
+            utils.sendEmail("Jenkins archive step failed on ${platform} [${branch_name}]",
+                    "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing build products.",
+                    e.toString())
+            throw e
         }
-    } catch (e) {
-        utils.sendEmail("Jenkins archive step failed on ${platform} [${branch_name}]",
-                "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing build products.",
-                e.toString())
-        throw e
     }
 }
 
