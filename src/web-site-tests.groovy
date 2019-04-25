@@ -6,7 +6,7 @@ environment['send_emails'] = 'true'
 environment['build_windows'] = utils.isWindows(platform) ? 'true' : 'false'
 environment['build_mac'] = utils.isMac(platform) ? 'true' : 'false'
 environment['build_linux'] = utils.isLinux(platform) ? 'true' : 'false'
-utils.setEnvironment(environment, this.&notify, this.steps, platform)
+utils.setEnvironment(environment, this.&notify, this.steps)
 
 
 stage('Checkout')     { node(nodeType) { doCheckout(platform) } }
