@@ -146,15 +146,9 @@ def doCheckout() {
 }
 
 def attemptCopyAndUnzipShaders(String platform) {
-    String shadersSuffix = utils.isWindows(platform) ? 'Windows' : platform
-    // the "legacy" location, from back when we were compiling shaders individually on 3 platforms for no good reason
-    String legacyZip = "shaders_bin_${shadersSuffix}.zip"
-
-    for(String potentialZip : ['shaders_bin.zip', legacyZip]) {
-        if(utils.copyBuildProductsFromArchive([potentialZip], platform)) {
-            unzip(zipFile: potentialZip, dir: 'Resources/shaders/bin/', quiet: true)
-            return true
-        }
+    if(utils.copyBuildProductsFromArchive(['shaders_bin.zip'], platform)) {
+        unzip(zipFile: 'shaders_bin.zip', dir: 'Resources/shaders/bin/', quiet: true)
+        return true
     }
     return false
 }
