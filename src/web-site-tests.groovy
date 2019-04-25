@@ -68,9 +68,9 @@ def getCommitId() {
 def testFunnel(String platform) {
     dir(getCheckoutDir(platform)) {
         setUpPython3VirtualEnvironment(utils, platform)
-        String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts')
+        String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
         String dirChar = utils.getDirChar(platform)
-        String python3Path = utils.chooseByPlatformNixWin('python3', '"C:\\Program Files\\Python37\\python.exe"')
+        String python3Path = utils.chooseByPlatformNixWin('python3', '"C:\\Program Files\\Python37\\python.exe"', platform)
         try {
             utils.chooseShell("virtualenv env -p ${python3Path}", platform)
             utils.chooseShell("env${dirChar}${binDir}${dirChar}pip install -r package_requirements.txt", platform)
