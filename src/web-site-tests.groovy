@@ -1,4 +1,4 @@
-@Library('build-utils@77c5fc34876c084c17908632182bfe20b0e43bf5')_
+@Library('build-utils@b4790581ec367dbe917abe8b095c955849e0eac0')_
 
 String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
 
