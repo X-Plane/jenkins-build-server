@@ -1,3 +1,5 @@
+@Library('build-utils@0ff6ad126b9fcf48cb44b8b51870bf2b09276945')_
+
 String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
 
 def environment = [:]
