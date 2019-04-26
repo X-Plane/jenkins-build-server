@@ -44,8 +44,8 @@ try {
     stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
 } finally {
     node(nodeType) {
-        def curl = utils.chooseByPlatformNixWin('curl', 'C:\\msys64\\usr\\bin\\curl.exe', platform)
-        utils.chooseShell("${curl} https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt -O", platform)
+        String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
+        utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O", platform)
         step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
     }
 }
