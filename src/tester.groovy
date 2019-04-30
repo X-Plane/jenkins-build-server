@@ -62,6 +62,9 @@ def doCheckout() {
     if(isRenderingRegression) {
         to_nuke.push('regression_images')
     }
+    if(utils.isMac(platform)) {
+        to_nuke.push('*.app')
+    }
     clean(utils.getExpectedXPlaneProducts(platform, true) + to_nuke, cleanCommand, platform, utils)
 
     try {
