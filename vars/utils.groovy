@@ -22,9 +22,10 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
         build_type = steam_build ? "NODEV_OPT_Prod_Steam" : (release_build ? "NODEV_OPT_Prod" : (is_dev ? 'DEV_OPT' : "NODEV_OPT"))
         assert release_build == isReleaseBuild()
         assert !(is_dev && release_build), "Dev and release options are mutually exlusive"
-    } else {
-        assert environment.containsKey('build_type')
+    } else if(environment.containsKey('build_type')) {
         build_type = environment['build_type']
+    } else {
+        build_type = ''
     }
 
     products_to_build = environment.containsKey('products_to_build') ? environment['products_to_build'] : ''
@@ -176,7 +177,9 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
         }
         if(isMac(platform)) {
             for(z in findFiles(glob: '*.zip')) {
-                unzip(zipFile: z.name, quiet: true)
+                if(z.name != 'shaders_bin.zip') {
+                    sh "unzip -qq ${z.name}" // Tyler says: for unknown reasons, the new Jenkins isn't leaving our .app executable post-unzip using the built-in unzip() step... sigh...
+                }
             }
         }
         return true

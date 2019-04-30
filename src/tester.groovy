@@ -28,20 +28,27 @@ String nodeType = platform.startsWith('Windows') ? 'windows' : (platform == 'Lin
 node(nodeType) {
     checkoutDir = utils.getCheckoutDir(platform)
 }
-logFilesToArchive = []
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE TESTS
 // This is where the magic happens.
 //--------------------------------------------------------------------------------------------------------------------------------
-stage('Respond')             { utils.replyToTrigger("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
-stage('Checkout')            { node(nodeType) { doCheckout() } }
 try {
-    stage('Test')            { node(nodeType) { timeout(60 * 12) { doTest() } } }
-} finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')         { node(nodeType) { doArchive() } }
+    stage('Respond')             { utils.replyToTrigger("Automated testing of commit ${branch_name} is in progress on ${platform}.") }
+    stage('Checkout')            { node(nodeType) { timeout(60 * 2) { doCheckout() } } }
+    try {
+        stage('Test')            { node(nodeType) { timeout(60 * 12) { doTest() } } }
+    } finally { // we want to archive regardless of whether the tests passed
+        stage('Archive')         { node(nodeType) { doArchive() } }
+    }
+    stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
+} finally {
+    node(nodeType) {
+        String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
+        utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O", platform)
+        step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
+    }
 }
-stage('Notify')              { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
 
 
 //--------------------------------------------------------------------------------------------------------------------------------
@@ -51,7 +58,14 @@ def doCheckout() {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    clean(utils.getExpectedXPlaneProducts(platform, true) + ['*.png', 'regression_images', 'Resources/shaders/bin/'], cleanCommand, platform, utils)
+    List to_nuke = ['*.png', 'tests/*.old', 'Resources/shaders/bin/']
+    if(isRenderingRegression) {
+        to_nuke.push('regression_images')
+    }
+    if(utils.isMac(platform)) {
+        to_nuke.push('*.app')
+    }
+    clean(utils.getExpectedXPlaneProducts(platform, true) + to_nuke, cleanCommand, platform, utils)
 
     try {
         xplaneCheckout(branch_name, checkoutDir, platform)
@@ -79,12 +93,12 @@ def doCheckout() {
             String tpDir = utils.chooseByPlatformNixWin("/jenkins/third_party_testers/", "/c/jenkins/third_party_testers/", platform)
             dir(checkoutDir + 'Aircraft') {
                 try {
-                    sh "ln -s ${tpDir}Aircraft/ third_party"
+                    sh(returnStdout: true, script: "ln -s ${tpDir}Aircraft/ third_party")
                 } catch(e) { }
             }
             dir(checkoutDir + 'Custom Scenery') {
                 try {
-                    sh "find ${tpDir}Custom\\ Scenery/ -maxdepth 1 -mindepth 1 -type d -exec ln -s \'{}\' . \\;"
+                    sh(returnStdout: true, script: "find ${tpDir}Custom\\ Scenery/ -maxdepth 1 -mindepth 1 -type d -exec ln -s \'{}\' . \\;")
                 } catch(e) { }
             }
         }
@@ -135,15 +149,9 @@ def doCheckout() {
 }
 
 def attemptCopyAndUnzipShaders(String platform) {
-    String shadersSuffix = utils.isWindows(platform) ? 'Windows' : platform
-    // the "legacy" location, from back when we were compiling shaders individually on 3 platforms for no good reason
-    String legacyZip = "shaders_bin_${shadersSuffix}.zip"
-
-    for(String potentialZip : ['shaders_bin.zip', legacyZip]) {
-        if(utils.copyBuildProductsFromArchive([potentialZip], platform)) {
-            unzip(zipFile: potentialZip, dir: 'Resources/shaders/bin/', quiet: true)
-            return true
-        }
+    if(utils.copyBuildProductsFromArchive(['shaders_bin.zip'], platform)) {
+        unzip(zipFile: 'shaders_bin.zip', dir: 'Resources/shaders/bin/', quiet: true)
+        return true
     }
     return false
 }
@@ -188,8 +196,7 @@ def doTest() {
                 }
                 echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
-            String setupVenv = "${venvPath}virtualenv env -p ${venvPath}python3.6 && env/${binSubdir}/pip3 install -r package_requirements.txt"
-            echo setupVenv
+            String setupVenv = "${venvPath}virtualenv env -p ${venvPath}python3 && env/${binSubdir}/pip3 install -r package_requirements.txt"
             sh setupVenv
 
             def errorToThrow = null
@@ -201,6 +208,13 @@ def doTest() {
                 } catch(e) {
                     echo "Test ${testsToRun} exited with error, but we won't actually die until all test scripts have completed. Error was: ${e}"
                     errorToThrow = e // Continue running the rest of the tests!
+                    try {
+                        dir(checkoutDir) {
+                            String logDest = "Log_${platform}_failed.txt"
+                            utils.moveFilePatternToDest("Log.txt", logDest)
+                            archiveWithDropbox(logDest, getArchiveDir(), false, utils)
+                        }
+                    } catch(e2) { }
                 }
             }
 
@@ -209,14 +223,6 @@ def doTest() {
             }
         } catch(e) {
             echo "Caught error: ${e}"
-            try {
-                dir(checkoutDir) {
-                    String logDest = "Log_${platform}_failed.txt"
-                    utils.moveFilePatternToDest("Log.txt", logDest)
-                    logFilesToArchive.push(logDest)
-                }
-            } catch(e2) { }
-
             def commitId = utils.getCommitId(platform)
             utils.sendEmail("Testing failed on ${platform} [${branch_name}; ${commitId}]",
                     "Auto-testing of commit ${commitId} from the branch ${branch_name} failed.",
@@ -244,7 +250,7 @@ def doTest() {
 def doArchive() {
     try {
         dir(checkoutDir) {
-            List products = logFilesToArchive
+            List products = []
             try {
                 if(isFpsTest) {
                     String dest = "fps_test_results_${platform}_${cpu}_${gpu}.csv"
@@ -252,9 +258,7 @@ def doArchive() {
                     products.push(dest)
                 } else if(isRenderingRegression) {
                     String zipName = "regression_images_${platform}.zip"
-                    String cmd = "zip -r ${zipName} regression_images/*"
-                    echo cmd
-                    sh cmd
+                    zip(zipFile: zipName, archive: false, dir: 'regression_images/')
                     products.push(zipName)
                     if(isRenderingRegressionComparison) {
                         products.push('master_comparison.txt')
@@ -266,9 +270,14 @@ def doArchive() {
                     for(String screenshotName : readListFile('tests/jenkins_screenshots.list')) {
                         def dest = "${screenshotName}_${platform}.png"
                         try {
-                            utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
+                            utils.moveFilePatternToDest("${screenshotName}.png", dest)
                             products.push(dest)
-                        } catch(e) { } // No error if it doesn't exist
+                        } catch(e1) { // check the *old* screenshot naming style (with a numeric suffix)
+                            try {
+                                utils.moveFilePatternToDest("${screenshotName}_1.png", dest)
+                                products.push(dest)
+                            } catch(e2) { } // No error if it doesn't exist at all
+                        }
                     }
                 }
             } finally {
@@ -283,7 +292,7 @@ def doArchive() {
                         // A failure in archiving any of these does *not* result in a test failure.
                         '*.png',
                         // Grab any log files that the test_runner gave us from instances that crashed
-                        'Log_crashed_*.png']
+                        'Log_crashed_*.txt']
                 for(String pattern : extraFilePatterns) {
                     for(def file : findFiles(glob: pattern)) {
                         if(!products.contains(file.name)) {

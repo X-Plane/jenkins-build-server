@@ -1,18 +1,44 @@
-stage('Checkout')     { run(this.&doCheckout) }
+@Library('build-utils@b4790581ec367dbe917abe8b095c955849e0eac0')_
+
+String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
+
+def environment = [:]
+environment['branch_name'] = 'master'
+environment['send_emails'] = 'true'
+environment['build_windows'] = utils.isWindows(platform) ? 'true' : 'false'
+environment['build_mac'] = utils.isMac(platform) ? 'true' : 'false'
+environment['build_linux'] = utils.isLinux(platform) ? 'true' : 'false'
+utils.setEnvironment(environment, this.&notify, this.steps)
+
+
+stage('Checkout')     { node(nodeType) { doCheckout(platform) } }
 try {
-    stage('Test')     { run(this.&testFunnel) }
+    stage('Test') {
+        node(nodeType) {
+            try {
+                testFunnel(platform)
+            } catch(e) { // Give it a second try in case of temporary connectivity issues
+                echo "Failed the first time... let's retry before annoying Tyler..."
+                testFunnel(platform)
+            }
+        }
+    }
 } catch(e) {
-    slackSend(color: 'danger', message: "Hey <@UAG6R8LHJ>, the web site test of `${tag}` failed | <${parsedLogUrl}|Parsed Console Log> | <${BUILD_URL}|Build Info>")
-} finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')  { run(this.&doArchive) }
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
+    slackSend(
+            color: 'danger',
+            message: "Hey <@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}|Build Info>")
+    if(tag.contains('Critical')) {
+        notifyPagerDuty("Web site test of ${tag} failed")
+    }
+    throw e
 }
-
-
-def run(Closure c) {
-    def closure = c
-    String nodeType = platform.startsWith('Windows') ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
-    node(nodeType) { closure(platform) }
+finally { // we want to archive regardless of whether the tests passed
+    stage('Archive')  { node(nodeType) { doArchive(platform) } }
+    node(nodeType) {
+        def curl = utils.chooseByPlatformNixWin('curl', 'C:\\msys64\\usr\\bin\\curl.exe')
+        utils.chooseShell("${curl} https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt -O", platform)
+        step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
+    }
 }
 
 String getCheckoutDir(platform) {
@@ -27,11 +53,7 @@ def doCheckout(String platform) {
 
         xplaneCheckout('master', getCheckoutDir(platform), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
     } catch(e) {
-        currentBuild.result = "FAILED"
-        notifyBuild('Sales funnel Git checkout is broken on ' + platform,
-                'Sales funnel Git checkout failed. We will be unable to continuously check the web site until this is fixed.',
-                e.toString(),
-                'tyler@x-plane.com')
+        notifyBrokenCheckout(utils.&sendEmail, 'Sales funnel', 'master', platform, e)
         throw e
     }
 }
@@ -49,16 +71,9 @@ def getCommitId() {
 
 def testFunnel(String platform) {
     dir(getCheckoutDir(platform)) {
-        String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts')
+        setUpPython3VirtualEnvironment(utils, platform)
         String dirChar = utils.getDirChar(platform)
-        String python3Path = utils.chooseByPlatformNixWin('python3', '"C:\\Program Files\\Python37\\python.exe"')
-        try {
-            utils.chooseShell("virtualenv env -p ${python3Path}", platform)
-            utils.chooseShell("env${dirChar}${binDir}${dirChar}pip install -r package_requirements.txt", platform)
-        } catch(e) {
-            notifyBuild("Web site test setup failed", "Check the logs.", e.toString(), "tyler@x-plane.com")
-            throw e
-        }
+        String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
         utils.chooseShell("env${dirChar}${binDir}${dirChar}behave --tags=${tag}", platform)
     }
 }
@@ -75,23 +90,12 @@ def doArchive(String platform) {
     }
 }
 
-def notifyBuild(String subj, String msg, String errorMsg, String recipient=NULL) { // null recipient means we'll send to the most likely suspects
-    body = """${msg}
-    
-The error was: ${errorMsg}
-
-Download the screenshots: ${BUILD_URL}artifact/*zip*/archive.zip
-        
-Build URL: ${BUILD_URL}
-Console Log: ${BUILD_URL}console
-"""
-    emailext attachLog: true,
-            body: body,
-            subject: subj,
-            to: recipient ? recipient : emailextrecipients([
-                    [$class: 'CulpritsRecipientProvider'],
-                    [$class: 'RequesterRecipientProvider']
-            ])
+def notifyPagerDuty(String title) {
+    API_KEY = 'a5fc7b93193044118fc1b5be9c7ef082'
+    pagerduty(
+            resolve: false,
+            serviceKey: API_KEY,
+            incDescription: title,
+            incDetail: "${BUILD_URL}console"
+    )
 }
-
-
