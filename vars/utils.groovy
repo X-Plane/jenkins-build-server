@@ -174,10 +174,8 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
         archiveDir = fixWindowsPathConventions(archiveDir, platform)
         for(def p : expectedProducts) {
             chooseShellByPlatformNixWin("cp \"${archiveDir}${p}\" .", "copy \"${archiveDir}${p}\" .", platform)
-        }
-        if(isMac(platform)) {
-            for(z in findFiles(glob: '*.zip')) {
-                if(z.name != 'shaders_bin.zip') {
+            if(isMac(platform)) {
+                if(p.endsWith('.zip') && p != 'shaders_bin.zip') {
                     sh "unzip -qq ${z.name}" // Tyler says: for unknown reasons, the new Jenkins isn't leaving our .app executable post-unzip using the built-in unzip() step... sigh...
                 }
             }
