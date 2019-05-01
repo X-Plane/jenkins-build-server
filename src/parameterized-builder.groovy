@@ -18,6 +18,7 @@ utils.setEnvironment(environment, this.&notify)
 alerted_via_slack = false
 doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
+wantShaders = products_to_build.contains('SHADERS')
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -40,9 +41,10 @@ try {
     stage('Build') {
         if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
             runOn3Platforms(this.&doBuild)
-        } else if(products_to_build.contains('SHADERS')) { // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
+        } else {
             parallel (
-                    'Windows' : {                           node('windows') { buildAndArchiveShaders() } },
+                    // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
+                    'Windows' : { if(wantShaders)         { node('windows') { buildAndArchiveShaders() } } },
                     'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { doBuild('macOS')   } } } },
                     'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { doBuild('Linux')   } } } }
             )
@@ -133,7 +135,7 @@ def doCheckout(String platform) {
     clean(getProducts(platform) + [testXmlTarget(platform)], null, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
-        if(doClean && products_to_build.contains('SHADERS')) {
+        if(doClean && wantShaders) {
             String shaderDir = utils.chooseByPlatformNixWin('Resources/shaders/bin/', 'Resources\\shaders\\bin\\', platform)
             nukeFolders(utils.addPrefix(['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl'], shaderDir))
         }
@@ -208,7 +210,7 @@ def doBuild(String platform) {
             if(utils.isWindows(platform)) {
                 evSignWindows()
 
-                if(products_to_build.contains('SHADERS')) {
+                if(wantShaders) {
                     buildAndArchiveShaders()
                 }
             }
