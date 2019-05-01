@@ -22,5 +22,6 @@ error /Failing scenarios:/
 error /AssertionError/
 error /not recognized as an internal or external command/
 error /build commands failed/
+error /error due to missing products/
 
 info /This\scommit\swas\salready\sbuilt/
