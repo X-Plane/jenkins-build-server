@@ -132,7 +132,11 @@ def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includ
 def doCheckout(String platform) {
     // Nuke previous products
     nukeFolder(utils.chooseByPlatformMacWinLin(['design_xcode', 'design_vstudio', 'design_linux'], platform))
-    clean(getProducts(platform) + [testXmlTarget(platform)], null, platform, utils)
+    List<String> to_nuke = getProducts(platform) + [testXmlTarget(platform)]
+    if(utils.isMac(platform)) {
+        to_nuke.push('*.app')
+    }
+    clean(to_nuke, null, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
         if(doClean && wantShaders) {
