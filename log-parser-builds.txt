@@ -17,6 +17,7 @@ error /: undefined reference to/
 error /xcodebuild: error:/
 error /Segmentation fault/
 error / --- FAILED/
+error /Test failed:/
 error /X-Plane ended with exit code/
 error /Failing scenarios:/
 error /AssertionError/
