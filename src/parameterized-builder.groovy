@@ -18,6 +18,7 @@ utils.setEnvironment(environment, this.&notify)
 alerted_via_slack = false
 doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
+wantShaders = products_to_build.contains('SHADERS')
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -40,9 +41,10 @@ try {
     stage('Build') {
         if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
             runOn3Platforms(this.&doBuild)
-        } else if(products_to_build.contains('SHADERS')) { // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
+        } else {
             parallel (
-                    'Windows' : {                           node('windows') { buildAndArchiveShaders() } },
+                    // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
+                    'Windows' : { if(wantShaders)         { node('windows') { buildAndArchiveShaders() } } },
                     'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { doBuild('macOS')   } } } },
                     'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { doBuild('Linux')   } } } }
             )
@@ -130,10 +132,14 @@ def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includ
 def doCheckout(String platform) {
     // Nuke previous products
     nukeFolder(utils.chooseByPlatformMacWinLin(['design_xcode', 'design_vstudio', 'design_linux'], platform))
-    clean(getProducts(platform) + [testXmlTarget(platform)], null, platform, utils)
+    List<String> to_nuke = getProducts(platform) + [testXmlTarget(platform)]
+    if(utils.isMac(platform)) {
+        to_nuke.push('*.app')
+    }
+    clean(to_nuke, null, platform, utils)
 
     dir(utils.getCheckoutDir(platform)) {
-        if(doClean && products_to_build.contains('SHADERS')) {
+        if(doClean && wantShaders) {
             String shaderDir = utils.chooseByPlatformNixWin('Resources/shaders/bin/', 'Resources\\shaders\\bin\\', platform)
             nukeFolders(utils.addPrefix(['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl'], shaderDir))
         }
@@ -208,7 +214,7 @@ def doBuild(String platform) {
             if(utils.isWindows(platform)) {
                 evSignWindows()
 
-                if(products_to_build.contains('SHADERS')) {
+                if(wantShaders) {
                     buildAndArchiveShaders()
                 }
             }
@@ -284,7 +290,7 @@ def buildAndArchiveShaders() {
         boolean cacheExists = fileExists(shaderCachePath)
         if(!forceBuild && cacheExists) {
             echo "Skipping shaders build since they already exist in Dropbox (combined hash ${combinedHash})"
-            utils.copyFilePatternToDest(shaderCachePath, shadersZip)
+            utils.copyFilePatternToDest(shaderCachePath, shadersZip, 'Windows')
         } else {
             try {
                 retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet' }
