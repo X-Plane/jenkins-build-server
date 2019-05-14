@@ -323,7 +323,7 @@ List<String> readListFile(String fileName) {
         if(line && !line.startsWith('#')) {
             if(line.contains(':')) {
                 platformAndTest = line.split(':')
-                if(platformAndTest[0] == platform) {
+                if(platformAndTest[0].startsWith(platform)) {
                     out << platformAndTest[1].trim()
                 }
             } else { // this is an unqualified test
