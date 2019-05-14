@@ -24,5 +24,7 @@ error /AssertionError/
 error /not recognized as an internal or external command/
 error /build commands failed/
 error /error due to missing products/
+error /Unable to connect to a repository at URL/
+error /Network connection closed unexpectedly/
 
 info /This\scommit\swas\salready\sbuilt/
