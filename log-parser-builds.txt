@@ -18,6 +18,7 @@ error /xcodebuild: error:/
 error /Segmentation fault/
 error / --- FAILED/
 error /Test failed:/
+error /dev_assert Error/
 error /X-Plane ended with exit code/
 error /Failing scenarios:/
 error /AssertionError/
