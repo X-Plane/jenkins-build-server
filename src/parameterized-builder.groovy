@@ -130,7 +130,8 @@ def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteO
 def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
 
 def doCheckout(String platform) {
-    dir(utils.getCheckoutDir(platform)) {
+    String checkoutDir = utils.getCheckoutDir(platform)
+    dir(checkoutDir) {
         // Nuke previous products
         nukeFolder(utils.chooseByPlatformMacWinLin(['design_xcode', 'design_vstudio', 'design_linux'], platform))
         List<String> to_nuke = getProducts(platform) + [testXmlTarget(platform)]
