@@ -178,7 +178,7 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
         if(isMac(platform)) {
             for(z in findFiles(glob: '*.zip')) {
                 if(z.name != 'shaders_bin.zip') {
-                    sh "unzip -qq ${z.name}" // Tyler says: for unknown reasons, the new Jenkins isn't leaving our .app executable post-unzip using the built-in unzip() step... sigh...
+                    sh "unzip -qq \"${z.name}\"" // Tyler says: for unknown reasons, the new Jenkins isn't leaving our .app executable post-unzip using the built-in unzip() step... sigh...
                 }
             }
         }
