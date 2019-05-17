@@ -6,6 +6,7 @@ error /Failed\sin\sbranch/
 error /Couldn't\sfind\sany\srevision/
 error /MissingPropertyException/
 error /clang:\serror:/
+error /\*\*\* No rule to make target/
 error /^ERROR:\s/
 error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
 error /^\d+\serrors\sgenerated/
