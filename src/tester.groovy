@@ -58,7 +58,7 @@ def doCheckout() {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    List to_nuke = ['*.png', 'tests/*.old', 'Resources/shaders/bin/']
+    List to_nuke = ['*.png', '*.avi', 'tests/*.old', 'Resources/shaders/bin/']
     if(isRenderingRegression) {
         to_nuke.push('regression_images')
     }
@@ -291,6 +291,7 @@ def doArchive() {
                         // This allows us to archive any screenshots we did *not* expect from the jenkins_screenshots.list.
                         // A failure in archiving any of these does *not* result in a test failure.
                         '*.png',
+                        '*.avi',
                         // Grab any log files that the test_runner gave us from instances that crashed
                         'Log_crashed_*.txt']
                 for(String pattern : extraFilePatterns) {
