@@ -57,10 +57,13 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 checkout(
                         [$class: 'GitSCM', branches: [[name: branchName]],
                          doGenerateSubmoduleConfigurations: false,
-                         extensions: [[$class: 'SubmoduleOption',
+                         extensions: [
+                                 [$class: 'CloneOption', timeout: 120],
+                                 [$class: 'SubmoduleOption',
                                        disableSubmodules: false,
                                        parentCredentials: true,
-                                       recursiveSubmodules: true]], submoduleCfg: [],
+                                       recursiveSubmodules: true]
+                         ], submoduleCfg: [],
                          userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
                 )
             } catch(e) {
@@ -70,10 +73,13 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 checkout(
                         [$class: 'GitSCM', branches: [[name: branchName]],
                          doGenerateSubmoduleConfigurations: false,
-                         extensions: [[$class: 'SubmoduleOption',
+                         extensions: [
+                                 [$class: 'CloneOption', timeout: 120],
+                                 [$class: 'SubmoduleOption',
                                        disableSubmodules: false,
                                        parentCredentials: true,
-                                       recursiveSubmodules: true]], submoduleCfg: [],
+                                       recursiveSubmodules: true]
+                         ], submoduleCfg: [],
                          userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
                 )
             }
