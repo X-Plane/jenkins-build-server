@@ -58,7 +58,6 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                                  "SDK\\COMMON\\xairnav\\src\\units\\"]) {
                 bat(returnStatus: true, script: "rmdir /Q /S \"${toClean}\"")
             }
-            bat "git clean -ffdx"
             // Now do the checkout again, with the proper submodules
             try {
                 checkout(
