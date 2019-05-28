@@ -53,15 +53,30 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             }
             bat "git clean -ffdx"
             // Now do the checkout again, with the proper submodules
-            checkout(
-                    [$class: 'GitSCM', branches: [[name: branchName]],
-                     doGenerateSubmoduleConfigurations: false,
-                     extensions: [[$class: 'SubmoduleOption',
-                                   disableSubmodules: false,
-                                   parentCredentials: true,
-                                   recursiveSubmodules: true]], submoduleCfg: [],
-                     userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
-            )
+            try {
+                checkout(
+                        [$class: 'GitSCM', branches: [[name: branchName]],
+                         doGenerateSubmoduleConfigurations: false,
+                         extensions: [[$class: 'SubmoduleOption',
+                                       disableSubmodules: false,
+                                       parentCredentials: true,
+                                       recursiveSubmodules: true]], submoduleCfg: [],
+                         userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
+                )
+            } catch(e) {
+                // Try removing the damn cgunits submodule
+                powershell "Set-Content -Path .gitmodules -Value (get-content -Path .gitmodules | Select-String -Pattern 'xairnav/src/units' -NotMatch)"
+                powershell "Set-Content -Path .gitmodules -Value (get-content -Path .gitmodules | Select-String -Pattern 'cgunits.git' -NotMatch)"
+                checkout(
+                        [$class: 'GitSCM', branches: [[name: branchName]],
+                         doGenerateSubmoduleConfigurations: false,
+                         extensions: [[$class: 'SubmoduleOption',
+                                       disableSubmodules: false,
+                                       parentCredentials: true,
+                                       recursiveSubmodules: true]], submoduleCfg: [],
+                         userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
+                )
+            }
         }
 
         utils.chooseShellByPlatformNixWin('git reset --hard', 'git reset --hard', platform)
