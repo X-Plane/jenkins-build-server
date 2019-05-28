@@ -47,7 +47,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default apt dat.url\" ${remoteParent}default_apts.git"
             bat "git config --file=.gitmodules \"submodule.Custom Scenery\\Global Airports.url\" ${remoteParent}global_apts.git"
             for(String aptDir : ["Resources\\default scenery\\default apt dat\\", "Custom Scenery\\Global Airports\\"]) {
-                bat "rmdir /Q /S ${aptDir}"
+                bat "rmdir /Q /S \"${aptDir}\""
             }
         }
 
