@@ -46,9 +46,6 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             for(String aptDir : ["Resources\\default scenery\\default apt dat\\", "Custom Scenery\\Global Airports\\"]) {
                 bat "rmdir /Q /S \"${aptDir}\""
             }
-            sshagent(['tylers-ssh']) {
-                utils.chooseShell('git submodule update --recursive --init', platform)
-            }
             // Now do the checkout again, with the proper submodules
             checkout(
                     [$class: 'GitSCM', branches: [[name: branchName]],
