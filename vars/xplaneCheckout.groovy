@@ -49,7 +49,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                                  "Custom Scenery\\Global Airports\\",
                                  ".git\\modules\\SDK\\COMMON\\xairnav\\src\\units\\",
                                  "SDK\\COMMON\\xairnav\\src\\units\\"]) {
-                bat "rmdir /Q /S \"${toClean}\""
+                bat(returnStatus: true, script: "rmdir /Q /S \"${toClean}\"")
             }
             // Now do the checkout again, with the proper submodules
             checkout(
