@@ -37,7 +37,6 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         }
 
         if(utils.shellIsSh(platform)) {
-            sh(returnStatus: true, script: 'git rm --cached SDK/COMMON/xairnav/src/units/')
             dir(checkoutDir + 'scripts') {
                 if(fileExists('setup_submodules.sh')) {
                     sshagent(['tylers-ssh']) {
@@ -46,18 +45,12 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 }
             }
         } else { // Gotta recreate the damn setup_submodules.sh script on Windows
-            bat(returnStatus: true, script: 'git rm --cached SDK/COMMON/xairnav/src/units/')
             String remote = bat(returnStdout: true, script: "git remote get-url --push origin").trim().split("\r?\n")[1]
             String remoteParent = remote.substring(0, remote.lastIndexOf('/') + 1)
             bat "git config --file=.gitmodules \"submodule.Resources\\dlls\\64\\cef.url\" ${remoteParent}cef.git"
             bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default atc.url\" ${remoteParent}atc_res.git"
             bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default apt dat.url\" ${remoteParent}default_apts.git"
             bat "git config --file=.gitmodules \"submodule.Custom Scenery\\Global Airports.url\" ${remoteParent}global_apts.git"
-            bat "git config --file=.gitmodules submodule.SDK/COMMON/xairnav/src/units.url git://github.com/PhilippMuenzel/cgunits.git"
-            for(String toClean : [".git\\modules\\SDK\\COMMON\\xairnav\\src\\units\\",
-                                 "SDK\\COMMON\\xairnav\\src\\units\\"]) {
-                bat(returnStatus: true, script: "rmdir /Q /S \"${toClean}\"")
-            }
             // Now do the checkout again, with the proper submodules
             try {
                 checkout(
@@ -73,9 +66,6 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                          userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
                 )
             } catch(e) {
-                // Try removing the damn cgunits submodule
-                powershell "Set-Content -Path .gitmodules -Value (get-content -Path .gitmodules | Select-String -Pattern 'xairnav/src/units' -NotMatch)"
-                powershell "Set-Content -Path .gitmodules -Value (get-content -Path .gitmodules | Select-String -Pattern 'cgunits.git' -NotMatch)"
                 checkout(
                         [$class: 'GitSCM', branches: [[name: branchName]],
                          doGenerateSubmoduleConfigurations: false,
