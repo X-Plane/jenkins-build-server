@@ -23,10 +23,8 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         } else {
             checkout(
                     [$class: 'GitSCM', branches: [[name: branchName]],
-                     extensions: [
-                             [$class: 'BuildChooserSetting', buildChooser: [$class: 'AncestryBuildChooser', ancestorCommitSha1: '']]
-                     ],
-                     userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
+                     extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'CleanCheckout']],
+                     userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]]
             )
         }
 
@@ -52,6 +50,16 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             sshagent(['tylers-ssh']) {
                 utils.chooseShell('git submodule update --recursive --init', platform)
             }
+            // Now do the checkout again, with the proper submodules
+            checkout(
+                    [$class: 'GitSCM', branches: [[name: branchName]],
+                     doGenerateSubmoduleConfigurations: false,
+                     extensions: [[$class: 'SubmoduleOption',
+                                   disableSubmodules: false,
+                                   parentCredentials: true,
+                                   recursiveSubmodules: true]], submoduleCfg: [],
+                     userRemoteConfigs:  [[credentialsId: 'tylers-ssh', url: repo]]]
+            )
         }
 
         utils.chooseShellByPlatformNixWin('git reset --hard', 'git reset --hard', platform)
