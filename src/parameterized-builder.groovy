@@ -333,7 +333,6 @@ def doUnitTest(String platform) {
             String xml = testXmlTarget(platform)
             try {
                 utils.chooseShellByPlatformNixWin("./${exe} -r junit -o ${xml}", "${exe} /r junit /o ${xml}", platform)
-                archiveWithDropbox([xml], getArchiveDirAndEnsureItExists(platform), true, utils, false)
             } catch(e) {
                 String heyYourBuild = getSlackHeyYourBuild()
                 String logUrl = "${BUILD_URL}flowGraphTable/"
@@ -342,6 +341,7 @@ def doUnitTest(String platform) {
                         message: "${heyYourBuild} of `${branch_name}` compiled, but it failed unit testing | <${BUILD_URL}|Build Info>")
                 alerted_via_slack = true
             }
+            archiveWithDropbox([xml], getArchiveDirAndEnsureItExists(platform), true, utils, false)
             junit keepLongStdio: true, testResults: xml
         }
     }
