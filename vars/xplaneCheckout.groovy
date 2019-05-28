@@ -42,11 +42,11 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         } else { // Gotta recreate the damn setup_submodules.sh script on Windows
             String remote = bat(returnStdout: true, script: "git remote get-url --push origin").trim().split("\r?\n")[1]
             String remoteParent = remote.substring(0, remote.lastIndexOf('/') + 1)
-            bat "git config --file=.gitmodules submodule.Resources/dlls/64/cef.url ${remoteParent}cef.git"
-            bat "git config --file=.gitmodules submodule.Resources/default\\ scenery/default\\ atc.url ${remoteParent}atc_res.git"
-            bat "git config --file=.gitmodules submodule.Resources/default\\ scenery/default\\ apt\\ dat.url ${remoteParent}default_apts.git"
-            bat "git config --file=.gitmodules submodule.Custom\ Scenery/Global\ Airports.url ${remoteParent}global_apts.git"
-            for(String aptDir : ["Resources/default scenery/default apt dat/" "Custom Scenery/Global Airports/"]) {
+            bat "git config --file=.gitmodules \"submodule.Resources\\dlls\\64\\cef.url\" ${remoteParent}cef.git"
+            bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default atc.url\" ${remoteParent}atc_res.git"
+            bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default apt dat.url\" ${remoteParent}default_apts.git"
+            bat "git config --file=.gitmodules \"submodule.Custom Scenery\\Global Airports.url ${remoteParent}global_apts.git"
+            for(String aptDir : ["Resources\\default scenery\\default apt dat\\" "Custom Scenery\\Global Airports\\"]) {
                 bat "rmdir /Q /S ${aptDir}"
             }
         }
