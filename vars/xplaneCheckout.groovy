@@ -44,6 +44,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default atc.url\" ${remoteParent}atc_res.git"
             bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default apt dat.url\" ${remoteParent}default_apts.git"
             bat "git config --file=.gitmodules \"submodule.Custom Scenery\\Global Airports.url\" ${remoteParent}global_apts.git"
+            bat "git config --file=.gitmodules submodule.SDK/COMMON/xairnav/src/units.url git://github.com/PhilippMuenzel/cgunits.git"
             for(String aptDir : ["Resources\\default scenery\\default apt dat\\", "Custom Scenery\\Global Airports\\"]) {
                 bat "rmdir /Q /S \"${aptDir}\""
             }
