@@ -12,6 +12,15 @@ def call(String branchName='', String checkoutDir='', String platform='', String
 
     dir(checkoutDir) {
         echo "Checking out ${branchName} on ${platform}"
+
+        for(String toClean : ["Resources/default scenery/default apt dat/", "Custom Scenery/Global Airports/"]) {
+            if(utils.shellIsSh(platform)) {
+                sh(returnStatus: true, script: "rm -rf \"${toClean}\"")
+            } else {
+                bat(returnStatus: true, script: "rmdir /Q /S \"${toClean}\"")
+            }
+        }
+
         if(platform == 'Linux' || platform.contains('Bash')) {
             sshagent(['tylers-ssh']) {
                 sh "git branch"
@@ -45,9 +54,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default apt dat.url\" ${remoteParent}default_apts.git"
             bat "git config --file=.gitmodules \"submodule.Custom Scenery\\Global Airports.url\" ${remoteParent}global_apts.git"
             bat "git config --file=.gitmodules submodule.SDK/COMMON/xairnav/src/units.url git://github.com/PhilippMuenzel/cgunits.git"
-            for(String toClean : ["Resources\\default scenery\\default apt dat\\",
-                                 "Custom Scenery\\Global Airports\\",
-                                 ".git\\modules\\SDK\\COMMON\\xairnav\\src\\units\\",
+            for(String toClean : [".git\\modules\\SDK\\COMMON\\xairnav\\src\\units\\",
                                  "SDK\\COMMON\\xairnav\\src\\units\\"]) {
                 bat(returnStatus: true, script: "rmdir /Q /S \"${toClean}\"")
             }
