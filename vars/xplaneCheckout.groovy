@@ -23,7 +23,6 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         } else {
             checkout(
                     [$class: 'GitSCM', branches: [[name: branchName]],
-                     extensions: [[$class: 'CleanBeforeCheckout'], [$class: 'CleanCheckout']],
                      userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]]
             )
         }
