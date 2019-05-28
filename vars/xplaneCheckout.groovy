@@ -49,10 +49,13 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             for(String aptDir : ["Resources\\default scenery\\default apt dat\\", "Custom Scenery\\Global Airports\\"]) {
                 bat "rmdir /Q /S \"${aptDir}\""
             }
+            sshagent(['tylers-ssh']) {
+                utils.chooseShell('git submodule update --recursive --init', platform)
+            }
         }
 
         utils.chooseShellByPlatformNixWin('git reset --hard', 'git reset --hard', platform)
-        utils.chooseShell('git submodule update --recursive --init', platform)
+        utils.chooseShell('git submodule update --recursive', platform)
 
         String commitId = ""
         if(utils.shellIsSh(platform)) {
