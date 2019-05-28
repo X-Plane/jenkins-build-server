@@ -37,6 +37,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 }
             }
         } else { // Gotta recreate the damn setup_submodules.sh script on Windows
+            bat(returnStatus: true, script: 'git rm --cached SDK/COMMON/xairnav/src/units/')
             String remote = bat(returnStdout: true, script: "git remote get-url --push origin").trim().split("\r?\n")[1]
             String remoteParent = remote.substring(0, remote.lastIndexOf('/') + 1)
             bat "git config --file=.gitmodules \"submodule.Resources\\dlls\\64\\cef.url\" ${remoteParent}cef.git"
