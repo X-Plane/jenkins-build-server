@@ -130,30 +130,30 @@ def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteO
 def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
 
 def doCheckout(String platform) {
-    // Nuke previous products
-    nukeFolder(utils.chooseByPlatformMacWinLin(['design_xcode', 'design_vstudio', 'design_linux'], platform))
-    List<String> to_nuke = getProducts(platform) + [testXmlTarget(platform)]
-    if(utils.isMac(platform)) {
-        to_nuke.push('*.app')
-    }
-    clean(to_nuke, null, platform, utils)
+    String checkoutDir = utils.getCheckoutDir(platform)
+    dir(checkoutDir) {
+        // Nuke previous products
+        nukeFolder(utils.chooseByPlatformMacWinLin(['design_xcode', 'design_vstudio', 'design_linux'], platform))
+        List<String> to_nuke = getProducts(platform) + [testXmlTarget(platform)]
+        if(utils.isMac(platform)) {
+            to_nuke.push('*.app')
+        }
+        clean(to_nuke, null, platform, utils)
 
-    dir(utils.getCheckoutDir(platform)) {
         if(doClean && wantShaders) {
             String shaderDir = utils.chooseByPlatformNixWin('Resources/shaders/bin/', 'Resources\\shaders\\bin\\', platform)
             nukeFolders(utils.addPrefix(['glsl120', 'glsl130', 'glsl150', 'spv', 'mlsl'], shaderDir))
         }
         nukeFiles(['*.zip'])
-    }
 
-    try {
-        String checkoutDir = utils.getCheckoutDir(platform)
-        xplaneCheckout(branch_name, checkoutDir, platform)
-        if(products_to_build.contains('TEST') && utils.shellIsSh(platform)) {
-            getArt(checkoutDir)
+        try {
+            xplaneCheckout(branch_name, checkoutDir, platform)
+            if(products_to_build.contains('TEST') && utils.shellIsSh(platform)) {
+                getArt(checkoutDir)
+            }
+        } catch(e) {
+            notifyBrokenCheckout(utils.&sendEmail, 'X-Plane', branch_name, platform, e)
         }
-    } catch(e) {
-        notifyBrokenCheckout(utils.&sendEmail, 'X-Plane', branch_name, platform, e)
     }
 }
 

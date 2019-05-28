@@ -6,8 +6,10 @@ error /Failed\sin\sbranch/
 error /Couldn't\sfind\sany\srevision/
 error /MissingPropertyException/
 error /clang:\serror:/
+error /\*\*\* No rule to make target/
 error /^ERROR:\s/
 error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
+error /: fatal error:/
 error /^\d+\serrors\sgenerated/
 error /^\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:\serror:/
 error /^(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\):\serror\sC\d+:/
@@ -15,9 +17,11 @@ error /^\[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hp
 error /.obj : error LNK\d+/
 error /: undefined reference to/
 error /xcodebuild: error:/
+error /^fatal:/
 error /Segmentation fault/
 error / --- FAILED/
 error /Test failed:/
+error /dev_assert Error/
 error /X-Plane ended with exit code/
 error /Failing scenarios:/
 error /AssertionError/
