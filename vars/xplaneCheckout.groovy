@@ -30,17 +30,31 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             )
         }
 
-        if(utils.shellIsSh(platform) && fileExists('scripts/setup_submodules.sh')) {
+        if(utils.shellIsSh(platform)) {
             sh(returnStatus: true, script: 'git rm --cached SDK/COMMON/xairnav/src/units/')
             dir(checkoutDir + 'scripts') {
-                sshagent(['tylers-ssh']) {
-                    sh './setup_submodules.sh'
+                if(fileExists('setup_submodules.sh')) {
+                    sshagent(['tylers-ssh']) {
+                        sh './setup_submodules.sh'
+                    }
+                }
+            }
+        } else { // Gotta recreate the damn setup_submodules.sh script on Windows
+            String remote = bat(returnStdout: true, script: "git remote get-url --push origin").trim().split("\r?\n")[1]
+            String remoteParent = remote.substring(0, remote.lastIndexOf('/') + 1)
+            bat "git config --file=.gitmodules submodule.Resources/dlls/64/cef.url ${remoteParent}cef.git"
+            bat "git config --file=.gitmodules submodule.Resources/default\\ scenery/default\\ atc.url ${remoteParent}atc_res.git"
+            bat "git config --file=.gitmodules submodule.Resources/default\\ scenery/default\\ apt\\ dat.url ${remoteParent}default_apts.git"
+            bat "git config --file=.gitmodules submodule.Custom\ Scenery/Global\ Airports.url ${remoteParent}global_apts.git"
+            for(String aptDir : ["Resources/default scenery/default apt dat/" "Custom Scenery/Global Airports/"]) {
+                if(!fileExists("${aptDir}.git")) {
+                    bat "rmdir /Q /S ${aptDir}"
                 }
             }
         }
 
         utils.chooseShellByPlatformNixWin('git reset --hard', 'git reset --hard', platform)
-        utils.chooseShell('git submodule update --recursive', platform)
+        utils.chooseShell('git submodule update --recursive --init', platform)
 
         String commitId = ""
         if(utils.shellIsSh(platform)) {
