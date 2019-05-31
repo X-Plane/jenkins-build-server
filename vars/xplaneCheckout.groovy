@@ -37,6 +37,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         }
 
         if(utils.shellIsSh(platform)) {
+            sh(returnStatus: true, script: 'git rm --cached Resources/mobile data/CIFP/')
             dir(checkoutDir + 'scripts') {
                 if(fileExists('setup_submodules.sh')) {
                     sshagent(['tylers-ssh']) {
