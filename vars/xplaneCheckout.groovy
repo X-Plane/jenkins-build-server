@@ -13,8 +13,8 @@ def call(String branchName='', String checkoutDir='', String platform='', String
     dir(checkoutDir) {
         echo "Checking out ${branchName} on ${platform}"
 
-        sh(returnStatus: true, script: 'git rm -r --cached Resources/mobile data/')
-        for(String toClean : ["Resources/default scenery/default apt dat/", "Custom Scenery/Global Airports/", 'Resources/mobile data/CIFP/']) {
+        sh(returnStatus: true, returnStdout: true, script: 'git rm -r --cached "Resources/mobile data/"')
+        for(String toClean : ['Resources/mobile data/CIFP/']) {
             if(utils.shellIsSh(platform)) {
                 sh(returnStatus: true, script: "rm -rf \"${toClean}\"")
             } else {
@@ -25,10 +25,10 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         if(platform == 'Linux' || platform.contains('Bash')) {
             sshagent(['tylers-ssh']) {
                 sh "git branch"
-                sh(returnStdout: true, script: "git fetch --tags")
                 try {
                     sh(returnStdout: true, script: "git reset --hard")
                 } catch(e) { }
+                sh(returnStdout: true, script: "git fetch --tags")
                 sh "git checkout ${branchName}"
                 sh(returnStatus: true, script: "git pull") // If we're in detached HEAD mode, pull will fail
             }
