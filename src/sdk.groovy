@@ -4,11 +4,11 @@ environment['send_emails'] = send_emails
 environment['pmt_subject'] = ''
 environment['directory_suffix'] = ''
 environment['pmt_from'] = ''
-environment['release_build'] = release_build
+environment['release_build'] = 'true'
 environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
-environment['dev_build'] = dev_build
+environment['dev_build'] = 'false'
 utils.setEnvironment(environment, this.&notify, this.steps)
 assert build_mac == 'true' || build_type != 'build_dlls'
 
