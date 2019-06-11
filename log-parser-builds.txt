@@ -21,10 +21,12 @@ error /^fatal:/
 error /Segmentation fault/
 error / --- FAILED/
 error /Test failed:/
+error /ModuleNotFoundError: No module named/
 error /dev_assert Error/
 error /X-Plane ended with exit code/
 error /Failing scenarios:/
 error /AssertionError/
+error /EOF or read error, treating as/
 error /not recognized as an internal or external command/
 error /build commands failed/
 error /error due to missing products/
