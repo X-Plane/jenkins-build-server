@@ -49,7 +49,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 bat "git config --file=.gitmodules \"submodule.Resources\\dlls\\64\\cef.url\" ${remoteParent}cef.git"
                 bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default atc.url\" ${remoteParent}atc_res.git"
                 bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default apt dat.url\" ${remoteParent}default_apts.git"
-                bat "git config --file=.gitmodules \"submodule.Custom Scenery\\Global Airports.url\" ${remoteParent}global_apts.git"
+                bat "git config --file=.gitmodules \"submodule.Custom\\ Scenery\\Global Airports.url\" ${remoteParent}global_apts.git"
                 // Now do the checkout again, with the proper submodules
                 try {
                     checkout(
