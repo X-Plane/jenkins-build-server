@@ -13,7 +13,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
     dir(checkoutDir) {
         echo "Checking out ${branchName} on ${platform}"
 
-        sh(returnStatus: true, returnStdout: true, script: 'git rm -r --cached "Resources/mobile data/"')
+        utils.shell(script: 'git rm -r --cached "Resources/mobile data/"', platform: platform, returnStatus: true, returnStdout: true)
         for(String toClean : ['Resources/mobile data/CIFP/']) {
             if(utils.shellIsSh(platform)) {
                 sh(returnStatus: true, script: "rm -rf \"${toClean}\"")
