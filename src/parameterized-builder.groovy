@@ -227,10 +227,9 @@ def doBuild(String platform) {
             }
         } catch (e) {
             String heyYourBuild = getSlackHeyYourBuild()
-            String parsedLogUrl = "${BUILD_URL}parsed_console/"
             slackSend(
                     color: 'danger',
-                    message: "${heyYourBuild} of `${branch_name}` failed on ${platform} | <${parsedLogUrl}|Parsed Console Log> | <${BUILD_URL}|Build Info>")
+                    message: "${heyYourBuild} of `${branch_name}` failed on ${platform} | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
             alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
@@ -345,10 +344,9 @@ def doUnitTest(String platform) {
                 if(user) {
                     user += ' '
                 }
-                String logUrl = "${BUILD_URL}flowGraphTable/"
                 slackSend(
                         color: 'danger',
-                        message: "${user}`${branch_name}` failed unit testing (but did compile) | <${BUILD_URL}|Build Info>")
+                        message: "${user}`${branch_name}` failed unit testing (but did compile) | <${BUILD_URL}testReport/|Test Report>")
                 alerted_via_slack = true
             }
             archiveWithDropbox([xml], getArchiveDirAndEnsureItExists(platform), true, utils, false)
