@@ -416,7 +416,7 @@ def notifySuccess() {
         try {
             slackSend(
                     color: 'good',
-                    message: "${user} finished building ${branch_name} | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+                    message: "${user} finished building `${branch_name}` | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
             alerted_via_slack = true
         } catch(e) { }
     }
