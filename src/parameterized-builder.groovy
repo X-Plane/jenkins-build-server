@@ -153,6 +153,13 @@ def doCheckout(String platform) {
             }
         } catch(e) {
             notifyBrokenCheckout(utils.&sendEmail, 'X-Plane', branch_name, platform, e)
+            String user = atSlackUser()
+            if(user && !alerted_via_slack) {
+                slackSend(
+                        color: 'danger',
+                        message: "${user} failed to check out `${branch_name}` | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
+                alerted_via_slack = true
+            }
         }
     }
 }
