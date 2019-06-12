@@ -378,17 +378,17 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
     }
 }
 
-def shell(String commandAllPlatforms, String platform='', boolean silent=false, boolean returnStatus=false) {
-    return shellNixWin(commandAllPlatforms, commandAllPlatforms, platform, silent, returnStatus)
+def shell(String script, String platform='', boolean silent=false, boolean returnStatus=false) {
+    return shellNixWin(script, script, platform, silent, returnStatus)
 }
-def shellNixWin(String nixCommand, String winCommand, String platform='', boolean silent=false, boolean returnStatus=false) {
+def shellNixWin(String nix, String win, String platform='', boolean silent=false, boolean returnStatus=false) {
     if(shellIsSh(platform)) {
-        return sh(script: nixCommand, returnStatus: returnStatus, returnStdout: silent)
+        return sh(script: nix, returnStatus: returnStatus, returnStdout: silent)
     } else {
-        return bat(script: winCommand, returnStatus: returnStatus, returnStdout: silent)
+        return bat(script: win, returnStatus: returnStatus, returnStdout: silent)
     }
 }
-def shellMacWinLin(List macWinLinCommands, String platform, boolean silent=false, boolean returnStatus=false) {
+def shellMacWinLin(List macWinLin, String platform, boolean silent=false, boolean returnStatus=false) {
     if(!shellIsSh(platform)) {
         return bat(script: macWinLinCommands[1], returnStatus: returnStatus, returnStdout: silent)
     } else if(isMac(platform)) {
