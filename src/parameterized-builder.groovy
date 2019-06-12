@@ -334,11 +334,14 @@ def doUnitTest(String platform) {
             try {
                 utils.chooseShellByPlatformNixWin("./${exe} -r junit -o ${xml}", "${exe} /r junit /o ${xml}", platform)
             } catch(e) {
-                String heyYourBuild = getSlackHeyYourBuild()
+                String user = atSlackUser()
+                if(user) {
+                    user += ' '
+                }
                 String logUrl = "${BUILD_URL}flowGraphTable/"
                 slackSend(
                         color: 'danger',
-                        message: "${heyYourBuild} of `${branch_name}` compiled, but it failed unit testing | <${BUILD_URL}|Build Info>")
+                        message: "${user}`${branch_name}` failed unit testing (but did compile) | <${BUILD_URL}|Build Info>")
                 alerted_via_slack = true
             }
             archiveWithDropbox([xml], getArchiveDirAndEnsureItExists(platform), true, utils, false)
@@ -403,30 +406,28 @@ def notifySuccess() {
         utils.sendEmail("Re: ${branch_name} build", "SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.")
     }
     String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
-    String heyYourBuild = getSlackHeyYourBuild()
-    if(!heyYourBuild.contains('Autotriggered')) {
+    String user = atSlackUser()
+    if(user) {
         try {
             slackSend(
                     color: 'good',
-                    message: "${heyYourBuild} of ${branch_name} succeeded | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+                    message: "${user} finished building ${branch_name} | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
             alerted_via_slack = true
         } catch(e) { }
     }
 }
 
-String getSlackHeyYourBuild() {
+String atSlackUser() {
     try {
         def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
         if(userCause != null) {
             String slackUserId = jenkinsToSlackUserId(userCause.getUserId())
-            if(slackUserId.isEmpty()) {
-                return 'Manual build'
-            } else {
-                return "Hey <@${slackUserId}>, your build"
+            if(!slackUserId.isEmpty()) {
+                return "<@${slackUserId}>"
             }
         }
     } catch(e) { }
-    return 'Autotriggered build'
+    return ''
 }
 
 String jenkinsToSlackUserId(String jenkinsUserName) {

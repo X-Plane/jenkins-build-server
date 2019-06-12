@@ -26,7 +26,7 @@ try {
 } catch(e) {
     slackSend(
             color: 'danger',
-            message: "Hey <@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}|Build Info>")
+            message: "<@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}|Build Info>")
     if(tag.contains('Critical')) {
         notifyPagerDuty("Web site test of ${tag} failed")
     }
