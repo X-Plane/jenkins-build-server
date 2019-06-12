@@ -377,6 +377,27 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
         sh macWinLinCommands[2]
     }
 }
+
+def shell(String commandAllPlatforms, String platform='', boolean silent=false, boolean returnStatus=false) {
+    return shellNixWin(commandAllPlatforms, commandAllPlatforms, platform, silent, returnStatus)
+}
+def shellNixWin(String nixCommand, String winCommand, String platform='', boolean silent=false, boolean returnStatus=false) {
+    if(shellIsSh(platform)) {
+        return sh(script: nixCommand, returnStatus: returnStatus, returnStdout: silent)
+    } else {
+        return bat(script: winCommand, returnStatus: returnStatus, returnStdout: silent)
+    }
+}
+def shellMacWinLin(List macWinLinCommands, String platform, boolean silent=false, boolean returnStatus=false) {
+    if(!shellIsSh(platform)) {
+        return bat(script: macWinLinCommands[1], returnStatus: returnStatus, returnStdout: silent)
+    } else if(isMac(platform)) {
+        return sh(script: macWinLinCommands[0], returnStatus: returnStatus, returnStdout: silent)
+    } else {
+        return sh(script: macWinLinCommands[2], returnStatus: returnStatus, returnStdout: silent)
+    }
+}
+
 def shellIsSh(String platform='') {
     return !isWindows(platform) || platform.endsWith('GitBash')
 }

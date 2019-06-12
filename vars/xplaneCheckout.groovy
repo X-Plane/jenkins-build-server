@@ -84,7 +84,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             }
         }
 
-        utils.chooseShellByPlatformNixWin('git reset --hard', 'git reset --hard', platform)
+        utils.shell('git reset --hard', returnStatus: true)
         utils.chooseShell('git submodule update --recursive', platform)
 
         String commitId = ""
