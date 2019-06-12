@@ -176,9 +176,9 @@ boolean copyBuildProductsFromArchive(List expectedProducts, String platform, Str
             chooseShellByPlatformNixWin("cp \"${archiveDir}${p}\" .", "copy \"${archiveDir}${p}\" .", platform)
         }
         if(isMac(platform)) {
-            for(z in findFiles(glob: '*.zip')) {
-                if(z.name != 'shaders_bin.zip') {
-                    sh "unzip -qq \"${z.name}\"" // Tyler says: for unknown reasons, the new Jenkins isn't leaving our .app executable post-unzip using the built-in unzip() step... sigh...
+            for(z in expectedProducts) {
+                if(z.endsWith(".zip") && z != 'shaders_bin.zip') {
+                    sh "unzip -qq \"${z}\"" // Tyler says: for unknown reasons, the new Jenkins isn't leaving our .app executable post-unzip using the built-in unzip() step... sigh...
                 }
             }
         }
@@ -377,6 +377,27 @@ def chooseShellByPlatformMacWinLin(List macWinLinCommands, String platform) {
         sh macWinLinCommands[2]
     }
 }
+
+def shell(String script, String platform='', boolean silent=false, boolean returnStatus=false) {
+    return shellNixWin(script, script, platform, silent, returnStatus)
+}
+def shellNixWin(String nix, String win, String platform='', boolean silent=false, boolean returnStatus=false) {
+    if(shellIsSh(platform)) {
+        return sh(script: nix, returnStatus: returnStatus, returnStdout: silent)
+    } else {
+        return bat(script: win, returnStatus: returnStatus, returnStdout: silent)
+    }
+}
+def shellMacWinLin(List macWinLin, String platform, boolean silent=false, boolean returnStatus=false) {
+    if(!shellIsSh(platform)) {
+        return bat(script: macWinLinCommands[1], returnStatus: returnStatus, returnStdout: silent)
+    } else if(isMac(platform)) {
+        return sh(script: macWinLinCommands[0], returnStatus: returnStatus, returnStdout: silent)
+    } else {
+        return sh(script: macWinLinCommands[2], returnStatus: returnStatus, returnStdout: silent)
+    }
+}
+
 def shellIsSh(String platform='') {
     return !isWindows(platform) || platform.endsWith('GitBash')
 }
