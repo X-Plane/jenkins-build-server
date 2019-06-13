@@ -29,7 +29,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                     sh(returnStdout: true, script: "git reset --hard")
                 } catch(e) { }
                 sh(returnStdout: true, script: "git fetch --tags")
-                sh "git checkout ${branchName}"
+                sh "git checkout ${branchName} --force"
                 sh(returnStatus: true, script: "git pull") // If we're in detached HEAD mode, pull will fail
             }
         } else {
