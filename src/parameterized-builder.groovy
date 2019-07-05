@@ -190,7 +190,8 @@ def doBuild(String platform) {
                 String config = utils.getBuildToolConfiguration()
 
                 // Generate our project files
-                utils.chooseShellByPlatformMacWinLin(['./cmake.sh --no_gfxcc', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc"], platform)
+                String sanitizerArg = getSanitizerShellArg()
+                utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
 
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
@@ -233,6 +234,18 @@ def doBuild(String platform) {
             alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
+    }
+}
+
+def getSanitizerShellArg() {
+    if(sanitizer == 'address') {
+        return '--asan'
+    } else if(sanitizer == 'thread') {
+        return '--tsan'
+    } else if(sanitizer == 'undefined-behavior') {
+        return '--ubsan'
+    } else {
+        return ''
     }
 }
 
