@@ -8,6 +8,7 @@ error /MissingPropertyException/
 error /clang:\serror:/
 error /\*\*\* No rule to make target/
 error /^ERROR:\s/
+error /^\s*Error:\s/
 error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
 error /: fatal error:/
 error /^\d+\serrors\sgenerated/
