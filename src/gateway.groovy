@@ -74,7 +74,6 @@ def doTest() {
         dir('.') { // Run everything from the workspace root, where we checked out
             if(wantSeleniumTests) {
                 try {
-                    sleep(5)  // let Selenium get it together so that it doesn't error out when we run our first test
                     runCucumberTests()
                 } catch(e) {
                     slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
@@ -97,6 +96,7 @@ def doTest() {
 def runCucumberTests() {
     utils.shell('node_modules/.bin/selenium-standalone install --config=selenium-config.js')
     utils.shell("$pm2 start scripts/run_selenium.sh", platform)
+    sleep(5)  // let Selenium get it together so that it doesn't error out when we run our first test
     lastError = null
     for(def filePath : findFiles(glob: 'test/features/*.feature')) {
         if(!specify_tag || fileContains(filePath, specify_tag)) {
