@@ -95,16 +95,28 @@ def doTest() {
 
 def runCucumberTests() {
     utils.shell('node_modules/.bin/selenium-standalone install --config=selenium-config.js')
-    try {
-        utils.shell("$pm2 start scripts/run_selenium.sh", platform)
-        tag_arg = specify_tag ? "-t=${specify_tag}" : ''
-        utils.shell("node_modules/.bin/cucumber.js test/features -r test/features/ ${tag_arg} --no-colors", platform)
-    } catch(e) {
-        utils.shell("$pm2 status", platform)
-        throw e
-    } finally {
-        utils.shell("$pm2 stop scripts/run_selenium.sh", platform)
+    utils.shell("$pm2 start scripts/run_selenium.sh", platform)
+    lastError = null
+    for(def filePath : findFiles(glob: 'test/features/*.feature')) {
+        if(!specify_tag || fileContains(filePath, specify_tag)) {
+            tag_arg = specify_tag ? "-t=${specify_tag}" : ''
+            try {
+                utils.shell("node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
+            } catch(e) {
+                lastError = e
+            }
+        }
     }
+
+    if(lastError) {
+        utils.shell("$pm2 status", platform)
+        throw lastError
+    }
+}
+
+def fileContains(String filePath, String search) {
+    String completeFile = readFile(filePath).replace('\r\n', '\n').replace('\r', '\n') // Turn Windows-style line feeds into plain \n
+    return completeFile.contains(search)
 }
 
 def runApiTests() {
