@@ -79,6 +79,8 @@ def runCucumberTests() {
     utils.shell('node_modules/.bin/selenium-standalone install --config=selenium-config.js')
     try {
         utils.shell("$pm2 start scripts/run_selenium.sh")
+        tag_arg = specify_tag ? "-t=${specify_tag}" : ''
+        utils.shell("node_modules/.bin/cucumber.js test/features -r test/features/ ${tag_arg}")
     } finally {
         utils.shell("$pm2 stop scripts/run_selenium.sh")
     }
