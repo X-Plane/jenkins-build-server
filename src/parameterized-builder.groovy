@@ -153,12 +153,8 @@ def doCheckout(String platform) {
             }
         } catch(e) {
             notifyBrokenCheckout(utils.&sendEmail, 'X-Plane', branch_name, platform, e)
-            String user = atSlackUser()
-            if(user && !alerted_via_slack) {
-                slackSend(
-                        color: 'danger',
-                        message: "${user} failed to check out `${branch_name}` | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
-                alerted_via_slack = true
+            if(!alerted_via_slack) {
+                alerted_via_slack = slackBuildInitiatorFailure("failed to check out `${branch_name}` | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
             }
         }
     }
@@ -410,39 +406,9 @@ def notifySuccess() {
     if(buildTriggeredByUser && send_emails) {
         utils.sendEmail("Re: ${branch_name} build", "SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.")
     }
-    String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
-    String user = atSlackUser()
-    if(user) {
-        try {
-            slackSend(
-                    color: 'good',
-                    message: "${user} finished building `${branch_name}` | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
-            alerted_via_slack = true
-        } catch(e) { }
+    if(!alerted_via_slack) {
+        String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
+        alerted_via_slack = slackBuildInitiatorSuccess("finished building `${branch_name}` | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
     }
 }
 
-String atSlackUser() {
-    try {
-        def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
-        if(userCause != null) {
-            String slackUserId = jenkinsToSlackUserId(userCause.getUserId())
-            if(!slackUserId.isEmpty()) {
-                return "<@${slackUserId}>"
-            }
-        }
-    } catch(e) { }
-    return ''
-}
-
-String jenkinsToSlackUserId(String jenkinsUserName) {
-         if(jenkinsUserName == 'jennifer') { return 'UAFN64MEC' }
-    else if(jenkinsUserName == 'tyler')    { return 'UAG6R8LHJ' }
-    else if(jenkinsUserName == 'justsid')  { return 'UAFUMQESC' }
-    else if(jenkinsUserName == 'chris')    { return 'UAG89NX9S' }
-    else if(jenkinsUserName == 'philipp')  { return 'UAHMBUCV9' }
-    else if(jenkinsUserName == 'ben')      { return 'UAHHSRPD5' }
-    else if(jenkinsUserName == 'joerg')    { return 'UAHNGEP61' }
-    else if(jenkinsUserName == 'austin')   { return 'UAGV8R9PS' }
-    return ''
-}
