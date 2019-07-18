@@ -60,15 +60,15 @@ def doTest() {
                 try {
                     runCucumberTests()
                 } catch(e) {
-                    currentBuild.result = 'FAIL'
+                    error('Cucumber tests failed')
                     slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
                 }
 
                 try {
                     runApiTests()
                 } catch(e) {
-                    currentBuild.result = 'FAIL'
-                    slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
+                    error('API tests failed')
+                    slackBuildInitiatorFailure("Gateway API tests failed on `${branch_name}` ${slackLogLink}")
                 }
             } finally {
                 utils.shell("$pm2 stop app.js")
