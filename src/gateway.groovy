@@ -23,7 +23,7 @@ pm2 = "JENKINS_NODE_COOKIE=dontKillMe node_modules/.bin/pm2"
 try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
     stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
-    stage('Notify')   { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded on ${platform}.") }
+    stage('Notify')   { notifySlackComplete() }
 } finally {
     node(nodeType) {
         String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
@@ -99,4 +99,15 @@ def runApiTests() {
     }
 }
 
+def notifySlackComplete() {
+    String tests = ''
+    if(test_type == 'complete') {
+        tests = 'all tests'
+    } else if(wantApiTests) {
+        tests = 'API tests'
+    } else if(wantSeleniumTests) {
+        tests = 'Cucumber tests'
+    }
+    slackBuildInitiatorSuccess("Gateway ${tests} of `${branch_name}` passed ${slackLogLink}")
+}
 
