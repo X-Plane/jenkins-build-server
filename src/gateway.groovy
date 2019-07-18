@@ -97,6 +97,7 @@ def runCucumberTests() {
     utils.shell('node_modules/.bin/selenium-standalone install --config=selenium-config.js')
     utils.shell("$pm2 start scripts/run_selenium.sh", platform)
     sleep(5)  // let Selenium get it together so that it doesn't error out when we run our first test
+    utils.shell("$pm2 status", platform)
     lastError = null
     for(def filePath : findFiles(glob: 'test/features/*.feature')) {
         if(!specify_tag || fileContains(filePath, specify_tag)) {
