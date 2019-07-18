@@ -97,7 +97,7 @@ def runCucumberTests() {
     try {
         utils.shell("$pm2 start scripts/run_selenium.sh", platform)
         tag_arg = specify_tag ? "-t=${specify_tag}" : ''
-        utils.shell("node_modules/.bin/cucumber.js test/features -r test/features/ ${tag_arg}", platform)
+        utils.shell("node_modules/.bin/cucumber.js test/features -r test/features/ ${tag_arg} --no-colors", platform)
     } catch(e) {
         utils.shell("$pm2 status", platform)
         throw e
