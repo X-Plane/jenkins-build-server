@@ -22,10 +22,12 @@ pm2 = "JENKINS_NODE_COOKIE=dontKillMe node_modules/.bin/pm2"
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
+    stage('Setup')    { node(nodeType) { timeout(60 * 1) { setup() } } }
     stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
     stage('Notify')   { notifySlackComplete() }
 } finally {
     node(nodeType) {
+        teardown()
         String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
         utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O", platform)
         step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
@@ -48,34 +50,43 @@ def doCheckout() {
     }
 }
 
+def setup() {
+    withEnv(["NODE_ENV=test"]) {
+        dir('.') {
+            utils.shell('npm install')
+            utils.shell('node_modules/.bin/grunt build')
+            utils.shell("$pm2 start app.js")
+        }
+    }
+}
+
+def teardown() {
+    withEnv(["NODE_ENV=test"]) {
+        dir('.') {
+            utils.shell("$pm2 stop app.js")
+        }
+    }
+}
+
 def doTest() {
     withEnv(["NODE_ENV=test"]) {
         dir('.') { // Run everything from the workspace root, where we checked out
-            utils.shell('npm install')
-            utils.shell('node_modules/.bin/grunt build')
-
-            try {
-                utils.shell("$pm2 start app.js")
-
-                if(wantSeleniumTests) {
-                    try {
-                        runCucumberTests()
-                    } catch(e) {
-                        slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
-                        error('Cucumber tests failed')
-                    }
+            if(wantSeleniumTests) {
+                try {
+                    runCucumberTests()
+                } catch(e) {
+                    slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
+                    error('Cucumber tests failed')
                 }
+            }
 
-                if(wantApiTests) {
-                    try {
-                        runApiTests()
-                    } catch(e) {
-                        slackBuildInitiatorFailure("Gateway API tests failed on `${branch_name}` ${slackLogLink}")
-                        error('API tests failed')
-                    }
+            if(wantApiTests) {
+                try {
+                    runApiTests()
+                } catch(e) {
+                    slackBuildInitiatorFailure("Gateway API tests failed on `${branch_name}` ${slackLogLink}")
+                    error('API tests failed')
                 }
-            } finally {
-                utils.shell("$pm2 stop app.js")
             }
         }
     }
