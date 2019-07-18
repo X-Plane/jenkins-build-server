@@ -55,6 +55,7 @@ def setup() {
         dir('.') {
             utils.shell('npm install', platform)
             utils.shell('node_modules/.bin/grunt build', platform)
+            utils.shell("$pm2 stop all", platform)
             utils.shell("$pm2 start app.js", platform)
         }
     }
@@ -63,7 +64,7 @@ def setup() {
 def teardown() {
     withEnv(["NODE_ENV=test"]) {
         dir('.') {
-            utils.shell("$pm2 stop app.js", platform)
+            utils.shell("$pm2 stop all", platform)
         }
     }
 }
