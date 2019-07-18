@@ -39,8 +39,8 @@ try {
 def doCheckout() {
     try {
         checkout(
-                [$class: 'GitSCM', branches: [[name: branchName]],
-                 userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]]
+                [$class: 'GitSCM', branches: [[name: branch_name]],
+                 userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/gateway.git']]]
         )
     } catch(e) {
         slackBuildInitiatorFailure("Gateway checkout failed for `${branch_name}` ${slackLogLink}")
