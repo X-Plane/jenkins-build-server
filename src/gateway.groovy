@@ -30,7 +30,7 @@ try {
         teardown()
         String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
         utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O", platform)
-        step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
+        step([$class: 'LogParserPublisher', failBuildOnError: true, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
     }
 }
 
