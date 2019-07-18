@@ -109,7 +109,7 @@ def runCucumberTests() {
 def runApiTests() {
     dir('scripts') {
         setUpPython3VirtualEnvironment(utils, platform)
-        utils.shell('env/bin/python3 test_api.py', platform)
+        utils.shell('env/bin/python3 test_api.py --no-color', platform)
     }
 }
 
