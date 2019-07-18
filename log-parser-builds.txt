@@ -1,4 +1,5 @@
 ok /ERROR:\sCould\snot\sparse\sresponse\sfrom\sslack/
+ok /ERROR:\sSlack\snotification\sfailed/
 
 error /ErrorCollector\.java/
 error /assertFailed/
