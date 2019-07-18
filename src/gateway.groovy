@@ -11,8 +11,8 @@ utils.setEnvironment(environment, this.&notify)
 platform = 'macOS'
 nodeType = 'mac'
 
-runSeleniumTests = test_type == 'complete' || test_type == 'cucumber_selenium'
-runApiTests = test_type == 'complete' || test_type == 'api'
+wantSeleniumTests = test_type == 'complete' || test_type == 'cucumber_selenium'
+wantApiTests = test_type == 'complete' || test_type == 'api'
 slackLogLink = "| <${BUILD_URL}parsed_console/|Parsed Console Log>"
 pm2 = "JENKINS_NODE_COOKIE=dontKillMe node_modules/.bin/pm2"
 
@@ -57,18 +57,22 @@ def doTest() {
             try {
                 utils.shell("$pm2 start app.js")
 
-                try {
-                    runCucumberTests()
-                } catch(e) {
-                    error('Cucumber tests failed')
-                    slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
+                if(wantSeleniumTests) {
+                    try {
+                        runCucumberTests()
+                    } catch(e) {
+                        slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
+                        error('Cucumber tests failed')
+                    }
                 }
 
-                try {
-                    runApiTests()
-                } catch(e) {
-                    error('API tests failed')
-                    slackBuildInitiatorFailure("Gateway API tests failed on `${branch_name}` ${slackLogLink}")
+                if(wantApiTests) {
+                    try {
+                        runApiTests()
+                    } catch(e) {
+                        slackBuildInitiatorFailure("Gateway API tests failed on `${branch_name}` ${slackLogLink}")
+                        error('API tests failed')
+                    }
                 }
             } finally {
                 utils.shell("$pm2 stop app.js")
