@@ -74,6 +74,7 @@ def doTest() {
         dir('.') { // Run everything from the workspace root, where we checked out
             if(wantSeleniumTests) {
                 try {
+                    sleep(5)  // let Selenium get it together so that it doesn't error out when we run our first test
                     runCucumberTests()
                 } catch(e) {
                     slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
