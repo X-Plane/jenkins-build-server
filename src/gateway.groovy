@@ -95,7 +95,7 @@ def runCucumberTests() {
 def runApiTests() {
     dir('scripts') {
         setUpPython3VirtualEnvironment(utils, platform)
-        utils.shell('env/bin/python3 scripts/test_api.py')
+        utils.shell('env/bin/python3 test_api.py')
     }
 }
 
