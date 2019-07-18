@@ -50,27 +50,29 @@ def doCheckout() {
 
 def doTest() {
     withEnv(["NODE_ENV=test"]) {
-        utils.shell('npm install')
-        utils.shell('node_modules/.bin/grunt build')
-
-        try {
-            utils.shell("$pm2 start app.js")
+        dir('.') { // Run everything from the workspace root, where we checked out
+            utils.shell('npm install')
+            utils.shell('node_modules/.bin/grunt build')
 
             try {
-                runCucumberTests()
-            } catch(e) {
-                currentBuild.result = 'FAIL'
-                slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
-            }
+                utils.shell("$pm2 start app.js")
 
-            try {
-                runApiTests()
-            } catch(e) {
-                currentBuild.result = 'FAIL'
-                slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
+                try {
+                    runCucumberTests()
+                } catch(e) {
+                    currentBuild.result = 'FAIL'
+                    slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
+                }
+
+                try {
+                    runApiTests()
+                } catch(e) {
+                    currentBuild.result = 'FAIL'
+                    slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
+                }
+            } finally {
+                utils.shell("$pm2 stop app.js")
             }
-        } finally {
-            utils.shell("$pm2 stop app.js")
         }
     }
 }
@@ -87,8 +89,10 @@ def runCucumberTests() {
 }
 
 def runApiTests() {
-    setUpPython3VirtualEnvironment(utils, platform)
-    utils.shell('env/bin/python3 scripts/test_api.py')
+    dir('scripts') {
+        setUpPython3VirtualEnvironment(utils, platform)
+        utils.shell('env/bin/python3 scripts/test_api.py')
+    }
 }
 
 
