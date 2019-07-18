@@ -8,8 +8,8 @@ environment['build_linux'] = 'true'
 environment['build_all_apps'] = 'false'
 environment['build_type'] = ''
 utils.setEnvironment(environment, this.&notify)
-platform = 'Linux'
-nodeType = 'linux'
+platform = 'macOS'
+nodeType = 'mac'
 
 runSeleniumTests = test_type == 'complete' || test_type == 'cucumber_selenium'
 runApiTests = test_type == 'complete' || test_type == 'api'
