@@ -98,6 +98,9 @@ def runCucumberTests() {
         utils.shell("$pm2 start scripts/run_selenium.sh", platform)
         tag_arg = specify_tag ? "-t=${specify_tag}" : ''
         utils.shell("node_modules/.bin/cucumber.js test/features -r test/features/ ${tag_arg}", platform)
+    } catch(e) {
+        utils.shell("$pm2 status", platform)
+        throw e
     } finally {
         utils.shell("$pm2 stop scripts/run_selenium.sh", platform)
     }
