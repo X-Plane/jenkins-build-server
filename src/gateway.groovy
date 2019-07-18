@@ -53,9 +53,9 @@ def doCheckout() {
 def setup() {
     withEnv(["NODE_ENV=test"]) {
         dir('.') {
-            utils.shell('npm install')
-            utils.shell('node_modules/.bin/grunt build')
-            utils.shell("$pm2 start app.js")
+            utils.shell('npm install', platform)
+            utils.shell('node_modules/.bin/grunt build', platform)
+            utils.shell("$pm2 start app.js", platform)
         }
     }
 }
@@ -63,7 +63,7 @@ def setup() {
 def teardown() {
     withEnv(["NODE_ENV=test"]) {
         dir('.') {
-            utils.shell("$pm2 stop app.js")
+            utils.shell("$pm2 stop app.js", platform)
         }
     }
 }
@@ -95,18 +95,18 @@ def doTest() {
 def runCucumberTests() {
     utils.shell('node_modules/.bin/selenium-standalone install --config=selenium-config.js')
     try {
-        utils.shell("$pm2 start scripts/run_selenium.sh")
+        utils.shell("$pm2 start scripts/run_selenium.sh", platform)
         tag_arg = specify_tag ? "-t=${specify_tag}" : ''
-        utils.shell("node_modules/.bin/cucumber.js test/features -r test/features/ ${tag_arg}")
+        utils.shell("node_modules/.bin/cucumber.js test/features -r test/features/ ${tag_arg}", platform)
     } finally {
-        utils.shell("$pm2 stop scripts/run_selenium.sh")
+        utils.shell("$pm2 stop scripts/run_selenium.sh", platform)
     }
 }
 
 def runApiTests() {
     dir('scripts') {
         setUpPython3VirtualEnvironment(utils, platform)
-        utils.shell('env/bin/python3 test_api.py')
+        utils.shell('env/bin/python3 test_api.py', platform)
     }
 }
 
