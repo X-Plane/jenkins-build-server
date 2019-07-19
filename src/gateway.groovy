@@ -117,6 +117,7 @@ def runCucumberTests() {
                 try {
                     utils.shell("node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
                 } catch(e) {
+                    echo("Failed ${filePath} the first time; retrying...")
                     utils.shell("node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
                 }
             } catch(e) {
