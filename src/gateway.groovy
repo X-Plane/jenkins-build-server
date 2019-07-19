@@ -72,12 +72,12 @@ def teardown() {
 def doTest() {
     withEnv(["NODE_ENV=test"]) {
         dir('.') { // Run everything from the workspace root, where we checked out
+            List<String> failures = []
             if(wantSeleniumTests) {
                 try {
                     runCucumberTests()
                 } catch(e) {
-                    slackBuildInitiatorFailure("Gateway Cucumber tests failed on `${branch_name}` ${slackLogLink}")
-                    error('Cucumber tests failed')
+                    failures += 'Cucumber'
                 }
             }
 
@@ -85,9 +85,14 @@ def doTest() {
                 try {
                     runApiTests()
                 } catch(e) {
-                    slackBuildInitiatorFailure("Gateway API tests failed on `${branch_name}` ${slackLogLink}")
-                    error('API tests failed')
+                    failures += 'API'
                 }
+            }
+
+            if(failures) {
+                String msg = 'Gateway failed ' + failures.join(' and ') + ' tests'
+                slackBuildInitiatorFailure("${msg} on `${branch_name}` ${slackLogLink}")
+                error(msg)
             }
         }
     }
