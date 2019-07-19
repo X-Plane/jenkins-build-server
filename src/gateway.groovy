@@ -115,10 +115,10 @@ def runCucumberTests() {
                 // Sigh. These tests are inherently flaky, because they depend so much on page load times. :(
                 // Let's rerun once in the case of failure.
                 try {
-                    utils.shell("node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
+                    utils.shell("time node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
                 } catch(e) {
                     echo("Failed ${filePath} the first time; retrying...")
-                    utils.shell("node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
+                    utils.shell("time node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
                 }
             } catch(e) {
                 lastError = e // The second time in a row the test fails, we'll actually mark the test as failing
@@ -140,7 +140,7 @@ def fileContains(String filePath, String search) {
 def runApiTests() {
     dir('scripts') {
         setUpPython3VirtualEnvironment(utils, platform)
-        utils.shell('env/bin/python3 test_api.py --no-color', platform)
+        utils.shell('time env/bin/python3 test_api.py --no-color', platform)
     }
 }
 
