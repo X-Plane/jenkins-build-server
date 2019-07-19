@@ -1,4 +1,6 @@
 ok /ERROR:\sCould\snot\sparse\sresponse\sfrom\sslack/
+ok /ERROR:\sSlack\snotification\sfailed/
+ok /ERROR:\srequests-oauthlib/
 
 error /ErrorCollector\.java/
 error /assertFailed/
