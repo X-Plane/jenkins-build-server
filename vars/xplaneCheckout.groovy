@@ -41,10 +41,10 @@ def call(String branchName='', String checkoutDir='', String platform='', String
 
         if(fileExists('scripts/setup_submodules.sh')) {
             String slash = utils.shellIsSh(platform) ? '/' : '\\'
-            String cef = "Resources${slash}dlls${slash}64${slash}cef.url"
-            String atc = "Resources${slash}default scenery${slash}default atc.url"
-            String apt_dat = "Resources${slash}default scenery${slash}default apt dat.url"
-            String global_apts = "Custom Scenery${slash}Global Airports.url"
+            String cef = "Resources${slash}dlls${slash}64${slash}cef"
+            String atc = "Resources${slash}default scenery${slash}default atc"
+            String apt_dat = "Resources${slash}default scenery${slash}default apt dat"
+            String global_apts = "Custom Scenery${slash}Global Airports"
             
             if(utils.shellIsSh(platform)) {
                 dir(checkoutDir + 'scripts') {
@@ -57,10 +57,10 @@ def call(String branchName='', String checkoutDir='', String platform='', String
 
                 String remote = bat(returnStdout: true, script: "git remote get-url --push origin").trim().split("\r?\n")[1]
                 String remoteParent = remote.substring(0, remote.lastIndexOf('/') + 1)
-                bat "git config --file=.gitmodules \"submodule.${cef}\"         ${remoteParent}cef.git"
-                bat "git config --file=.gitmodules \"submodule.${atc}\"         ${remoteParent}atc_res.git"
-                bat "git config --file=.gitmodules \"submodule.${apt_dat}\"     ${remoteParent}default_apts.git"
-                bat "git config --file=.gitmodules \"submodule.${global_apts}\" ${remoteParent}global_apts.git"
+                bat "git config --file=.gitmodules \"submodule.${cef}.url\"         ${remoteParent}cef.git"
+                bat "git config --file=.gitmodules \"submodule.${atc}.url\"         ${remoteParent}atc_res.git"
+                bat "git config --file=.gitmodules \"submodule.${apt_dat}.url\"     ${remoteParent}default_apts.git"
+                bat "git config --file=.gitmodules \"submodule.${global_apts}.url\" ${remoteParent}global_apts.git"
 
                 bat 'git submodule sync'
                 bat 'git submodule update'
