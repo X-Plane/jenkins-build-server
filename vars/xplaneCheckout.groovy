@@ -33,7 +33,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 sh(returnStatus: true, script: "git pull") // If we're in detached HEAD mode, pull will fail
             }
         } else {
-            bat('git reset --hard')
+            utils.shell('git reset --hard')
             checkout(
                     [$class: 'GitSCM', branches: [[name: branchName]],
                      userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]]
