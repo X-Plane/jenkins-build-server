@@ -33,6 +33,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 sh(returnStatus: true, script: "git pull") // If we're in detached HEAD mode, pull will fail
             }
         } else {
+            bat('git reset --hard')
             checkout(
                     [$class: 'GitSCM', branches: [[name: branchName]],
                      userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]]
@@ -40,11 +41,10 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         }
 
         if(fileExists('scripts/setup_submodules.sh')) {
-            String slash = utils.shellIsSh(platform) ? '/' : '\\'
-            String cef = "Resources${slash}dlls${slash}64${slash}cef"
-            String atc = "Resources${slash}default scenery${slash}default atc"
-            String apt_dat = "Resources${slash}default scenery${slash}default apt dat"
-            String global_apts = "Custom Scenery${slash}Global Airports"
+            String cef = "Resources/dlls/64/cef"
+            String atc = "Resources/default scenery/default atc"
+            String apt_dat = "Resources/default scenery/default apt dat"
+            String global_apts = "Custom Scenery/Global Airports"
             
             if(utils.shellIsSh(platform)) {
                 dir(checkoutDir + 'scripts') {
@@ -67,7 +67,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             }
             
             for(String submodule : [cef, atc, apt_dat, global_apts]) {
-                dir(checkoutDir + submodule) {
+                dir(checkoutDir + fixDirChars(submodule)) {
                     utils.shell(script: 'git reset --hard', platform: platform, silent: true, returnStatus: true)
                 }
             } 

@@ -67,6 +67,13 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
 String getDirChar(String platform='') {
     return chooseByPlatformNixWin("/", "\\", platform)
 }
+String fixDirChars(String path, String platform='') {
+    if(isWindows(platform)) {
+        return path.replace('/', "\\")
+    } else {
+        return path.replace("\\", '/')
+    }
+}
 String getJenkinsDir(String subdir, String platform='') {
     String jenkins = chooseByPlatformNixWin("/jenkins/", "C:\\jenkins\\", platform)
     return jenkins + subdir + getDirChar(platform)
