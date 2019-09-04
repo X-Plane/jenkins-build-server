@@ -67,7 +67,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             }
             
             for(String submodule : [cef, atc, apt_dat, global_apts]) {
-                dir(checkoutDir + fixDirChars(submodule)) {
+                dir(checkoutDir + utils.fixDirChars(submodule)) {
                     utils.shell(script: 'git reset --hard', platform: platform, silent: true, returnStatus: true)
                 }
             } 
