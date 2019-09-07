@@ -371,20 +371,22 @@ def doArchive(String platform) {
 
                 // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
                 if(utils.isMac(platform)) {
-                    sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
+                    sh "find . -name '*.app' -exec zip -rq --symlinks '{}'.zip '{}' \\;"
                     sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
                 }
 
                 List prods = getProducts(platform)
                 // Kit the installers for deployment
                 if(needsInstallerKitting(platform)) {
-                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
+                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') } // takes the first match
                     String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                     if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
                         String renamedInstaller = "X-Plane 11 Installer Linux"
                         fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
                         zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
                         nukeFile(renamedInstaller)
+                    } else if(utils.isMac(platform)) { // Copy the ZIP we already made (with symlinks intact for code signing)
+                        utils.copyFile(installer, zipTarget)
                     } else {
                         zip(zipFile: zipTarget, archive: false, glob: installer)
                     }
