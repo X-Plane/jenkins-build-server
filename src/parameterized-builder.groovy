@@ -13,7 +13,7 @@ environment['build_linux'] = build_linux
 environment['build_all_apps'] = 'true'
 environment['build_type'] = build_type
 environment['products_to_build'] = products_to_build
-utils.setEnvironment(environment, this.&notify)
+utils.setEnvironment(environment, this.&notify, this.steps)
 
 alerted_via_slack = false
 doClean = utils.toRealBool(clean_build)
