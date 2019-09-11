@@ -65,15 +65,10 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 bat 'git submodule sync'
                 bat 'git submodule update'
             }
-            
-            for(String submodule : [cef, atc, apt_dat, global_apts]) {
-                dir(checkoutDir + utils.fixDirChars(submodule)) {
-                    utils.shell(script: 'git reset --hard', platform: platform, silent: true, returnStatus: true)
-                }
-            } 
         }
 
         utils.shell(script: 'git reset --hard', platform: platform, returnStatus: true)
+        utils.shell(script: 'git submodule foreach --recursive git reset --hard', platform: platform)
         utils.chooseShell('git submodule update --recursive', platform)
 
         String commitId = ""
