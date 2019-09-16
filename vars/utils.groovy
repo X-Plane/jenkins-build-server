@@ -170,7 +170,9 @@ def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteO
 def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
 
 def copyFile(String source, String dest) {
-    fileOperations([fileCopyOperation(excludes: '', flattenFiles: false, includes: source, targetLocation: dest)])
+    fileOperations {
+        fileCopyOperation(source, '', dest, false)
+    }
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {
