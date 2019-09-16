@@ -382,7 +382,7 @@ def doArchive(String platform) {
                     String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                     if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
                         String renamedInstaller = "X-Plane 11 Installer Linux"
-                        fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
+                        utils.copyFile(installer, renamedInstaller)
                         zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
                         nukeFile(renamedInstaller)
                     } else if(utils.isMac(platform)) { // Copy the ZIP we already made (with symlinks intact for code signing)
