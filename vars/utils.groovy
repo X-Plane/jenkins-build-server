@@ -169,8 +169,8 @@ def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path
 def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
 def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
 
-def copyFile(String source, String dest) {
-    fileOperations([fileCopyOperation(excludes: '', flattenFiles: false, includes: source, targetLocation: dest)])
+def copyFile(String source, String dest, String platform='') {
+    chooseShellByPlatformNixWin("cp \"${source}\" \"${dest}\"", "copy \"${source}\" \"${dest}\"", platform)
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {
