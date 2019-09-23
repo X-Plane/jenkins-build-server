@@ -52,7 +52,10 @@ try {
     }
     stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify')                        { if(!alerted_via_slack) { notifySuccess() } }
+    stage('Notify') {
+        if(!alerted_via_slack) { notifySuccess() }
+        jiraSendBuildInfo(branch: branch_name, site: 'x-plane.atlassian.net')
+    }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
 }
