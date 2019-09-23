@@ -12,6 +12,9 @@ def call() {
         else if(jenkinsUserName == 'joerg')    { slackUserId = 'UAHNGEP61' }
         else if(jenkinsUserName == 'austin')   { slackUserId = 'UAGV8R9PS' }
         else if(jenkinsUserName == 'dcareri')  { slackUserId = 'UCSEAQVJR' }
+        else if(jenkinsUserName == 'stefan')   { slackUserId = 'UDNLZMEET' }
+        else if(jenkinsUserName == 'tngreene') { slackUserId = 'UAHFTKPFT' }
+        else if(jenkinsUserName == 'petr')     { slackUserId = 'UAHFVHYUC' }
 
         if(slackUserId) {
             return "<@${slackUserId}>"
