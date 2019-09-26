@@ -293,8 +293,8 @@ def doArchive() {
                         '*.png',
                         '*.avi',
                         // Grab any log files that the test_runner gave us from instances that crashed
-                        'Log_crashed*.txt',
-                        'Log_failed*.txt']
+                        'Log crashed*.txt', 'Log_crashed*.txt',
+                        'Log failed*.txt',  'Log_failed*.txt']
                 for(String pattern : extraFilePatterns) {
                     for(def file : findFiles(glob: pattern)) {
                         if(!products.contains(file.name)) {
