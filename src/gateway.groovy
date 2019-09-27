@@ -10,6 +10,7 @@ environment['build_type'] = ''
 utils.setEnvironment(environment, this.&notify)
 platform = 'macOS'
 nodeType = 'mac'
+assert !deploy_on_success || branch_name == 'master', 'Deployments must always come from master'
 
 wantSeleniumTests = test_type == 'complete' || test_type == 'cucumber_webdriver'
 wantApiTests = test_type == 'complete' || test_type == 'api'
@@ -24,6 +25,7 @@ try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
     stage('Setup')    { node(nodeType) { timeout(60 * 1) { setup() } } }
     stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
+    stage('Deploy')   { deploy() }
     stage('Notify')   { notifySlackComplete() }
 } finally {
     node(nodeType) {
@@ -151,6 +153,16 @@ def runApiTests() {
     }
 }
 
+def deploy() {
+    if(deploy_on_success) {
+        dir('scripts') {
+            sshagent(['tylers-ssh']) {
+                sh('env/bin/python3 deploy_app.py tyler --restart_server --skip_version')
+            }
+        }
+    }
+}
+
 List<String> findFilesNamesOnly(String globToFind) {
     List<String> out = []
     for(def file : findFiles(glob: globToFind)) {
@@ -168,6 +180,8 @@ def notifySlackComplete() {
     } else if(wantSeleniumTests) {
         tests = 'Cucumber tests'
     }
-    slackBuildInitiatorSuccess("Gateway ${tests} of `${branch_name}` passed ${slackLogLink}")
+
+    String deployedStatus = deploy_on_success ? 'and deployed to production' : '';
+    slackBuildInitiatorSuccess("Gateway ${tests} of `${branch_name}` passed ${deployedStatus} ${slackLogLink}")
 }
 
