@@ -119,6 +119,7 @@ def runCucumberTests() {
                 utils.shell(runFeatureCmd, platform)
             }
         } catch(e) {
+            echo("Failed ${filePath} twice in a row---considering this an ACTUAL failure.")
             lastError = e // The second time in a row the test fails, we'll actually mark the test as failing
         }
     }
