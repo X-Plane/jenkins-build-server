@@ -23,10 +23,13 @@ pm2 = "JENKINS_NODE_COOKIE=dontKillMe node_modules/.bin/pm2"
 try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
     stage('Setup')    { node(nodeType) { timeout(60 * 1) { setup() } } }
-    stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
-    stage('Archive')  { node(nodeType) { timeout(60 * 1) { archiveArtifacts() } } }
-    stage('Notify')   { notifySlackComplete() }
+    try {
+        stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
+    } finally {
+        stage('Archive')  { node(nodeType) { timeout(60 * 1) { archiveArtifacts() } } }
+    }
 } finally {
+    stage('Notify')   { notifySlackComplete() }
     node(nodeType) {
         teardown()
         String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
