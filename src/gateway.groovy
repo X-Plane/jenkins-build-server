@@ -24,6 +24,7 @@ try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
     stage('Setup')    { node(nodeType) { timeout(60 * 1) { setup() } } }
     stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
+    stage('Archive')  { node(nodeType) { timeout(60 * 1) { archiveArtifacts() } } }
     stage('Notify')   { notifySlackComplete() }
 } finally {
     node(nodeType) {
@@ -39,6 +40,7 @@ try {
 // IMPLEMENTATION
 //--------------------------------------------------------------------------------------------------------------------------------
 def doCheckout() {
+    clean(['*.png', '*.log'], cleanCommand, platform, utils)
     try {
         checkout(
                 [$class: 'GitSCM', branches: [[name: branch_name]],
@@ -139,6 +141,20 @@ def runApiTests() {
     dir('scripts') {
         setUpPython3VirtualEnvironment(utils, platform)
         utils.shell('time env/bin/python3 test_api.py --no-color', platform)
+    }
+}
+
+def archiveArtifacts() {
+    for(def junitResults : findFiles(glob: '*-junit-reporter.log')) {
+        junit keepLongStdio: true, testResults: junitResults
+    }
+
+    List failureScreenshots = []
+    for(def file : findFiles(glob: '*.png')) {
+        failureScreenshots.push(file)
+    }
+    if(failureScreenshots) {
+        archiveArtifacts artifacts: failureScreenshots.join(', '), fingerprint: true, onlyIfSuccessful: false
     }
 }
 
