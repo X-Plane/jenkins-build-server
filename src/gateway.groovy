@@ -24,8 +24,8 @@ try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
     stage('Setup')    { node(nodeType) { timeout(60 * 1) { setup() } } }
     stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
-} finally {
     stage('Notify')   { notifySlackComplete() }
+} finally {
     node(nodeType) {
         teardown()
         String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
