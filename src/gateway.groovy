@@ -27,7 +27,7 @@ try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
     stage('Setup')    { node(nodeType) { timeout(60 * 1) { setup() } } }
     stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
-    stage('Deploy')   { deploy() }
+    stage('Deploy')   { node(nodeType) { timeout(60 * 1) {deploy() } } }
     stage('Notify')   { notifySlackComplete() }
 } finally {
     node(nodeType) {
