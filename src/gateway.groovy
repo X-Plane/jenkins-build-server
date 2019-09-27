@@ -141,15 +141,20 @@ def runApiTests() {
     }
 }
 
+List<String> findFilesNamesOnly(String globToFind) {
+    List<String> out = []
+    for(def file : findFiles(glob: globToFind)) {
+        out.push(file.name)
+    }
+    return out
+}
+
 def archiveArtifacts() {
-    for(def junitResults : findFiles(glob: '*-junit-reporter.log')) {
+    for(def junitResults : findFilesNamesOnly(glob: '*-junit-reporter.log')) {
         junit keepLongStdio: true, testResults: junitResults
     }
 
-    List failureScreenshots = []
-    for(def file : findFiles(glob: '*.png')) {
-        failureScreenshots.push(file)
-    }
+    List<String> failureScreenshots = findFilesNamesOnly(glob: '*.png')
     if(failureScreenshots) {
         archiveArtifacts artifacts: failureScreenshots.join(', '), fingerprint: true, onlyIfSuccessful: false
     }
