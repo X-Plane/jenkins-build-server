@@ -23,11 +23,7 @@ pm2 = "JENKINS_NODE_COOKIE=dontKillMe node_modules/.bin/pm2"
 try {
     stage('Checkout') { node(nodeType) { timeout(60 * 1) { doCheckout() } } }
     stage('Setup')    { node(nodeType) { timeout(60 * 1) { setup() } } }
-    try {
-        stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
-    } finally {
-        stage('Archive')  { node(nodeType) { timeout(60 * 1) { archiveArtifacts() } } }
-    }
+    stage('Test')     { node(nodeType) { timeout(60 * 2) { doTest() } } }
 } finally {
     stage('Notify')   { notifySlackComplete() }
     node(nodeType) {
@@ -87,6 +83,16 @@ def doTest() {
                     runCucumberTests()
                 } catch(e) {
                     failures += 'Cucumber'
+                }
+
+                // Archive Cucumber artifacts
+                for(def junitResults : findFilesNamesOnly('*-junit-reporter.log')) {
+                    junit keepLongStdio: true, testResults: junitResults
+                }
+
+                List<String> failureScreenshots = findFilesNamesOnly('*.png')
+                if(failureScreenshots) {
+                    archiveArtifacts artifacts: failureScreenshots.join(', '), fingerprint: true, onlyIfSuccessful: false
                 }
             }
 
@@ -151,17 +157,6 @@ List<String> findFilesNamesOnly(String globToFind) {
         out.push(file.name)
     }
     return out
-}
-
-def archiveArtifacts() {
-    for(def junitResults : findFilesNamesOnly('*-junit-reporter.log')) {
-        junit keepLongStdio: true, testResults: junitResults
-    }
-
-    List<String> failureScreenshots = findFilesNamesOnly('*.png')
-    if(failureScreenshots) {
-        archiveArtifacts artifacts: failureScreenshots.join(', '), fingerprint: true, onlyIfSuccessful: false
-    }
 }
 
 def notifySlackComplete() {
