@@ -108,21 +108,18 @@ def runCucumberTests() {
     utils.shell("$pm2 status", platform)
     lastError = null
     for(def filePath : findFiles(glob: 'features/*.feature')) {
-        if(!specify_tag || fileContains(filePath, specify_tag)) {
-            tag_arg = specify_tag ? "-t=${specify_tag}" : ''
+        try {
+            // Sigh. These tests are inherently flaky, because they depend so much on page load times. :(
+            // Let's rerun once in the case of failure.
+            String runFeatureCmd = "time ./node_modules/.bin/wdio wdio.conf.js --spec ${filePath}";
             try {
-                // Sigh. These tests are inherently flaky, because they depend so much on page load times. :(
-                // Let's rerun once in the case of failure.
-                String runFeatureCmd = "time ./node_modules/.bin/wdio wdio.conf.js --spec ${filePath}";
-                try {
-                    utils.shell(runFeatureCmd, platform)
-                } catch(e) {
-                    echo("Failed ${filePath} the first time; retrying...")
-                    utils.shell(runFeatureCmd, platform)
-                }
+                utils.shell(runFeatureCmd, platform)
             } catch(e) {
-                lastError = e // The second time in a row the test fails, we'll actually mark the test as failing
+                echo("Failed ${filePath} the first time; retrying...")
+                utils.shell(runFeatureCmd, platform)
             }
+        } catch(e) {
+            lastError = e // The second time in a row the test fails, we'll actually mark the test as failing
         }
     }
 
