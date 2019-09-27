@@ -11,7 +11,7 @@ utils.setEnvironment(environment, this.&notify)
 platform = 'macOS'
 nodeType = 'mac'
 
-wantSeleniumTests = test_type == 'complete' || test_type == 'cucumber_selenium'
+wantSeleniumTests = test_type == 'complete' || test_type == 'cucumber_webdriver'
 wantApiTests = test_type == 'complete' || test_type == 'api'
 slackLogLink = "| <${BUILD_URL}parsed_console/|Parsed Console Log>"
 pm2 = "JENKINS_NODE_COOKIE=dontKillMe node_modules/.bin/pm2"
@@ -103,22 +103,20 @@ def doTest() {
 }
 
 def runCucumberTests() {
-    utils.shell('node_modules/.bin/selenium-standalone install --config=selenium-config.js')
-    utils.shell("$pm2 start scripts/run_selenium.sh", platform)
-    sleep(5)  // let Selenium get it together so that it doesn't error out when we run our first test
     utils.shell("$pm2 status", platform)
     lastError = null
-    for(def filePath : findFiles(glob: 'test/features/*.feature')) {
+    for(def filePath : findFiles(glob: 'features/*.feature')) {
         if(!specify_tag || fileContains(filePath, specify_tag)) {
             tag_arg = specify_tag ? "-t=${specify_tag}" : ''
             try {
                 // Sigh. These tests are inherently flaky, because they depend so much on page load times. :(
                 // Let's rerun once in the case of failure.
+                String runFeatureCmd = "time ./node_modules/.bin/wdio wdio.conf.js --spec ${filePath}";
                 try {
-                    utils.shell("time node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
+                    utils.shell(runFeatureCmd, platform)
                 } catch(e) {
                     echo("Failed ${filePath} the first time; retrying...")
-                    utils.shell("time node_modules/.bin/cucumber.js ${filePath} -r test/features/ ${tag_arg} --no-colors", platform)
+                    utils.shell(runFeatureCmd, platform)
                 }
             } catch(e) {
                 lastError = e // The second time in a row the test fails, we'll actually mark the test as failing
