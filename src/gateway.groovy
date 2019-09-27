@@ -177,14 +177,14 @@ List<String> findFilesNamesOnly(String globToFind) {
 def notifySlackComplete() {
     String tests = ''
     if(test_type == 'complete') {
-        tests = 'all tests'
+        tests = 'All Gateway tests'
     } else if(wantApiTests) {
-        tests = 'API tests'
+        tests = 'Gateway API tests'
     } else if(wantSeleniumTests) {
-        tests = 'Cucumber tests'
+        tests = 'Gateway Cucumber tests'
     }
 
     String deployedStatus = wants_deployment ? 'and deployed to production' : '';
-    slackBuildInitiatorSuccess("Gateway ${tests} of `${branch_name}` passed ${deployedStatus} ${slackLogLink}")
+    slackBuildInitiatorSuccess("${tests} of `${branch_name}` passed ${deployedStatus} ${slackLogLink}")
 }
 
