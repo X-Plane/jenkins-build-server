@@ -40,7 +40,7 @@ try {
 // IMPLEMENTATION
 //--------------------------------------------------------------------------------------------------------------------------------
 def doCheckout() {
-    clean(['*.png', '*.log'], cleanCommand, platform, utils)
+    clean(['*.png', '*.log'], null, platform, utils)
     try {
         checkout(
                 [$class: 'GitSCM', branches: [[name: branch_name]],
