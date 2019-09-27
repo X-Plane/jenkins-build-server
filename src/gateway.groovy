@@ -150,11 +150,11 @@ List<String> findFilesNamesOnly(String globToFind) {
 }
 
 def archiveArtifacts() {
-    for(def junitResults : findFilesNamesOnly(glob: '*-junit-reporter.log')) {
+    for(def junitResults : findFilesNamesOnly('*-junit-reporter.log')) {
         junit keepLongStdio: true, testResults: junitResults
     }
 
-    List<String> failureScreenshots = findFilesNamesOnly(glob: '*.png')
+    List<String> failureScreenshots = findFilesNamesOnly('*.png')
     if(failureScreenshots) {
         archiveArtifacts artifacts: failureScreenshots.join(', '), fingerprint: true, onlyIfSuccessful: false
     }
