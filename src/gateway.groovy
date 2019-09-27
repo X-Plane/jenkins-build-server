@@ -10,7 +10,7 @@ environment['build_type'] = ''
 utils.setEnvironment(environment, this.&notify)
 platform = 'macOS'
 nodeType = 'mac'
-assert !deploy_on_success || branch_name == 'master', 'Deployments must always come from master'
+assert !utils.toRealBool(deploy_on_success) || branch_name == 'master', 'Deployments must always come from master'
 
 wantSeleniumTests = test_type == 'complete' || test_type == 'cucumber_webdriver'
 wantApiTests = test_type == 'complete' || test_type == 'api'
@@ -154,7 +154,7 @@ def runApiTests() {
 }
 
 def deploy() {
-    if(deploy_on_success) {
+    if(utils.toRealBool(deploy_on_success)) {
         dir('scripts') {
             sshagent(['tylers-ssh']) {
                 sh('env/bin/python3 deploy_app.py tyler --restart_server --skip_version')
@@ -181,7 +181,7 @@ def notifySlackComplete() {
         tests = 'Cucumber tests'
     }
 
-    String deployedStatus = deploy_on_success ? 'and deployed to production' : '';
+    String deployedStatus = utils.toRealBool(deploy_on_success) ? 'and deployed to production' : '';
     slackBuildInitiatorSuccess("Gateway ${tests} of `${branch_name}` passed ${deployedStatus} ${slackLogLink}")
 }
 
