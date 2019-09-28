@@ -68,8 +68,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         }
 
         utils.shell(script: 'git reset --hard', platform: platform, returnStatus: true)
-        utils.shell(script: 'git submodule foreach --recursive git reset --hard', platform: platform)
-        utils.chooseShell('git submodule update --recursive', platform)
+        utils.chooseShell('git submodule foreach --recursive git reset --hard', platform)
 
         String commitId = ""
         if(utils.shellIsSh(platform)) {
