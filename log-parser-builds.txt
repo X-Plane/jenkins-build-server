@@ -4,6 +4,7 @@ ok /ERROR:\srequests-oauthlib/
 
 error /ErrorCollector\.java/
 error /assertFailed/
+error /Assertion Failed/
 error /Failed\sin\sbranch/
 error /Couldn't\sfind\sany\srevision/
 error /MissingPropertyException/
