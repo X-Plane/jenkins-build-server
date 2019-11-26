@@ -20,6 +20,8 @@ doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
 wantShaders = products_to_build.contains('SHADERS')
 
+assert sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
+
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
 // This is where the magic happens.
