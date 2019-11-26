@@ -358,7 +358,7 @@ def doUnitTest(String platform) {
         dir(utils.getCheckoutDir(platform)) {
             String exe = getCatch2Executable(platform)
             if(utils.isMac(platform)) {
-                exe += '/Contents/MacOS/catch2_tests' + utils.
+                exe += '/Contents/MacOS/catch2_tests' + utils.app_suffix
             }
             String xml = testXmlTarget(platform)
             try {
