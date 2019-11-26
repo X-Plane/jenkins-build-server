@@ -438,7 +438,7 @@ def doArchive(String platform) {
 
 def renamedSanitizerProduct(String originalName) {
     if(sanitizer) {
-        return "${sanitizer}_${originalName}"
+        return "${sanitizer}_sanitizer_${originalName}"
     }
     return originalName
 }
