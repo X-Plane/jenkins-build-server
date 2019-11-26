@@ -13,7 +13,7 @@ environment['build_linux'] = build_linux
 environment['build_all_apps'] = 'true'
 environment['build_type'] = build_type
 environment['products_to_build'] = products_to_build
-utils.setEnvironment(environment, this.&notify)
+utils.setEnvironment(environment, this.&notify, this.steps)
 
 alerted_via_slack = false
 doClean = utils.toRealBool(clean_build)
@@ -52,7 +52,10 @@ try {
     }
     stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify')                        { if(!alerted_via_slack) { notifySuccess() } }
+    stage('Notify') {
+        if(!alerted_via_slack) { notifySuccess() }
+        jiraSendBuildInfo(branch: branch_name, site: 'x-plane.atlassian.net')
+    }
 } finally {
     node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
 }
@@ -153,12 +156,8 @@ def doCheckout(String platform) {
             }
         } catch(e) {
             notifyBrokenCheckout(utils.&sendEmail, 'X-Plane', branch_name, platform, e)
-            String user = atSlackUser()
-            if(user && !alerted_via_slack) {
-                slackSend(
-                        color: 'danger',
-                        message: "${user} failed to check out `${branch_name}` | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
-                alerted_via_slack = true
+            if(!alerted_via_slack) {
+                alerted_via_slack = slackBuildInitiatorFailure("failed to check out `${branch_name}` | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
             }
         }
     }
@@ -388,20 +387,22 @@ def doArchive(String platform) {
 
                 // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
                 if(utils.isMac(platform)) {
-                    sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
+                    sh "find . -name '*.app' -exec zip -rq --symlinks '{}'.zip '{}' \\;"
                     sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
                 }
 
                 List prods = getProducts(platform)
                 // Kit the installers for deployment
                 if(needsInstallerKitting(platform)) {
-                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
+                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') } // takes the first match
                     String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                     if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
                         String renamedInstaller = "X-Plane 11 Installer Linux"
-                        fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
+                        utils.copyFile(installer, renamedInstaller, platform)
                         zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
                         nukeFile(renamedInstaller)
+                    } else if(utils.isMac(platform)) { // Copy the ZIP we already made (with symlinks intact for code signing)
+                        utils.copyFile(installer, zipTarget, platform)
                     } else {
                         zip(zipFile: zipTarget, archive: false, glob: installer)
                     }
@@ -423,39 +424,9 @@ def notifySuccess() {
     if(buildTriggeredByUser && send_emails) {
         utils.sendEmail("Re: ${branch_name} build", "SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.")
     }
-    String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
-    String user = atSlackUser()
-    if(user) {
-        try {
-            slackSend(
-                    color: 'good',
-                    message: "${user} finished building `${branch_name}` | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
-            alerted_via_slack = true
-        } catch(e) { }
+    if(!alerted_via_slack) {
+        String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
+        alerted_via_slack = slackBuildInitiatorSuccess("finished building `${branch_name}` | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
     }
 }
 
-String atSlackUser() {
-    try {
-        def userCause = currentBuild.rawBuild.getCause(hudson.model.Cause$UserIdCause)
-        if(userCause != null) {
-            String slackUserId = jenkinsToSlackUserId(userCause.getUserId())
-            if(!slackUserId.isEmpty()) {
-                return "<@${slackUserId}>"
-            }
-        }
-    } catch(e) { }
-    return ''
-}
-
-String jenkinsToSlackUserId(String jenkinsUserName) {
-         if(jenkinsUserName == 'jennifer') { return 'UAFN64MEC' }
-    else if(jenkinsUserName == 'tyler')    { return 'UAG6R8LHJ' }
-    else if(jenkinsUserName == 'justsid')  { return 'UAFUMQESC' }
-    else if(jenkinsUserName == 'chris')    { return 'UAG89NX9S' }
-    else if(jenkinsUserName == 'philipp')  { return 'UAHMBUCV9' }
-    else if(jenkinsUserName == 'ben')      { return 'UAHHSRPD5' }
-    else if(jenkinsUserName == 'joerg')    { return 'UAHNGEP61' }
-    else if(jenkinsUserName == 'austin')   { return 'UAGV8R9PS' }
-    return ''
-}

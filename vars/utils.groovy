@@ -67,6 +67,13 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
 String getDirChar(String platform='') {
     return chooseByPlatformNixWin("/", "\\", platform)
 }
+String fixDirChars(String path, String platform='') {
+    if(isWindows(platform)) {
+        return path.replace('/', "\\")
+    } else {
+        return path.replace("\\", '/')
+    }
+}
 String getJenkinsDir(String subdir, String platform='') {
     String jenkins = chooseByPlatformNixWin("/jenkins/", "C:\\jenkins\\", platform)
     return jenkins + subdir + getDirChar(platform)
@@ -162,8 +169,8 @@ def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path
 def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
 def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
 
-def copyFile(String source, String dest) {
-    fileOperations([fileCopyOperation(includes: source, targetLocation: dest)])
+def copyFile(String source, String dest, String platform='') {
+    chooseShellByPlatformNixWin("cp \"${source}\" \"${dest}\"", "copy \"${source}\" \"${dest}\"", platform)
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {

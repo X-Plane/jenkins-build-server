@@ -1,13 +1,18 @@
 ok /ERROR:\sCould\snot\sparse\sresponse\sfrom\sslack/
+ok /ERROR:\sSlack\snotification\sfailed/
+ok /ERROR:\srequests-oauthlib/
 
 error /ErrorCollector\.java/
 error /assertFailed/
+error /Assertion Failed/
 error /Failed\sin\sbranch/
 error /Couldn't\sfind\sany\srevision/
 error /MissingPropertyException/
 error /clang:\serror:/
 error /\*\*\* No rule to make target/
 error /^ERROR:\s/
+error /^\s*Error:\s/
+error /^\s*RuntimeError:/
 error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
 error /: fatal error:/
 error /^\d+\serrors\sgenerated/
@@ -32,5 +37,6 @@ error /build commands failed/
 error /error due to missing products/
 error /Unable to connect to a repository at URL/
 error /Network connection closed unexpectedly/
+error /\[31m/
 
 info /This\scommit\swas\salready\sbuilt/

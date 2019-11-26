@@ -33,6 +33,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 sh(returnStatus: true, script: "git pull") // If we're in detached HEAD mode, pull will fail
             }
         } else {
+            utils.shell('git reset --hard')
             checkout(
                     [$class: 'GitSCM', branches: [[name: branchName]],
                      userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]]
@@ -40,6 +41,11 @@ def call(String branchName='', String checkoutDir='', String platform='', String
         }
 
         if(fileExists('scripts/setup_submodules.sh')) {
+            String cef = "Resources/dlls/64/cef"
+            String atc = "Resources/default scenery/default atc"
+            String apt_dat = "Resources/default scenery/default apt dat"
+            String global_apts = "Custom Scenery/Global Airports"
+            
             if(utils.shellIsSh(platform)) {
                 dir(checkoutDir + 'scripts') {
                     sshagent(['tylers-ssh']) {
@@ -51,19 +57,18 @@ def call(String branchName='', String checkoutDir='', String platform='', String
 
                 String remote = bat(returnStdout: true, script: "git remote get-url --push origin").trim().split("\r?\n")[1]
                 String remoteParent = remote.substring(0, remote.lastIndexOf('/') + 1)
-                bat "git config --file=.gitmodules \"submodule.Resources\\dlls\\64\\cef.url\" ${remoteParent}cef.git"
-                bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default atc.url\" ${remoteParent}atc_res.git"
-                bat "git config --file=.gitmodules \"submodule.Resources\\default scenery\\default apt dat.url\" ${remoteParent}default_apts.git"
-                bat "git config --file=.gitmodules \"submodule.Custom\\ Scenery\\Global Airports.url\" ${remoteParent}global_apts.git"
+                bat "git config --file=.gitmodules \"submodule.${cef}.url\"         ${remoteParent}cef.git"
+                bat "git config --file=.gitmodules \"submodule.${atc}.url\"         ${remoteParent}atc_res.git"
+                bat "git config --file=.gitmodules \"submodule.${apt_dat}.url\"     ${remoteParent}default_apts.git"
+                bat "git config --file=.gitmodules \"submodule.${global_apts}.url\" ${remoteParent}global_apts.git"
 
                 bat 'git submodule sync'
                 bat 'git submodule update'
-
             }
         }
 
         utils.shell(script: 'git reset --hard', platform: platform, returnStatus: true)
-        utils.chooseShell('git submodule update --recursive', platform)
+        utils.chooseShell('git submodule foreach --recursive git reset --hard', platform)
 
         String commitId = ""
         if(utils.shellIsSh(platform)) {
