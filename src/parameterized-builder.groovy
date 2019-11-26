@@ -211,7 +211,7 @@ def doBuild(String platform) {
 
                 for(String target in getBuildTargets(platform)) {
                     utils.chooseShellByPlatformMacWinLin([
-                            "set -o pipefail && xcodebuild -target \"${target}\" -config \"${config}\" -project ${projectFile} build ${pipe_to_xcpretty}",
+                            "set -o pipefail && xcodebuild -target \"${target}\" -config \"${config}\" -project ${projectFile} ${getMacSanitizerBuildArg()} build ${pipe_to_xcpretty}",
                             "\"${msBuild}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /verbosity:minimal /p:ProductVersion=11.${env.BUILD_NUMBER} ${target}",
                             "cd design_linux && make -j\$(nproc) ${target}"
                     ], platform)
@@ -243,6 +243,18 @@ def getSanitizerShellArg() {
         return '--tsan'
     } else if(sanitizer == 'undefined-behavior') {
         return '--ubsan'
+    } else {
+        return ''
+    }
+}
+
+def getMacSanitizerBuildArg() {
+    if(sanitizer == 'address') {
+        return '-enableAddressSanitizer YES'
+    } else if(sanitizer == 'thread') {
+        return '-enableThreadSanitizer YES'
+    } else if(sanitizer == 'undefined-behavior') {
+        return '-enableUndefinedBehaviorSanitizer YES'
     } else {
         return ''
     }
@@ -346,7 +358,7 @@ def doUnitTest(String platform) {
         dir(utils.getCheckoutDir(platform)) {
             String exe = getCatch2Executable(platform)
             if(utils.isMac(platform)) {
-                exe += '/Contents/MacOS/catch2_tests' + utils.app_suffix
+                exe += '/Contents/MacOS/catch2_tests' + utils.
             }
             String xml = testXmlTarget(platform)
             try {
@@ -392,8 +404,13 @@ def doArchive(String platform) {
                 }
 
                 List prods = getProducts(platform)
-                // Kit the installers for deployment
-                if(needsInstallerKitting(platform)) {
+
+                if(sanitizer) { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
+                    for(String product : prods) {
+                        utils.copyFile(product, renamedSanitizerProduct(product), platform)
+                    }
+                    prods = prods.collect { renamedSanitizerProduct(it) }
+                } else if(needsInstallerKitting(platform)) {
                     String installer = getProducts(platform, true).find { el -> el.contains('Installer') } // takes the first match
                     String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                     if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
@@ -417,6 +434,13 @@ def doArchive(String platform) {
             throw e
         }
     }
+}
+
+def renamedSanitizerProduct(String originalName) {
+    if(sanitizer) {
+        return "${sanitizer}_${originalName}"
+    }
+    return originalName
 }
 
 def notifySuccess() {
