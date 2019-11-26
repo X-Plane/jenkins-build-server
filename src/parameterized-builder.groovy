@@ -191,7 +191,7 @@ def doBuild(String platform) {
                 String config = utils.getBuildToolConfiguration()
 
                 // Generate our project files
-                String sanitizerArg = getSanitizerShellArg()
+                String sanitizerArg = getSanitizerShellArg(platform)
                 utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
 
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
@@ -238,10 +238,10 @@ def doBuild(String platform) {
     }
 }
 
-def getSanitizerShellArg() {
+def getSanitizerShellArg(String platform) {
     if(sanitizer == 'address') {
         return '--asan'
-    } else if(sanitizer == 'thread') {
+    } else if(sanitizer == 'thread' && !utils.isLinux(platform)) {
         return '--tsan'
     } else if(sanitizer == 'undefined-behavior') {
         return '--ubsan'
