@@ -407,7 +407,7 @@ def doArchive(String platform) {
 
                 List prods = getProducts(platform)
 
-                if(sanitizer) { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
+                if(sanitizer && sanitizer != 'none') { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
                     for(String product : prods) {
                         utils.copyFile(product, renamedSanitizerProduct(product), platform)
                     }
@@ -439,7 +439,7 @@ def doArchive(String platform) {
 }
 
 def renamedSanitizerProduct(String originalName) {
-    if(sanitizer) {
+    if(sanitizer && sanitizer != 'none') {
         return "${sanitizer}_sanitizer_${originalName}"
     }
     return originalName
