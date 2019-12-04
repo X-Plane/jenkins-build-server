@@ -225,10 +225,13 @@ def doBuild(String platform) {
                 }
             }
         } catch (e) {
-            String heyYourBuild = getSlackHeyYourBuild()
+            String user = atSlackUser()
+            if(user) {
+                user += ' '
+            }
             slackSend(
                     color: 'danger',
-                    message: "${heyYourBuild} of `${branch_name}` failed on ${platform} | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
+                    message: "${user}Build of `${branch_name}` failed on ${platform} | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
             alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
