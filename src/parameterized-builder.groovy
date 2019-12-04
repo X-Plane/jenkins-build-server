@@ -342,13 +342,16 @@ def doUnitTest(String platform) {
             try {
                 utils.chooseShellByPlatformNixWin("./${exe} -r junit -o ${xml}", "${exe} /r junit /o ${xml}", platform)
             } catch(e) {
+                errorMsg = fileExists(xml) ? "failed unit testing (but did compile & run without crashing)" : "crashed during unit testing (but did compile)"
+                echo("ERROR: ${errorMsg}")
+
                 String user = atSlackUser()
                 if(user) {
                     user += ' '
                 }
                 slackSend(
                         color: 'danger',
-                        message: "${user}`${branch_name}` failed unit testing (but did compile) | <${BUILD_URL}testReport/|Test Report>")
+                        message: "${user}`${branch_name}` ${errorMsg} | <${BUILD_URL}testReport/|Test Report>")
                 alerted_via_slack = true
             }
             archiveWithDropbox([xml], getArchiveDirAndEnsureItExists(platform), true, utils, false)
