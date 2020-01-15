@@ -191,8 +191,9 @@ def doTest() {
                 testsToRun.push("load_time_test_runner.py")
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
                 def testFiles = readListFile('jenkins_tests.list')
+                String backend = graphicsBackendArg(platform)
                 for(String testFile : testFiles) {
-                    testsToRun << "test_runner.py ${testFile} --nodelete" + (isUiTest(testFile) ? ' --ui' : '')
+                    testsToRun << "test_runner.py ${testFile} --nodelete ${backend}" + (isUiTest(testFile) ? ' --ui' : '')
                 }
                 echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
@@ -244,6 +245,14 @@ def doTest() {
                 throw e
             }
         }
+    }
+}
+
+String graphicsBackendArg(platform) {
+    if(params.graphics_backend == 'vulkan_metal') {
+        return utils.chooseByPlatformMacWinLin(['--metal', '--vulkan', '--vulkan'], platform)
+    } else {
+        return ''
     }
 }
 
