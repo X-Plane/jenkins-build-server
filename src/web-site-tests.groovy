@@ -74,7 +74,8 @@ def testFunnel(String platform) {
         setUpPython3VirtualEnvironment(utils, platform)
         String dirChar = utils.getDirChar(platform)
         String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
-        utils.chooseShell("env${dirChar}${binDir}${dirChar}behave --tags=${tag}", platform)
+        String site_arg = site_to_test == 'staging' ? 'SITE_TO_TEST=https://xplanedotcom:5857110a@xplanedotcom.staging.wpengine.com behave --tags=purchasing' : ''
+        utils.chooseShell("${site_arg} env${dirChar}${binDir}${dirChar}behave --tags=${tag}", platform)
     }
 }
 
