@@ -1,12 +1,12 @@
 def call(String branchName='', String checkoutDir='', String platform='', String repo='ssh://tyler@dev.x-plane.com/admin/git-xplane/design.git') {
     if(!fileExists("${checkoutDir}.git")) {
-        sshagent(['tylers-ssh']) {
-            if(isUnix() || platform.contains('Bash')) {
+        if(isUnix() || platform.contains('Bash')) {
+            sshagent(['tylers-ssh']) {
                 checkoutDirNix = checkoutDir.replace('C:\\', '/c/').replace('D:\\', '/d/').replace('\\', '/').replace(' ', '\\ ')
                 sh "git clone ${repo} ${checkoutDirNix}"
-            } else {
-                checkout([$class: 'GitSCM', branches: [[name: branchName]], userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]])
             }
+        } else {
+            checkout([$class: 'GitSCM', branches: [[name: branchName]], userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]])
         }
     }
 
