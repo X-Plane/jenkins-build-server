@@ -4,7 +4,7 @@ def call(List<String> productsToClean=[], List<String> macWinLinCleanCommmand=[]
             utils.nukeIfExist(productsToClean, platform)
             if(macWinLinCleanCommmand) {
                 try {
-                    utils.chooseShellByPlatformMacWinLin(macWinLinCleanCommmand, platform)
+                    utils.shellMacWinLin(macWinLinCleanCommmand, platform, false, true)
                 } catch (e) { }
             }
         }
