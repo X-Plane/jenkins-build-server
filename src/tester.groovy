@@ -58,7 +58,7 @@ def doCheckout() {
     // Nuke previous products
     boolean doClean = utils.toRealBool(clean_build)
     cleanCommand = doClean ? ['rm -Rf design_xcode *.app', 'rd /s /q design_vstudio', 'rm -Rf design_linux'] : []
-    List to_nuke = ['*.png', '*.avi', 'tests/*.old', '*.zip', '*.exe', 'Resources/shaders/bin/']
+    List to_nuke = ['*.png', '*.avi', '*.txt', 'tests/*.old', '*.zip', '*.exe', 'Resources/shaders/bin/']
     if(isRenderingRegression) {
         to_nuke.push('regression_images')
     }
@@ -191,8 +191,9 @@ def doTest() {
                 testsToRun.push("load_time_test_runner.py")
             } else {  // Normal integration tests... we'll read jenkins_tests.list to get the files to test
                 def testFiles = readListFile('jenkins_tests.list')
+                String backend = graphicsBackendArg(platform)
                 for(String testFile : testFiles) {
-                    testsToRun << "test_runner.py ${testFile} --nodelete" + (isUiTest(testFile) ? ' --ui' : '')
+                    testsToRun << "test_runner.py ${testFile} --nodelete ${backend}" + (isUiTest(testFile) ? ' --ui' : '')
                 }
                 echo 'tests/jenkins_tests.list requests the following tests:\n - ' + testFiles.join('\n - ')
             }
@@ -247,6 +248,14 @@ def doTest() {
     }
 }
 
+String graphicsBackendArg(platform) {
+    if(params.graphics_backend == 'vulkan_metal') {
+        return utils.chooseByPlatformMacWinLin(['--metal', '--vulkan', '--vulkan'], platform)
+    } else {
+        return ''
+    }
+}
+
 def doArchive() {
     try {
         dir(checkoutDir) {
@@ -293,8 +302,8 @@ def doArchive() {
                         '*.png',
                         '*.avi',
                         // Grab any log files that the test_runner gave us from instances that crashed
-                        'Log_crashed*.txt',
-                        'Log_failed*.txt']
+                        'Log crashed*.txt', 'Log_crashed*.txt',
+                        'Log failed*.txt',  'Log_failed*.txt']
                 for(String pattern : extraFilePatterns) {
                     for(def file : findFiles(glob: pattern)) {
                         if(!products.contains(file.name)) {

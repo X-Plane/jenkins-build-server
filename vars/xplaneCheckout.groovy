@@ -5,7 +5,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 checkoutDirNix = checkoutDir.replace('C:\\', '/c/').replace('D:\\', '/d/').replace('\\', '/').replace(' ', '\\ ')
                 sh "git clone ${repo} ${checkoutDirNix}"
             } else {
-                bat "git clone ${repo} ${checkoutDir}"
+                checkout([$class: 'GitSCM', branches: [[name: branchName]], userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: repo]]])
             }
         }
     }
