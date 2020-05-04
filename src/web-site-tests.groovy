@@ -3,7 +3,7 @@
 String nodeType = utils.isWindows(platform) ? 'windows' : (utils.isMac(platform) ? 'mac' : 'linux')
 
 def environment = [:]
-environment['branch_name'] = 'master'
+environment['branch_name'] = params.branch_name ? params.branch_name : 'master'
 environment['send_emails'] = 'true'
 environment['build_windows'] = utils.isWindows(platform) ? 'true' : 'false'
 environment['build_mac'] = utils.isMac(platform) ? 'true' : 'false'
