@@ -45,16 +45,10 @@ node('ios') {
         step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
     }
 }
-
-// Docs here: https://github.com/jenkinsci/file-operations-plugin
-def nukeFolders(List<String> paths) { fileOperations(paths.collect { folderDeleteOperation(it) }) }
-def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path)]) }
-def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
-def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
-
 def doCheckout(String platform) {
     String checkoutDir = utils.getCheckoutDir(platform)
     dir(checkoutDir) {
+        utils.nukeIfExist(['X-Plane.xcarchive.zip'], platform)
         try {
             xplaneCheckout(branch_name, checkoutDir, platform)
         } catch(e) {

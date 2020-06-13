@@ -78,9 +78,9 @@ String getJenkinsDir(String subdir, String platform='') {
     if(isWindows(platform)) {
         return "C:\\jenkins\\" + subdir + getDirChar(platform)
     } else if(fileExists('/Users/Shared/jenkins')) {
-        return '/Users/Shared/jenkins' + subdir + getDirChar(platform)
+        return '/Users/Shared/jenkins/' + subdir + getDirChar(platform)
     } else {
-        return '/jenkins' + subdir + getDirChar(platform)
+        return '/jenkins/' + subdir + getDirChar(platform)
     }
 }
 String getCheckoutDir(String platform='') {
