@@ -6,8 +6,7 @@ environment['build_windows'] = 'false'
 environment['build_mac'] = 'false'
 environment['build_linux'] = 'false'
 environment['build_all_apps'] = 'true'
-environment['build_type'] = build_type
-environment['products_to_build'] = products_to_build
+environment['build_type'] = 'release'
 environment['override_checkout_dir'] = 'iphone-' + directory_suffix
 utils.setEnvironment(environment, this.&notify, this.steps)
 

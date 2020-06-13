@@ -77,7 +77,7 @@ String fixDirChars(String path, String platform='') {
 String getJenkinsDir(String subdir, String platform='') {
     if(isWindows(platform)) {
         return "C:\\jenkins\\" + subdir + getDirChar(platform)
-    } else if(filExists('~/jenkins')) {
+    } else if(fileExists('~/jenkins')) {
         return '~/jenkins' + subdir + getDirChar(platform)
     } else {
         return '/jenkins' + subdir + getDirChar(platform)
@@ -100,7 +100,7 @@ String getCommitId(String platform='') {
 String getArchiveRoot(String platform='') {
     if(isWindows(platform)) { // windows path might be on either the C:\ or D:\ drive
         return platform.startsWith('WindowsC') ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\"
-    } else if(filExists('~/jenkins')) {
+    } else if(fileExists('~/jenkins')) {
         return '~/jenkins/Dropbox/jenkins-archive/'
     } else {
         return '/jenkins/Dropbox/jenkins-archive/'
