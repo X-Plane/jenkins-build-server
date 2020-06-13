@@ -133,8 +133,8 @@ List<String> getWindowsLibs() {
 String getSdkCheckoutDir(String platform) {
     if(isWindows(platform)) {
         return"C:\\jenkins\\xplanesdk\\"
-    } else if(fileExists('~/jenkins')) {
-        return '~/jenkins/xplanesdk'
+    } else if(fileExists('/Users/Shared/jenkins')) {
+        return '/Users/Shared/jenkins/xplanesdk'
     } else {
         return '/jenkins/xplanesdk'
     }
