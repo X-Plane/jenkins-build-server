@@ -32,6 +32,7 @@ error /X-Plane ended with exit code/
 error /Failing scenarios:/
 error /AssertionError/
 error /PermissionError/
+error /SessionNotCreatedException/
 error /MemoryError/
 error /EOF or read error, treating as/
 error /not recognized as an internal or external command/
