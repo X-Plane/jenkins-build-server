@@ -42,7 +42,7 @@ finally { // we want to archive regardless of whether the tests passed
 }
 
 String getCheckoutDir(platform) {
-    return utils.chooseByPlatformNixWin("/jenkins/website-${tag}/", "C:\\jenkins\\website-${tag}\\", platform)
+    return utils.chooseByPlatformNixWin("~/jenkins/website-${tag}/", "C:\\jenkins\\website-${tag}\\", platform)
 }
 
 def doCheckout(String platform) {

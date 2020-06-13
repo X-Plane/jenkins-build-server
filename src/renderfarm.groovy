@@ -23,8 +23,8 @@ utils.setEnvironment(environment, this.&notify, this.steps)
 
 String nodeType = 'renderfarm'
 
-xptools_directory = '/jenkins/xptools'
-rendering_code_directory = '/jenkins/rendering_code'
+xptools_directory = '~/jenkins/xptools'
+rendering_code_directory = '~/jenkins/rendering_code'
 
 class NodeSpec {
     static totalClusterThreads = 0

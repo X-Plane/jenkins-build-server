@@ -131,7 +131,13 @@ List<String> getWindowsLibs() {
     return ['XPLM_64.lib', 'XPWidgets_64.lib']
 }
 String getSdkCheckoutDir(String platform) {
-    return utils.chooseByPlatformNixWin("/jenkins/xplanesdk/", "C:\\jenkins\\xplanesdk\\", platform)
+    if(isWindows(platform)) {
+        return"C:\\jenkins\\xplanesdk\\"
+    } else if(filExists('~/jenkins')) {
+        return '~/jenkins/xplanesdk'
+    } else {
+        return '/jenkins/xplanesdk'
+    }
 }
 
 String getArchiveDirAndEnsureItExists(String platform) {

@@ -75,8 +75,13 @@ String fixDirChars(String path, String platform='') {
     }
 }
 String getJenkinsDir(String subdir, String platform='') {
-    String jenkins = chooseByPlatformNixWin("/jenkins/", "C:\\jenkins\\", platform)
-    return jenkins + subdir + getDirChar(platform)
+    if(isWindows(platform)) {
+        return "C:\\jenkins\\" + subdir + getDirChar(platform)
+    } else if(filExists('~/jenkins')) {
+        return '~/jenkins' + subdir + getDirChar(platform)
+    } else {
+        return '/jenkins' + subdir + getDirChar(platform)
+    }
 }
 String getCheckoutDir(String platform='') {
     return getJenkinsDir(override_checkout_dir ? override_checkout_dir : "design-${directory_suffix}", platform)
@@ -95,6 +100,8 @@ String getCommitId(String platform='') {
 String getArchiveRoot(String platform='') {
     if(isWindows(platform)) { // windows path might be on either the C:\ or D:\ drive
         return platform.startsWith('WindowsC') ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\"
+    } else if(filExists('~/jenkins')) {
+        return '~/jenkins/Dropbox/jenkins-archive/'
     } else {
         return '/jenkins/Dropbox/jenkins-archive/'
     }

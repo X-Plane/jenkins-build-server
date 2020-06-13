@@ -15,7 +15,7 @@ stage('Deploy')     { node(nodeType) { deployToProduction(platform) } }
 
 
 String getCheckoutDir(platform) {
-    return utils.chooseByPlatformNixWin('/jenkins/wordpress/', 'C:\\jenkins\\wordpress\\', platform)
+    return utils.chooseByPlatformNixWin('~/jenkins/wordpress/', 'C:\\jenkins\\wordpress\\', platform)
 }
 
 def doCheckout(String platform) {
