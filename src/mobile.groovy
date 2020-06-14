@@ -120,7 +120,7 @@ def doArchive(String platform) {
 def notifySuccess() {
     if(!alerted_via_slack) {
         String productsUrl = "${BUILD_URL}artifact/*zip*/archive.zip"
-        alerted_via_slack = slackBuildInitiatorSuccess("finished building `${branch_name}` | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
+        alerted_via_slack = slackBuildInitiatorSuccess("finished building Mobile's `${branch_name}` | <${productsUrl}|Download products> | <${BUILD_URL}|Build Info>")
     }
 }
 
