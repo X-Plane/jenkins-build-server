@@ -13,6 +13,8 @@ utils.setEnvironment(environment, this.&notify, this.steps)
 alerted_via_slack = false
 doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
+buildIOS = build.contains('iOS')
+buildAndroid = build.contains('Android')
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -48,7 +50,7 @@ node('ios') {
 def doCheckout(String platform) {
     String checkoutDir = utils.getCheckoutDir(platform)
     dir(checkoutDir) {
-        utils.nukeIfExist(['X-Plane.xcarchive.zip'], platform)
+        utils.nukeIfExist(buildProducts(platform), platform)
         try {
             xplaneCheckout(branch_name, checkoutDir, platform, "ssh://tyler@dev.x-plane.com/admin/git-xplane/iphone.git")
         } catch(e) {
@@ -60,21 +62,40 @@ def doCheckout(String platform) {
     }
 }
 
+List<String> buildProducts(String platform) {
+    List<String> toBuild = []
+    if(buildIOS) { toBuild.push('X-Plane.xcarchive.zip') }
+    if(buildAndroid) { toBuild.push('app-debug.apk') }
+    return toBuild
+}
+
 def doBuild(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         try {
+            List<String> toBuild = buildProducts(platform)
             def archiveDir = getArchiveDirAndEnsureItExists(platform)
-            toBuild = ['X-Plane.xcarchive']
             if(!forceBuild && utils.copyBuildProductsFromArchive(toBuild, platform)) {
-                echo "This commit was already built for ${platform} in ${archiveDir}"
+                echo "This Mobile commit was already built in ${archiveDir}"
             } else { // Actually build some stuff!
-                if(doClean) {
-                    sh "rm -Rf ~/Library/Developer/Xcode/DerivedData/*"
+                if(buildIOS) {
+                    if(doClean) {
+                        sh "rm -Rf ~/Library/Developer/Xcode/DerivedData/*"
+                    }
+                    String cleanCommand = doClean ? 'clean' : ''
+                    String buildCommand = "xcodebuild -scheme \"SIM-V10 Release\" -project iphone.xcodeproj ${cleanCommand} archive -sdk iphoneos -archivePath X-Plane.xcarchive"
+                    String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+                    sh "set -o pipefail && ${buildCommand} ${pipe_to_xcpretty}"
                 }
-                String cleanCommand = doClean ? 'clean' : ''
-                String buildCommand = "xcodebuild -scheme \"SIM-V10 Release\" -project iphone.xcodeproj ${cleanCommand} archive -sdk iphoneos -archivePath X-Plane.xcarchive"
-                String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-                sh "set -o pipefail && ${buildCommand} ${pipe_to_xcpretty}"
+                if(buildAndroid) {
+                    dir('android/XPlane10/') {
+                        if(doClean) {
+                            sh "./gradlew clean"
+                        }
+                        sh "./gradlew assembleDebug"
+                        sh "mv -f app/build/outputs/apk/debug/*.apk ../../"
+                        // TODO: gradlew installDebug or test or testDebugUnitTest on the emulator and run it: https://developer.android.com/studio/build/building-cmdline#RunningOnEmulator
+                    }
+                }
             }
         } catch (e) {
             String user = atSlackUser()
@@ -103,11 +124,10 @@ def doArchive(String platform) {
             def dropboxPath = getArchiveDirAndEnsureItExists(platform)
             echo "Copying files from ${checkoutDir} to ${dropboxPath}"
 
-            // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
-            if(utils.isMac(platform)) {
+            if(buildIOS) { // The "archive" is actually a directory.. we need to ZIP it, then operate on the ZIP file
                 sh "find . -name '*.xcarchive' -exec zip -rq --symlinks '{}'.zip '{}' \\;"
             }
-            archiveWithDropbox(["X-Plane.xcarchive.zip"], dropboxPath, true, utils)
+            archiveWithDropbox(buildProducts(platform), dropboxPath, true, utils)
         }
     } catch (e) {
         utils.sendEmail("Jenkins archive step failed on ${platform} [Mobile's ${branch_name}]",
