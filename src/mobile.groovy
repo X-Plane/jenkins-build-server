@@ -50,7 +50,7 @@ def doCheckout(String platform) {
     dir(checkoutDir) {
         utils.nukeIfExist(['X-Plane.xcarchive.zip'], platform)
         try {
-            xplaneCheckout(branch_name, checkoutDir, platform)
+            xplaneCheckout(branch_name, checkoutDir, platform, "ssh://tyler@dev.x-plane.com/admin/git-xplane/iphone.git")
         } catch(e) {
             notifyBrokenCheckout(utils.&sendEmail, 'X-Plane Mobile', branch_name, platform, e)
             if(!alerted_via_slack) {

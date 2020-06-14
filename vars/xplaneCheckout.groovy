@@ -65,6 +65,8 @@ def call(String branchName='', String checkoutDir='', String platform='', String
                 bat 'git submodule sync'
                 bat 'git submodule update'
             }
+        } else {
+            utils.chooseShell('git submodule update --init', platform)
         }
 
         utils.shell(script: 'git reset --hard', platform: platform, returnStatus: true)
