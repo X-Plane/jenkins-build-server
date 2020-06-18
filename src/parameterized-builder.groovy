@@ -21,7 +21,7 @@ doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
 wantShaders = products_to_build.contains('SHADERS')
 
-assert sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
+assert params.sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -243,11 +243,11 @@ def doBuild(String platform) {
 }
 
 def getSanitizerShellArg(String platform) {
-    if(sanitizer == 'address') {
+    if(params.sanitizer == 'address') {
         return '--asan'
-    } else if(sanitizer == 'thread' && !utils.isLinux(platform)) {
+    } else if(params.sanitizer == 'thread' && !utils.isLinux(platform)) {
         return '--tsan'
-    } else if(sanitizer == 'undefined-behavior') {
+    } else if(params.sanitizer == 'undefined-behavior') {
         return '--ubsan'
     } else {
         return ''
@@ -255,11 +255,11 @@ def getSanitizerShellArg(String platform) {
 }
 
 def getMacSanitizerBuildArg() {
-    if(sanitizer == 'address') {
+    if(params.sanitizer == 'address') {
         return '-enableAddressSanitizer YES'
-    } else if(sanitizer == 'thread') {
+    } else if(params.sanitizer == 'thread') {
         return '-enableThreadSanitizer YES'
-    } else if(sanitizer == 'undefined-behavior') {
+    } else if(params.sanitizer == 'undefined-behavior') {
         return '-enableUndefinedBehaviorSanitizer YES'
     } else {
         return ''
@@ -414,7 +414,7 @@ def doArchive(String platform) {
 
                 List prods = getProducts(platform)
 
-                if(sanitizer && sanitizer != 'none') { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
+                if(params.sanitizer && params.sanitizer != 'none') { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
                     for(String product : prods) {
                         utils.copyFile(product, renamedSanitizerProduct(product), platform)
                     }
@@ -446,7 +446,7 @@ def doArchive(String platform) {
 }
 
 def renamedSanitizerProduct(String originalName) {
-    if(sanitizer && sanitizer != 'none') {
+    if(params.sanitizer && params.sanitizer != 'none') {
         return "${sanitizer}_sanitizer_${originalName}"
     }
     return originalName
