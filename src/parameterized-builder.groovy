@@ -193,7 +193,8 @@ def doBuild(String platform) {
 
                 // Generate our project files
                 String sanitizerArg = getSanitizerShellArg(platform)
-                utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
+                String vsVars = toolchain_version == 2020 ? '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat"' : '"%VS140COMNTOOLS%vsvars32.bat"'
+                utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", "cmd /C \"${vsVars} && cmake.bat --no_gfxcc\"", "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
 
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
