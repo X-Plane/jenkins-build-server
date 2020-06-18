@@ -20,6 +20,8 @@ doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
 wantShaders = products_to_build.contains('SHADERS')
 
+assert sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
+
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
 // This is where the magic happens.
@@ -189,7 +191,8 @@ def doBuild(String platform) {
                 String config = utils.getBuildToolConfiguration()
 
                 // Generate our project files
-                utils.chooseShellByPlatformMacWinLin(['./cmake.sh --no_gfxcc', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc"], platform)
+                String sanitizerArg = getSanitizerShellArg(platform)
+                utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
 
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
@@ -210,7 +213,7 @@ def doBuild(String platform) {
 
                 for(String target in getBuildTargets(platform)) {
                     utils.chooseShellByPlatformMacWinLin([
-                            "set -o pipefail && xcodebuild -target \"${target}\" -config \"${config}\" -project ${projectFile} build ${pipe_to_xcpretty}",
+                            "set -o pipefail && xcodebuild -target \"${target}\" -config \"${config}\" -project ${projectFile} ${getMacSanitizerBuildArg()} build ${pipe_to_xcpretty}",
                             "\"${msBuild}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /verbosity:minimal /p:ProductVersion=11.${env.BUILD_NUMBER} ${target}",
                             "cd design_linux && make -j\$(nproc) ${target}"
                     ], platform)
@@ -235,6 +238,30 @@ def doBuild(String platform) {
             alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
+    }
+}
+
+def getSanitizerShellArg(String platform) {
+    if(sanitizer == 'address') {
+        return '--asan'
+    } else if(sanitizer == 'thread' && !utils.isLinux(platform)) {
+        return '--tsan'
+    } else if(sanitizer == 'undefined-behavior') {
+        return '--ubsan'
+    } else {
+        return ''
+    }
+}
+
+def getMacSanitizerBuildArg() {
+    if(sanitizer == 'address') {
+        return '-enableAddressSanitizer YES'
+    } else if(sanitizer == 'thread') {
+        return '-enableThreadSanitizer YES'
+    } else if(sanitizer == 'undefined-behavior') {
+        return '-enableUndefinedBehaviorSanitizer YES'
+    } else {
+        return ''
     }
 }
 
@@ -385,8 +412,13 @@ def doArchive(String platform) {
                 }
 
                 List prods = getProducts(platform)
-                // Kit the installers for deployment
-                if(needsInstallerKitting(platform)) {
+
+                if(sanitizer && sanitizer != 'none') { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
+                    for(String product : prods) {
+                        utils.copyFile(product, renamedSanitizerProduct(product), platform)
+                    }
+                    prods = prods.collect { renamedSanitizerProduct(it) }
+                } else if(needsInstallerKitting(platform)) {
                     String installer = getProducts(platform, true).find { el -> el.contains('Installer') } // takes the first match
                     String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                     if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
@@ -410,6 +442,13 @@ def doArchive(String platform) {
             throw e
         }
     }
+}
+
+def renamedSanitizerProduct(String originalName) {
+    if(sanitizer && sanitizer != 'none') {
+        return "${sanitizer}_sanitizer_${originalName}"
+    }
+    return originalName
 }
 
 def notifySuccess() {
