@@ -40,7 +40,7 @@ assert params.sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
     stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
-    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, true) }
+    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, wantShaders) }
     stage('Build') {
         if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
             runOn3Platforms(this.&doBuild)
