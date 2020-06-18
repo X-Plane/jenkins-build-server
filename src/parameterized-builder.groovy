@@ -13,6 +13,7 @@ environment['build_linux'] = build_linux
 environment['build_all_apps'] = 'true'
 environment['build_type'] = build_type
 environment['products_to_build'] = products_to_build
+toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 alerted_via_slack = false
@@ -46,9 +47,9 @@ try {
         } else {
             parallel (
                     // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
-                    'Windows' : { if(wantShaders)         { node('windows') { buildAndArchiveShaders() } } },
-                    'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { doBuild('macOS')   } } } },
-                    'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { doBuild('Linux')   } } } }
+                    'Windows' : { if(wantShaders)         { node('windows' + toolchain_version) { buildAndArchiveShaders() } } },
+                    'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { timeout(60 * 2) { doBuild('macOS')   } } } },
+                    'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { timeout(60 * 2) { doBuild('Linux')   } } } }
             )
         }
     }
@@ -65,9 +66,9 @@ try {
 def runOn3Platforms(Closure c, boolean force_windows=false) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows || force_windows) { node('windows') { timeout(60 * 2) { closure('Windows') } } } },
-            'macOS'   : { if(utils.build_mac)                      { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
-            'Linux'   : { if(utils.build_linux)                    { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
+            'Windows' : { if(utils.build_windows || force_windows) { node('windows' + toolchain_version) { timeout(60 * 2) { closure('Windows') } } } },
+            'macOS'   : { if(utils.build_mac)                      { node('mac' + toolchain_version)     { timeout(60 * 2) { closure('macOS')   } } } },
+            'Linux'   : { if(utils.build_linux)                    { node('linux' + toolchain_version)   { timeout(60 * 2) { closure('Linux')   } } } }
     )
 }
 
@@ -197,7 +198,7 @@ def doBuild(String platform) {
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
                 String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-                String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
+                String msBuild = utils.isWindows(platform) ? (toolchain_version == 2020 ? "C:\\Program Files (x86)\\MSBuild\\16.0\\Bin\\MSBuild.exe" : "${tool 'MSBuild'}") : ''
 
                 if(doClean) {
                     if(utils.isMac(platform)) {
