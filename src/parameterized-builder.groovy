@@ -199,7 +199,7 @@ def doBuild(String platform) {
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
                 String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-                String msBuild = utils.isWindows(platform) ? (toolchain_version == 2020 ? "C:\\Program Files (x86)\\MSBuild\\16.0\\Bin\\MSBuild.exe" : "${tool 'MSBuild'}") : ''
+                String msBuild = utils.isWindows(platform) ? (toolchain_version == 2020 ? "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" : "${tool 'MSBuild'}") : ''
 
                 if(doClean) {
                     if(utils.isMac(platform)) {
