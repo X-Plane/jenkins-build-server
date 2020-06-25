@@ -40,6 +40,7 @@ def call(String branchName='', String checkoutDir='', String platform='', String
             )
         }
 
+        utils.chooseShell('git submodule foreach --recursive git reset --hard', platform)
         if(fileExists('scripts/setup_submodules.sh')) {
             String cef = "Resources/dlls/64/cef"
             String atc = "Resources/default scenery/default atc"
