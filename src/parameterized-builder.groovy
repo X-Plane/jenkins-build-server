@@ -315,38 +315,18 @@ def buildAndArchiveShaders() {
     dir(utils.getCheckoutDir('Windows')) {
         String shadersZip = 'shaders_bin.zip'
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
-
-        // Need to hash both the shader source files and gfx-cc itself
-        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv  | Select -ExpandProperty Hash') +
-                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.glsl | Select -ExpandProperty Hash') +
-                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe   | Select -ExpandProperty Hash')
-        String combinedHash = powershell(returnStdout: true, script: "\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()").replaceAll("\\s","")
-
-        String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
-        fileOperations([folderCreateOperation(shaderCacheDir)])
-        String shaderCachePath = "${shaderCacheDir}${combinedHash}.zip"
-        boolean cacheExists = fileExists(shaderCachePath)
-        if(!forceBuild && cacheExists) {
-            echo "Skipping shaders build since they already exist in Dropbox (combined hash ${combinedHash})"
-            utils.copyFilePatternToDest(shaderCachePath, shadersZip, 'Windows')
-        } else {
-            try {
-                retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet' }
-            } catch(e) {
-                if(fileExists('gfx-cc.dmp')) {
-                    archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
-                } else {
-                    echo 'Failed to find gfx-cc.dmp'
-                }
-                echo 'ERROR: gfx-cc.exe crashed repeatedly; giving up on building shaders'
-                throw e
+        try {
+            retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet' }
+        } catch(e) {
+            if(fileExists('gfx-cc.dmp')) {
+                archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
+            } else {
+                echo 'Failed to find gfx-cc.dmp'
             }
-            zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
+            echo 'ERROR: gfx-cc.exe crashed repeatedly; giving up on building shaders'
+            throw e
         }
-
-        if(!cacheExists) {
-            utils.copyFilePatternToDest(shadersZip, shaderCachePath)
-        }
+        zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
         archiveWithDropbox([shadersZip], dropboxPath, true, utils)
     }
 }
