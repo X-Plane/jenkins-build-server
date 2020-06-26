@@ -150,11 +150,11 @@ List getExpectedXPlaneProducts(String platform, boolean ignoreSymbols=false) {
         }
     }
 
-
-    boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
-    if(needsSymbols) {
+    if(!ignoreSymbols) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
+        def platformOther = build_type.contains('NODEV_OPT_Prod') ?
+                addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix) :
+                []
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }

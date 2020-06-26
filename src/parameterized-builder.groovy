@@ -7,12 +7,13 @@ environment['send_emails'] = send_emails
 //environment['pmt_subject'] = pmt_subject
 //environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
-environment['build_windows'] = build_windows
-environment['build_mac'] = build_mac
-environment['build_linux'] = build_linux
+environment['build_windows'] = params.build_windows ? params.build_windows : (params.platforms.contains('windows') ? 'true' : 'false')
+environment['build_mac'] = params.build_mac ? params.build_mac : (params.platforms.contains('mac') ? 'true' : 'false')
+environment['build_linux'] = params.build_linux ? params.build_linux : (params.platforms.contains('linux') ? 'true' : 'false')
 environment['build_all_apps'] = 'true'
 environment['build_type'] = build_type
 environment['products_to_build'] = products_to_build
+toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 alerted_via_slack = false
@@ -20,7 +21,7 @@ doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
 wantShaders = products_to_build.contains('SHADERS')
 
-assert sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
+assert params.sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -39,16 +40,16 @@ assert sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
     stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
-    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, true) }
+    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, wantShaders) }
     stage('Build') {
         if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
             runOn3Platforms(this.&doBuild)
         } else {
             parallel (
                     // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
-                    'Windows' : { if(wantShaders)         { node('windows') { buildAndArchiveShaders() } } },
-                    'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { doBuild('macOS')   } } } },
-                    'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { doBuild('Linux')   } } } }
+                    'Windows' : { if(wantShaders)         { node('windows' + toolchain_version) { buildAndArchiveShaders() } } },
+                    'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { timeout(60 * 2) { doBuild('macOS')   } } } },
+                    'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { timeout(60 * 2) { doBuild('Linux')   } } } }
             )
         }
     }
@@ -65,9 +66,9 @@ try {
 def runOn3Platforms(Closure c, boolean force_windows=false) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows || force_windows) { node('windows') { timeout(60 * 2) { closure('Windows') } } } },
-            'macOS'   : { if(utils.build_mac)                      { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
-            'Linux'   : { if(utils.build_linux)                    { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
+            'Windows' : { if(utils.build_windows || force_windows) { node('windows' + toolchain_version) { timeout(60 * 2) { closure('Windows') } } } },
+            'macOS'   : { if(utils.build_mac)                      { node('mac' + toolchain_version)     { timeout(60 * 2) { closure('macOS')   } } } },
+            'Linux'   : { if(utils.build_linux)                    { node('linux' + toolchain_version)   { timeout(60 * 2) { closure('Linux')   } } } }
     )
 }
 
@@ -113,18 +114,19 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
         }
     }
 
-    boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
-    if(needsSymbols) {
-        def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        List<String> macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
-        def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
-        filesWithExt += platformSymbols
+    if(!ignoreSymbols) {
+        if(build_type.contains('NODEV_OPT_Prod')) {
+            def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
+            List<String> macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
+            def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
+            filesWithExt += platformSymbols
+        }
+
+        if(utils.isWindows(platform)) { // Always archive the Windows PDB
+            filesWithExt += utils.addSuffix(appNamesForWinSymbols, ".pdb")
+        }
     }
 
-    boolean needsWinPdb = !ignoreSymbols && utils.isWindows(platform) && (build_type.contains('NODEV_OPT_Prod') || utils.toRealBool(want_windows_pdb))
-    if(needsWinPdb) {
-        filesWithExt += utils.addSuffix(appNamesForWinSymbols, ".pdb")
-    }
     return filesWithExt
 }
 
@@ -192,12 +194,13 @@ def doBuild(String platform) {
 
                 // Generate our project files
                 String sanitizerArg = getSanitizerShellArg(platform)
-                utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
+                String vsVars = toolchain_version == 2020 ? '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x86' : '"%VS140COMNTOOLS%vsvars32.bat"'
+                utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", "cmd /C \"${vsVars} && cmake.bat --no_gfxcc\"", "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
 
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
                 String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-                String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
+                String msBuild = utils.isWindows(platform) ? (toolchain_version == 2020 ? "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" : "${tool 'MSBuild'}") : ''
 
                 if(doClean) {
                     if(utils.isMac(platform)) {
@@ -242,11 +245,11 @@ def doBuild(String platform) {
 }
 
 def getSanitizerShellArg(String platform) {
-    if(sanitizer == 'address') {
+    if(params.sanitizer == 'address') {
         return '--asan'
-    } else if(sanitizer == 'thread' && !utils.isLinux(platform)) {
+    } else if(params.sanitizer == 'thread' && !utils.isLinux(platform)) {
         return '--tsan'
-    } else if(sanitizer == 'undefined-behavior') {
+    } else if(params.sanitizer == 'undefined-behavior') {
         return '--ubsan'
     } else {
         return ''
@@ -254,11 +257,11 @@ def getSanitizerShellArg(String platform) {
 }
 
 def getMacSanitizerBuildArg() {
-    if(sanitizer == 'address') {
+    if(params.sanitizer == 'address') {
         return '-enableAddressSanitizer YES'
-    } else if(sanitizer == 'thread') {
+    } else if(params.sanitizer == 'thread') {
         return '-enableThreadSanitizer YES'
-    } else if(sanitizer == 'undefined-behavior') {
+    } else if(params.sanitizer == 'undefined-behavior') {
         return '-enableUndefinedBehaviorSanitizer YES'
     } else {
         return ''
@@ -413,7 +416,7 @@ def doArchive(String platform) {
 
                 List prods = getProducts(platform)
 
-                if(sanitizer && sanitizer != 'none') { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
+                if(params.sanitizer && params.sanitizer != 'none') { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
                     for(String product : prods) {
                         utils.copyFile(product, renamedSanitizerProduct(product), platform)
                     }
@@ -445,7 +448,7 @@ def doArchive(String platform) {
 }
 
 def renamedSanitizerProduct(String originalName) {
-    if(sanitizer && sanitizer != 'none') {
+    if(params.sanitizer && params.sanitizer != 'none') {
         return "${sanitizer}_sanitizer_${originalName}"
     }
     return originalName
