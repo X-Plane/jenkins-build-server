@@ -127,7 +127,10 @@ def doArchive(String platform) {
             if(buildIOS) { // The "archive" is actually a directory.. we need to ZIP it, then operate on the ZIP file
                 sh "find . -name '*.xcarchive' -exec zip -rq --symlinks '{}'.zip '{}' \\;"
             }
-            archiveWithDropbox(buildProducts(platform), dropboxPath, true, utils)
+
+            // Tyler says: when we could theoretically _do_ something with the products, we can go back to storing in Dropbox
+            //archiveWithDropbox(buildProducts(platform), dropboxPath, true, utils)
+            archiveArtifacts artifacts: buildProducts(platform).join(', '), fingerprint: true, onlyIfSuccessful: false
         }
     } catch (e) {
         utils.sendEmail("Jenkins archive step failed on ${platform} [Mobile's ${branch_name}]",
