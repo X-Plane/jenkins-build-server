@@ -19,7 +19,11 @@ try {
     stage('Build & Archive') { runOn3Platforms(this.&doBuildAndArchive)    }
     stage('Finalize Upload') { node('linux') { finalizeUpload('Linux') }   }
 } finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    node('master') {
+        String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
+        utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O")
+        step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
+    }
 }
 
 def runOn3Platforms(Closure c) {
