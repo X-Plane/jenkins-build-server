@@ -68,18 +68,18 @@ def doBuildAndArchive(String platform) {
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
             String vcvars = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x64\n'
-            String msBuild = utils.isWindows(platform) ? "${vcvars} C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild" : ''
+            String msBuild = utils.isWindows(platform) ? "${vcvars} \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild\"" : ''
             if(utils.toRealBool(clean_build)) {
                 utils.chooseShellByPlatformMacWinLin([
                         "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
-                        "\"${msBuild}\" ${projectFile} /t:Clean",
+                        "${msBuild} ${projectFile} /t:Clean",
                         'make clean'
                 ], platform)
             }
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} -archivePath WED.xcarchive  CODE_SIGN_STYLE=\"Manual\" CODE_SIGN_IDENTITY=\"Developer ID Application: Laminar Research (LPH4NFE92D)\" archive ${pipe_to_xcpretty}",
-                    "\"${msBuild}\" /t:WorldEditor /m /p:Configuration=\"Release\" /p:Platform=\"x64\" ${projectFile}",
+                    "${msBuild} /t:WorldEditor /m /p:Configuration=\"Release\" /p:Platform=\"x64\" ${projectFile}",
                     "make -s -C . conf=release_opt -j\$(nproc) WED"
             ], platform)
 
