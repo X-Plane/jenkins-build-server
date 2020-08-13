@@ -42,5 +42,8 @@ error /Unable to connect to a repository at URL/
 error /Network connection closed unexpectedly/
 error /StaleElementReferenceException/
 error /\[31m/
+error /ARCHIVE FAILED/
+error /: error C\d+:/
+error /Aborted by /
 
 info /This\scommit\swas\salready\sbuilt/
