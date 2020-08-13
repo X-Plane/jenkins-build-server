@@ -11,6 +11,7 @@ error /MissingPropertyException/
 error /clang:\serror:/
 error /\*\*\* No rule to make target/
 error /^ERROR:\s/
+error /: error: /
 error /^\s*Error:\s/
 error /^\s*RuntimeError:/
 error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
@@ -45,5 +46,6 @@ error /\[31m/
 error /ARCHIVE FAILED/
 error /: error C\d+:/
 error /Aborted by /
+error /linker command failed/
 
 info /This\scommit\swas\salready\sbuilt/
