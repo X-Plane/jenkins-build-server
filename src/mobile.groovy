@@ -82,7 +82,7 @@ def doBuild(String platform) {
                         sh "rm -Rf ~/Library/Developer/Xcode/DerivedData/*"
                     }
                     String cleanCommand = doClean ? 'clean' : ''
-                    String buildCommand = "xcodebuild -scheme \"SIM-V10 Release\" -project iphone.xcodeproj ${cleanCommand} archive -sdk iphoneos -archivePath X-Plane.xcarchive"
+                    String buildCommand = "xcodebuild -scheme \"X-Plane NODEV_OPT\" -project iphone.xcodeproj ${cleanCommand} archive -sdk iphoneos -archivePath X-Plane.xcarchive"
                     String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
                     sh "set -o pipefail && ${buildCommand} ${pipe_to_xcpretty}"
                 }
