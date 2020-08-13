@@ -138,9 +138,9 @@ String getSdkCheckoutDir(String platform) {
     if(utils.isWindows(platform)) {
         return"C:\\jenkins\\xplanesdk\\"
     } else if(fileExists('/Users/Shared/jenkins')) {
-        return '/Users/Shared/jenkins/xplanesdk'
+        return '/Users/Shared/jenkins/xplanesdk/'
     } else {
-        return '/jenkins/xplanesdk'
+        return '/jenkins/xplanesdk/'
     }
 }
 
