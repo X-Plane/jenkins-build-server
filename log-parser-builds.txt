@@ -1,18 +1,23 @@
 ok /ERROR:\sCould\snot\sparse\sresponse\sfrom\sslack/
 ok /ERROR:\sSlack\snotification\sfailed/
+ok /ERROR:\srequests-oauthlib/
 
 error /ErrorCollector\.java/
 error /assertFailed/
+error /Assertion Failed/
 error /Failed\sin\sbranch/
 error /Couldn't\sfind\sany\srevision/
 error /MissingPropertyException/
 error /clang:\serror:/
 error /\*\*\* No rule to make target/
 error /^ERROR:\s/
+error /: error: /
+error /^\s*Error:\s/
+error /^\s*RuntimeError:/
 error /^make:\s\*\*\*\s\[[\w\s-]+\]\sError/
 error /: fatal error:/
 error /^\d+\serrors\sgenerated/
-error /^\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:\serror:/
+error /jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:\serror:/
 error /^(C|c):\\jenkins\\design-\w+\\(source_code|sdk)[\w-\.\\]+\.(cpp|c|h|hpp)\(\d+\):\serror\sC\d+:/
 error /^\[x\]\s\/jenkins\/design-\w+\/(source_code|sdk)\/[\w-\.\/]+\.(cpp|c|h|hpp):\d+:\d+:/
 error /.obj : error LNK\d+/
@@ -27,11 +32,20 @@ error /dev_assert Error/
 error /X-Plane ended with exit code/
 error /Failing scenarios:/
 error /AssertionError/
+error /PermissionError/
+error /SessionNotCreatedException/
+error /MemoryError/
 error /EOF or read error, treating as/
 error /not recognized as an internal or external command/
 error /build commands failed/
 error /error due to missing products/
 error /Unable to connect to a repository at URL/
 error /Network connection closed unexpectedly/
+error /StaleElementReferenceException/
+error /\[31m/
+error /ARCHIVE FAILED/
+error /: error C\d+:/
+error /Aborted by /
+error /linker command failed/
 
 info /This\scommit\swas\salready\sbuilt/

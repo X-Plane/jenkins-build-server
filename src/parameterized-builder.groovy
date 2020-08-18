@@ -7,18 +7,21 @@ environment['send_emails'] = send_emails
 //environment['pmt_subject'] = pmt_subject
 //environment['pmt_from'] = pmt_from
 environment['directory_suffix'] = directory_suffix
-environment['build_windows'] = build_windows
-environment['build_mac'] = build_mac
-environment['build_linux'] = build_linux
+environment['build_windows'] = params.build_windows ? params.build_windows : (params.platforms.contains('windows') ? 'true' : 'false')
+environment['build_mac'] = params.build_mac ? params.build_mac : (params.platforms.contains('mac') ? 'true' : 'false')
+environment['build_linux'] = params.build_linux ? params.build_linux : (params.platforms.contains('linux') ? 'true' : 'false')
 environment['build_all_apps'] = 'true'
 environment['build_type'] = build_type
 environment['products_to_build'] = products_to_build
-utils.setEnvironment(environment, this.&notify)
+toolchain_version = params.toolchain == '2020' ? 2020 : 2016
+utils.setEnvironment(environment, this.&notify, this.steps)
 
 alerted_via_slack = false
 doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
 wantShaders = products_to_build.contains('SHADERS')
+
+assert params.sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
 
 //--------------------------------------------------------------------------------------------------------------------------------
 // RUN THE BUILD
@@ -37,32 +40,39 @@ wantShaders = products_to_build.contains('SHADERS')
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
     stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
-    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, true) }
+    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, wantShaders) }
     stage('Build') {
         if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
             runOn3Platforms(this.&doBuild)
         } else {
             parallel (
                     // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
-                    'Windows' : { if(wantShaders)         { node('windows') { buildAndArchiveShaders() } } },
-                    'macOS'   : { if(utils.build_mac)     { node('mac')     { timeout(60 * 2) { doBuild('macOS')   } } } },
-                    'Linux'   : { if(utils.build_linux)   { node('linux')   { timeout(60 * 2) { doBuild('Linux')   } } } }
+                    'Windows' : { if(wantShaders)         { node('windows' + toolchain_version) { buildAndArchiveShaders() } } },
+                    'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { timeout(60 * 2) { doBuild('macOS')   } } } },
+                    'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { timeout(60 * 2) { doBuild('Linux')   } } } }
             )
         }
     }
     stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
     stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify')                        { if(!alerted_via_slack) { notifySuccess() } }
+    stage('Notify') {
+        if(!alerted_via_slack) { notifySuccess() }
+        jiraSendBuildInfo(branch: branch_name, site: 'x-plane.atlassian.net')
+    }
 } finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/jenkins-build-server/log-parser-builds.txt', useProjectRule: false]) }
+    node('master') {
+        String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
+        utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O")
+        step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
+    }
 }
 
 def runOn3Platforms(Closure c, boolean force_windows=false) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows || force_windows) { node('windows') { timeout(60 * 2) { closure('Windows') } } } },
-            'macOS'   : { if(utils.build_mac)                      { node('mac')     { timeout(60 * 2) { closure('macOS')   } } } },
-            'Linux'   : { if(utils.build_linux)                    { node('linux')   { timeout(60 * 2) { closure('Linux')   } } } }
+            'Windows' : { if(utils.build_windows || force_windows) { node('windows' + toolchain_version) { timeout(60 * 2) { closure('Windows') } } } },
+            'macOS'   : { if(utils.build_mac)                      { node('mac' + toolchain_version)     { timeout(60 * 2) { closure('macOS')   } } } },
+            'Linux'   : { if(utils.build_linux)                    { node('linux' + toolchain_version)   { timeout(60 * 2) { closure('Linux')   } } } }
     )
 }
 
@@ -108,18 +118,19 @@ List<String> getProducts(String platform, boolean ignoreSymbols=false) {
         }
     }
 
-    boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
-    if(needsSymbols) {
-        def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        List<String> macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
-        def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
-        filesWithExt += platformSymbols
+    if(!ignoreSymbols) {
+        if(build_type.contains('NODEV_OPT_Prod')) {
+            def symbolsSuffix = utils.chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
+            List<String> macAppsWithSymbols = products_to_build.contains('SIM') ? ['X-Plane'] : []
+            def platformSymbols = utils.addSuffix(utils.chooseByPlatformMacWinLin([macAppsWithSymbols, appNamesForWinSymbols, filesWithExt], platform), symbolsSuffix)
+            filesWithExt += platformSymbols
+        }
+
+        if(utils.isWindows(platform)) { // Always archive the Windows PDB
+            filesWithExt += utils.addSuffix(appNamesForWinSymbols, ".pdb")
+        }
     }
 
-    boolean needsWinPdb = !ignoreSymbols && utils.isWindows(platform) && (build_type.contains('NODEV_OPT_Prod') || utils.toRealBool(want_windows_pdb))
-    if(needsWinPdb) {
-        filesWithExt += utils.addSuffix(appNamesForWinSymbols, ".pdb")
-    }
     return filesWithExt
 }
 
@@ -186,12 +197,14 @@ def doBuild(String platform) {
                 String config = utils.getBuildToolConfiguration()
 
                 // Generate our project files
-                utils.chooseShellByPlatformMacWinLin(['./cmake.sh --no_gfxcc', 'cmd /C ""%VS140COMNTOOLS%vsvars32.bat" && cmake.bat --no_gfxcc"', "./cmake.sh ${config} --no_gfxcc"], platform)
+                String sanitizerArg = getSanitizerShellArg(platform)
+                String vsVars = toolchain_version == 2020 ? '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x86' : '"%VS140COMNTOOLS%vsvars32.bat"'
+                utils.chooseShellByPlatformMacWinLin(["./cmake.sh --no_gfxcc ${sanitizerArg}", "cmd /C \"${vsVars} && cmake.bat --no_gfxcc\"", "./cmake.sh ${config} --no_gfxcc ${sanitizerArg}"], platform)
 
                 String projectFile = utils.chooseByPlatformNixWin("design_xcode/X-System.xcodeproj", "design_vstudio\\X-System.sln", platform)
 
                 String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-                String msBuild = utils.isWindows(platform) ? "${tool 'MSBuild'}" : ''
+                String msBuild = utils.isWindows(platform) ? (toolchain_version == 2020 ? "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" : "${tool 'MSBuild'}") : ''
 
                 if(doClean) {
                     if(utils.isMac(platform)) {
@@ -207,7 +220,7 @@ def doBuild(String platform) {
 
                 for(String target in getBuildTargets(platform)) {
                     utils.chooseShellByPlatformMacWinLin([
-                            "set -o pipefail && xcodebuild -target \"${target}\" -config \"${config}\" -project ${projectFile} build ${pipe_to_xcpretty}",
+                            "set -o pipefail && xcodebuild -target \"${target}\" -config \"${config}\" -project ${projectFile} ${getMacSanitizerBuildArg()} build ${pipe_to_xcpretty}",
                             "\"${msBuild}\" /t:Build /m /p:Configuration=\"${config}\" /p:Platform=\"x64\" /verbosity:minimal /p:ProductVersion=11.${env.BUILD_NUMBER} ${target}",
                             "cd design_linux && make -j\$(nproc) ${target}"
                     ], platform)
@@ -222,13 +235,40 @@ def doBuild(String platform) {
                 }
             }
         } catch (e) {
-            String heyYourBuild = getSlackHeyYourBuild()
+            String user = atSlackUser()
+            if(user) {
+                user += ' '
+            }
             slackSend(
                     color: 'danger',
-                    message: "${heyYourBuild} of `${branch_name}` failed on ${platform} | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
+                    message: "${user}Build of `${branch_name}` failed on ${platform} | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}flowGraphTable/|Log (split by machine & task)>")
             alerted_via_slack = true
             notifyDeadBuild(utils.&sendEmail, 'X-Plane', branch_name, utils.getCommitId(platform), platform, e)
         }
+    }
+}
+
+def getSanitizerShellArg(String platform) {
+    if(params.sanitizer == 'address') {
+        return '--asan'
+    } else if(params.sanitizer == 'thread' && !utils.isLinux(platform)) {
+        return '--tsan'
+    } else if(params.sanitizer == 'undefined-behavior') {
+        return '--ubsan'
+    } else {
+        return ''
+    }
+}
+
+def getMacSanitizerBuildArg() {
+    if(params.sanitizer == 'address') {
+        return '-enableAddressSanitizer YES'
+    } else if(params.sanitizer == 'thread') {
+        return '-enableThreadSanitizer YES'
+    } else if(params.sanitizer == 'undefined-behavior') {
+        return '-enableUndefinedBehaviorSanitizer YES'
+    } else {
+        return ''
     }
 }
 
@@ -279,38 +319,18 @@ def buildAndArchiveShaders() {
     dir(utils.getCheckoutDir('Windows')) {
         String shadersZip = 'shaders_bin.zip'
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
-
-        // Need to hash both the shader source files and gfx-cc itself
-        String allHashes = powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.xsv  | Select -ExpandProperty Hash') +
-                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\Resources\\shaders\\**\\*.glsl | Select -ExpandProperty Hash') +
-                           powershell(returnStdout: true, script: 'Get-FileHash -Path .\\scripts\\shaders\\gfx-cc.exe   | Select -ExpandProperty Hash')
-        String combinedHash = powershell(returnStdout: true, script: "\$StringBuilder = New-Object System.Text.StringBuilder ; [System.Security.Cryptography.HashAlgorithm]::Create(\"MD5\").ComputeHash([System.Text.Encoding]::UTF8.GetBytes(\"${allHashes}\"))|%{ ; [Void]\$StringBuilder.Append(\$_.ToString(\"x2\")) ; } ;  \$StringBuilder.ToString()").replaceAll("\\s","")
-
-        String shaderCacheDir = utils.getArchiveRoot('Windows') + "shader_cache\\"
-        fileOperations([folderCreateOperation(shaderCacheDir)])
-        String shaderCachePath = "${shaderCacheDir}${combinedHash}.zip"
-        boolean cacheExists = fileExists(shaderCachePath)
-        if(!forceBuild && cacheExists) {
-            echo "Skipping shaders build since they already exist in Dropbox (combined hash ${combinedHash})"
-            utils.copyFilePatternToDest(shaderCachePath, shadersZip, 'Windows')
-        } else {
-            try {
-                retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -Os --quiet' }
-            } catch(e) {
-                if(fileExists('gfx-cc.dmp')) {
-                    archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
-                } else {
-                    echo 'Failed to find gfx-cc.dmp'
-                }
-                echo 'ERROR: gfx-cc.exe crashed repeatedly; giving up on building shaders'
-                throw e
+        try {
+            retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -O1 --quiet' }
+        } catch(e) {
+            if(fileExists('gfx-cc.dmp')) {
+                archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
+            } else {
+                echo 'Failed to find gfx-cc.dmp'
             }
-            zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
+            echo 'ERROR: gfx-cc.exe crashed repeatedly; giving up on building shaders'
+            throw e
         }
-
-        if(!cacheExists) {
-            utils.copyFilePatternToDest(shadersZip, shaderCachePath)
-        }
+        zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
         archiveWithDropbox([shadersZip], dropboxPath, true, utils)
     }
 }
@@ -336,13 +356,16 @@ def doUnitTest(String platform) {
             try {
                 utils.chooseShellByPlatformNixWin("./${exe} -r junit -o ${xml}", "${exe} /r junit /o ${xml}", platform)
             } catch(e) {
+                errorMsg = fileExists(xml) ? "failed unit testing (but did compile & run without crashing)" : "crashed during unit testing (but did compile)"
+                echo("ERROR: ${errorMsg}")
+
                 String user = atSlackUser()
                 if(user) {
                     user += ' '
                 }
                 slackSend(
                         color: 'danger',
-                        message: "${user}`${branch_name}` failed unit testing (but did compile) | <${BUILD_URL}testReport/|Test Report>")
+                        message: "${user}`${branch_name}` ${errorMsg} | <${BUILD_URL}testReport/|Test Report>")
                 alerted_via_slack = true
             }
             archiveWithDropbox([xml], getArchiveDirAndEnsureItExists(platform), true, utils, false)
@@ -371,20 +394,27 @@ def doArchive(String platform) {
 
                 // If we're on macOS, the "executable" is actually a directory.. we need to ZIP it, then operate on the ZIP files
                 if(utils.isMac(platform)) {
-                    sh "find . -name '*.app' -exec zip -rq '{}'.zip '{}' \\;"
+                    sh "find . -name '*.app' -exec zip -rq --symlinks '{}'.zip '{}' \\;"
                     sh "find . -name '*.dSYM' -exec zip -rq '{}'.zip '{}' \\;"
                 }
 
                 List prods = getProducts(platform)
-                // Kit the installers for deployment
-                if(needsInstallerKitting(platform)) {
-                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') }.replace('.zip', '') // takes the first match
+
+                if(params.sanitizer && params.sanitizer != 'none') { // rename the files so they don't get archived in Dropbox in a way that prevents us from building non-sanitized versions
+                    for(String product : prods) {
+                        utils.copyFile(product, renamedSanitizerProduct(product), platform)
+                    }
+                    prods = prods.collect { renamedSanitizerProduct(it) }
+                } else if(needsInstallerKitting(platform)) {
+                    String installer = getProducts(platform, true).find { el -> el.contains('Installer') } // takes the first match
                     String zipTarget = utils.chooseByPlatformMacWinLin(['X-Plane11InstallerMac.zip', 'X-Plane11InstallerWindows.zip', 'X-Plane11InstallerLinux.zip'], platform)
                     if(utils.isLinux(platform)) { // Gotta rename the installer to match what X-Plane's auto-runner expects... sigh...
                         String renamedInstaller = "X-Plane 11 Installer Linux"
-                        fileOperations([fileCopyOperation(includes: installer, targetLocation: renamedInstaller)])
+                        utils.copyFile(installer, renamedInstaller, platform)
                         zip(zipFile: zipTarget, archive: false, glob: renamedInstaller)
                         nukeFile(renamedInstaller)
+                    } else if(utils.isMac(platform)) { // Copy the ZIP we already made (with symlinks intact for code signing)
+                        utils.copyFile(installer, zipTarget, platform)
                     } else {
                         zip(zipFile: zipTarget, archive: false, glob: installer)
                     }
@@ -399,6 +429,13 @@ def doArchive(String platform) {
             throw e
         }
     }
+}
+
+def renamedSanitizerProduct(String originalName) {
+    if(params.sanitizer && params.sanitizer != 'none') {
+        return "${sanitizer}_sanitizer_${originalName}"
+    }
+    return originalName
 }
 
 def notifySuccess() {

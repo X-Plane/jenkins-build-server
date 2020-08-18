@@ -67,9 +67,21 @@ def sendEmail(String subj, String msg, String errorMsg='', String recipient='') 
 String getDirChar(String platform='') {
     return chooseByPlatformNixWin("/", "\\", platform)
 }
+String fixDirChars(String path, String platform='') {
+    if(isWindows(platform)) {
+        return path.replace('/', "\\")
+    } else {
+        return path.replace("\\", '/')
+    }
+}
 String getJenkinsDir(String subdir, String platform='') {
-    String jenkins = chooseByPlatformNixWin("/jenkins/", "C:\\jenkins\\", platform)
-    return jenkins + subdir + getDirChar(platform)
+    if(isWindows(platform)) {
+        return "C:\\jenkins\\" + subdir + getDirChar(platform)
+    } else if(fileExists('/Users/Shared/jenkins')) {
+        return '/Users/Shared/jenkins/' + subdir + getDirChar(platform)
+    } else {
+        return '/jenkins/' + subdir + getDirChar(platform)
+    }
 }
 String getCheckoutDir(String platform='') {
     return getJenkinsDir(override_checkout_dir ? override_checkout_dir : "design-${directory_suffix}", platform)
@@ -88,6 +100,8 @@ String getCommitId(String platform='') {
 String getArchiveRoot(String platform='') {
     if(isWindows(platform)) { // windows path might be on either the C:\ or D:\ drive
         return platform.startsWith('WindowsC') ? "C:\\jenkins\\Dropbox\\jenkins-archive\\" : "D:\\Dropbox\\jenkins-archive\\"
+    } else if(fileExists('/Users/Shared/jenkins')) {
+        return '/Users/Shared/jenkins/Dropbox/jenkins-archive/'
     } else {
         return '/jenkins/Dropbox/jenkins-archive/'
     }
@@ -136,11 +150,11 @@ List getExpectedXPlaneProducts(String platform, boolean ignoreSymbols=false) {
         }
     }
 
-
-    boolean needsSymbols = !ignoreSymbols && build_type.contains('NODEV_OPT_Prod')
-    if(needsSymbols) {
+    if(!ignoreSymbols) {
         def symbolsSuffix = chooseByPlatformMacWinLin(['.app.dSYM.zip', '_win.sym', '_lin.sym'], platform)
-        def platformOther = addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix)
+        def platformOther = build_type.contains('NODEV_OPT_Prod') ?
+                addSuffix(chooseByPlatformMacWinLin([["X-Plane"], appNames, filesWithExt], platform), symbolsSuffix) :
+                []
         if(isWindows(platform)) {
             platformOther += addSuffix(appNames, ".pdb")
         }
@@ -162,8 +176,8 @@ def nukeFolder(      String  path ) { fileOperations([folderDeleteOperation(path
 def nukeFiles(  List<String> files) { fileOperations(files.collect { fileDeleteOperation(includes: it) }) }
 def nukeFile(        String  file ) { fileOperations([fileDeleteOperation(includes: file)]) }
 
-def copyFile(String source, String dest) {
-    fileOperations([fileCopyOperation(includes: source, targetLocation: dest)])
+def copyFile(String source, String dest, String platform='') {
+    chooseShellByPlatformNixWin("cp \"${source}\" \"${dest}\"", "copy \"${source}\" \"${dest}\"", platform)
 }
 
 boolean copyBuildProductsFromArchive(List expectedProducts, String platform, String archiveSubdir='') {

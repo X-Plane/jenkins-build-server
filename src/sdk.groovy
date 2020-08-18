@@ -23,7 +23,11 @@ try {
     }
     stage('Notify')                        { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
 } finally {
-    node('windows') { step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: 'C:/jenkins/log-parser-builds.txt', useProjectRule: false]) }
+    node('master') {
+        String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
+        utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O")
+        step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
+    }
 }
 
 
@@ -131,7 +135,13 @@ List<String> getWindowsLibs() {
     return ['XPLM_64.lib', 'XPWidgets_64.lib']
 }
 String getSdkCheckoutDir(String platform) {
-    return utils.chooseByPlatformNixWin("/jenkins/xplanesdk/", "C:\\jenkins\\xplanesdk\\", platform)
+    if(utils.isWindows(platform)) {
+        return"C:\\jenkins\\xplanesdk\\"
+    } else if(fileExists('/Users/Shared/jenkins')) {
+        return '/Users/Shared/jenkins/xplanesdk/'
+    } else {
+        return '/jenkins/xplanesdk/'
+    }
 }
 
 String getArchiveDirAndEnsureItExists(String platform) {
