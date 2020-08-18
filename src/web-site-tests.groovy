@@ -42,12 +42,13 @@ finally { // we want to archive regardless of whether the tests passed
 }
 
 def doCheckout(String platform) {
+    branch = params.branch_name ? params.branch_name : 'master'
     try {
-        checkout([$class: 'GitSCM', branches: [[name: environment['branch_name']]],
+        checkout([$class: 'GitSCM', branches: [[name: branch]],
                   extensions: [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true]],
                   userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git']]])
     } catch(e) {
-        notifyBrokenCheckout(utils.&sendEmail, 'Sales funnel', environment['branch_name'], platform, e)
+        notifyBrokenCheckout(utils.&sendEmail, 'Sales funnel', branch, platform, e)
         throw e
     }
 }
