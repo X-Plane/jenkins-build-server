@@ -41,53 +41,31 @@ finally { // we want to archive regardless of whether the tests passed
     }
 }
 
-String getCheckoutDir(platform) {
-    return utils.chooseByPlatformNixWin("/Users/Shared/jenkins/website-${tag}/", "C:\\jenkins\\website-${tag}\\", platform)
-}
-
 def doCheckout(String platform) {
     try {
-        dir(getCheckoutDir(platform)) {
-            utils.nukeIfExist(['*.png'], platform)
-        }
-
-        xplaneCheckout('master', getCheckoutDir(platform), platform, 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git')
+        checkout([$class: 'GitSCM', branches: [[name: environment['branch_name']]],
+                  extensions: [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true]],
+                  userRemoteConfigs: [[credentialsId: 'tylers-ssh', url: 'ssh://tyler@dev.x-plane.com/admin/git-xplane/website.git']]])
     } catch(e) {
-        notifyBrokenCheckout(utils.&sendEmail, 'Sales funnel', 'master', platform, e)
+        notifyBrokenCheckout(utils.&sendEmail, 'Sales funnel', environment['branch_name'], platform, e)
         throw e
     }
 }
 
-
-def getCommitId() {
-    dir(getCheckoutDir(platform)) {
-        if(isUnix()) {
-            return sh(returnStdout: true, script: "git rev-parse HEAD").trim()
-        } else {
-            return bat(returnStdout: true, script: "git rev-parse HEAD").trim().split("\r?\n")[1]
-        }
-    }
-}
-
 def testFunnel(String platform) {
-    dir(getCheckoutDir(platform)) {
-        setUpPython3VirtualEnvironment(utils, platform)
-        String dirChar = utils.getDirChar(platform)
-        String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
-
-        utils.chooseShell("env${dirChar}${binDir}${dirChar}behave --tags=${tag}", platform)
-    }
+    setUpPython3VirtualEnvironment(utils, platform)
+    String dirChar = utils.getDirChar(platform)
+    String binDir = utils.chooseByPlatformNixWin('bin', 'Scripts', platform)
+    utils.chooseShell("env${dirChar}${binDir}${dirChar}behave --tags=${tag}", platform)
 }
 
 def doArchive(String platform) {
-    dir(getCheckoutDir(platform)) {
-        def images = []
-        for(def file : findFiles(glob: '*.png')) {
-            images.push(file.name)
-        }
-        if(images) {
-            archiveArtifacts artifacts: images.join(', '), fingerprint: true, onlyIfSuccessful: false
-        }
+    def images = []
+    for(def file : findFiles(glob: '*.png')) {
+        images.push(file.name)
+    }
+    if(images) {
+        archiveArtifacts artifacts: images.join(', '), fingerprint: true, onlyIfSuccessful: false
     }
 }
 
