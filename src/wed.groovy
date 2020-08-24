@@ -38,10 +38,11 @@ def runOn3Platforms(Closure c) {
 def doCheckout(String platform) {
     clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
     if(utils.isWindows(platform)) {
-        try {
-            // MSVC's clean doesn't actually, um, clean. Let's nuke the whole MSVC directory and let Git reset us to a sane state.
-            bat(returnStdout: true, script: "rd /s /q msvc")
-        } catch(e) {}
+        dir(utils.getCheckoutDir(platform)) {
+            try {
+                bat(returnStdout: true, script: "rd /s /q msvc")
+            } catch(e) {}
+        }
     }
 
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
