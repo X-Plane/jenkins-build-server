@@ -37,6 +37,11 @@ def runOn3Platforms(Closure c) {
 
 def doCheckout(String platform) {
     clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
+    if(utils.isWindows(platform)) {
+        bat 'rd /s /q msvc\\WorldEditor\\Release\\'
+        bat 'rd /s /q msvc\\WorldEditor\\Debug\\'
+    }
+
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
