@@ -38,10 +38,12 @@ def runOn3Platforms(Closure c) {
 def doCheckout(String platform) {
     clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
     if(utils.isWindows(platform)) {
-        for(String dir in ['msvc\\WorldEditor\\Release\\', 'msvc\\WorldEditor\\Debug\\']) {
-            try {
-                bat(returnStdout: true, script: "rd /s /q ${dir}")
-            } catch(e) {}
+        dir(utils.getCheckoutDir(platform)) {
+            for(String dir in ['msvc\\WorldEditor\\Release\\', 'msvc\\WorldEditor\\Debug\\']) {
+                try {
+                    bat(returnStdout: true, script: "rd /s /q ${dir}")
+                } catch(e) {}
+            }
         }
     }
 
@@ -116,7 +118,7 @@ def doBuildAndArchive(String platform) {
                     bat "rd /s /q \"${targetZipName}\""
                 } catch(e) { }
                 utils.chooseShell("mkdir ${targetZipName}", platform)
-                utils.copyFilePatternToDest(exePath, "${targetZipName}/${exe}")
+                utils.copyFilePatternToDest(exePath, "${targetZipName}\\${exe}")
                 utils.copyFilePatternToDest("src\\WEDCore\\${readme}", "${targetZipName}\\${readme}")
                 zip(zipFile: targetZip, archive: false, dir: targetZipName)
             }
