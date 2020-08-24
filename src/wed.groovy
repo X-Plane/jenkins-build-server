@@ -38,8 +38,11 @@ def runOn3Platforms(Closure c) {
 def doCheckout(String platform) {
     clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
     if(utils.isWindows(platform)) {
-        bat(returnStdout: true, script: 'rd /s /q msvc\\WorldEditor\\Release\\')
-        bat(returnStdout: true, script: 'rd /s /q msvc\\WorldEditor\\Debug\\')
+        for(String dir in ['msvc\\WorldEditor\\Release\\', 'msvc\\WorldEditor\\Debug\\']) {
+            try {
+                bat(returnStdout: true, script: "rd /s /q ${dir}")
+            } catch(e) {}
+        }
     }
 
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
@@ -72,8 +75,7 @@ def doBuildAndArchive(String platform) {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-            String vcvars = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x64\n'
-            String msBuild = utils.isWindows(platform) ? "${vcvars} \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild\"" : ''
+            String msBuild = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild"'
             if(utils.toRealBool(clean_build)) {
                 utils.chooseShellByPlatformMacWinLin([
                         "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
