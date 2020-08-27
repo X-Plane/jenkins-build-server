@@ -354,7 +354,7 @@ def doUnitTest(String platform) {
             }
             String xml = testXmlTarget(platform)
             try {
-                utils.chooseShellByPlatformNixWin("./${exe} -r junit -o ${xml}", "${exe} /r junit /o ${xml}", platform)
+                utils.chooseShellByPlatformNixWin("./${exe} * -r junit -o ${xml}", "${exe} * /r junit /o ${xml}", platform)
             } catch(e) {
                 errorMsg = fileExists(xml) ? "failed unit testing (but did compile & run without crashing)" : "crashed during unit testing (but did compile)"
                 echo("ERROR: ${errorMsg}")
