@@ -166,7 +166,7 @@ List getExpectedXPlaneProducts(String platform, boolean ignoreSymbols=false) {
 def nukeIfExist(List<String> files, String platform) {
     for(def f : files) {
         try {
-            chooseShellByPlatformNixWin("rm -Rf ${f}", "del \"${f}\"", platform)
+            chooseShellByPlatformNixWin("rm -Rf ${f}", "del /F /Q \"${f}\"", platform)
         } catch(e) { } // No old executables lying around? No problem!
     }
 }

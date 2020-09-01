@@ -47,5 +47,6 @@ error /ARCHIVE FAILED/
 error /: error C\d+:/
 error /Aborted by /
 error /linker command failed/
+error /multiple definition of/
 
 info /This\scommit\swas\salready\sbuilt/

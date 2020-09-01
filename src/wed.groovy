@@ -37,6 +37,14 @@ def runOn3Platforms(Closure c) {
 
 def doCheckout(String platform) {
     clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
+    if(utils.isWindows(platform)) {
+        dir(utils.getCheckoutDir(platform)) {
+            try {
+                bat(returnStdout: true, script: "rd /s /q msvc")
+            } catch(e) {}
+        }
+    }
+
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
     try {
         xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
@@ -67,8 +75,7 @@ def doBuildAndArchive(String platform) {
             String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-            String vcvars = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\VC\\Auxiliary\\Build\\vcvarsall.bat" x64\n'
-            String msBuild = utils.isWindows(platform) ? "${vcvars} \"C:\\Program Files (x86)\\Microsoft Visual Studio\\2017\\Community\\MSBuild\\15.0\\Bin\\MSBuild\"" : ''
+            String msBuild = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"'
             if(utils.toRealBool(clean_build)) {
                 utils.chooseShellByPlatformMacWinLin([
                         "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
@@ -109,7 +116,7 @@ def doBuildAndArchive(String platform) {
                     bat "rd /s /q \"${targetZipName}\""
                 } catch(e) { }
                 utils.chooseShell("mkdir ${targetZipName}", platform)
-                utils.copyFilePatternToDest(exePath, "${targetZipName}/${exe}")
+                utils.copyFilePatternToDest(exePath, "${targetZipName}\\${exe}")
                 utils.copyFilePatternToDest("src\\WEDCore\\${readme}", "${targetZipName}\\${readme}")
                 zip(zipFile: targetZip, archive: false, dir: targetZipName)
             }

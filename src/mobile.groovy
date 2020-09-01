@@ -32,8 +32,8 @@ buildAndroid = build.contains('Android')
 // For failures in any other stage, the person to email is Tyler, the build farm maintainer.
 //--------------------------------------------------------------------------------------------------------------------------------
 platform = 'macOS' // This is the platform of the *builder*
-node('ios') {
-    try {
+try {
+    node('ios') {
         stage('Checkout') { timeout(60 * 2) { doCheckout(platform) } }
         stage('Build')    { timeout(60 * 2) { doBuild(platform)    } }
         stage('Archive')  { timeout(60 * 2) { doArchive(platform)  } }
@@ -41,9 +41,11 @@ node('ios') {
             notifySuccess()
             jiraSendBuildInfo(branch: branch_name, site: 'x-plane.atlassian.net')
         }
-    } finally {
+    }
+} finally {
+    node('master') {
         String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'
-        utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O", platform)
+        utils.chooseShellByPlatformNixWin("curl ${parseRulesUrl} -O", "C:\\msys64\\usr\\bin\\curl.exe ${parseRulesUrl} -O")
         step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
     }
 }
