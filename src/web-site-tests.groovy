@@ -27,9 +27,6 @@ try {
     slackSend(
             color: 'danger',
             message: "<@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}|Build Info>")
-    if(tag.contains('Critical')) {
-        notifyPagerDuty("Web site test of ${tag} failed")
-    }
     throw e
 }
 finally { // we want to archive regardless of whether the tests passed
@@ -68,14 +65,4 @@ def doArchive(String platform) {
     if(images) {
         archiveArtifacts artifacts: images.join(', '), fingerprint: true, onlyIfSuccessful: false
     }
-}
-
-def notifyPagerDuty(String title) {
-    API_KEY = 'a5fc7b93193044118fc1b5be9c7ef082'
-    pagerduty(
-            resolve: false,
-            serviceKey: API_KEY,
-            incDescription: title,
-            incDetail: "${BUILD_URL}console"
-    )
 }
