@@ -11,6 +11,7 @@ environment['build_linux'] = build_linux
 environment['dev_build'] = 'false'
 environment['override_checkout_dir'] = 'xptools'
 utils.setEnvironment(environment, this.&notify, this.steps)
+toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 
 shouldPublish = publish_as_version && publish_as_version.length() >= 5 && publish_as_version.length() <= 6
 
@@ -29,9 +30,9 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
-            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
-            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+            'Windows' : { if(utils.build_windows) { node('windows' + toolchain_version) { closure('Windows') } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { closure('macOS')   } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { closure('Linux')   } } }
     )
 }
 
