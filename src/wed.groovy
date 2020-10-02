@@ -60,12 +60,15 @@ def doCheckout(String platform) {
 
 def doBuildAndArchive(String platform) {
     dir(utils.getCheckoutDir(platform)) {
+        // Michael says the stock GCC 9 has issues building stuff compatible with 16.04 and 18.04; use GCC 7 instead
+        String setLinGcc = toolchain_version == 2020 && utils.isLinux(platform) ? "CC=gcc-7 CXX=g++-7" : ""
+
         if(utils.isNix(platform)) {
             dir('libs') {
                 if(utils.toRealBool(clean_libs)) {
-                    sh 'make clean'
+                    sh "${setLinGcc} make clean"
                 }
-                sh 'make'
+                sh "${setLinGcc} make"
             }
         }
 
@@ -77,8 +80,6 @@ def doBuildAndArchive(String platform) {
             String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
             String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
             String msBuild = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"'
-            // Michael says the stock GCC 9 has issues building stuff compatible with 16.04 and 18.04; use GCC 7 instead
-            String setLinGcc = toolchain_version == 2020 ? "CC=gcc-7 CXX=g++-7" : ""
             if(utils.toRealBool(clean_build)) {
                 utils.chooseShellByPlatformMacWinLin([
                         "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
