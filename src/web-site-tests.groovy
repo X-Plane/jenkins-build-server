@@ -39,9 +39,7 @@ finally { // we want to archive regardless of whether the tests passed
 }
 
 def doCheckout(String platform) {
-    dir(getCheckoutDir(platform)) {
-        utils.nukeIfExist(['*.png'], platform)
-    }
+    utils.nukeIfExist(['*.png'], platform)
 
     branch = params.branch_name ? params.branch_name : 'master'
     try {
