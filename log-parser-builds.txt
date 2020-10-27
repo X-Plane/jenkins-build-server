@@ -48,5 +48,7 @@ error /: error C\d+:/
 error /Aborted by /
 error /linker command failed/
 error /multiple definition of/
+error /fatal: unable to access/
+error /ValueError:/
 
 info /This\scommit\swas\salready\sbuilt/

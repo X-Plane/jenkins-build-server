@@ -11,6 +11,7 @@ environment['build_linux'] = build_linux
 environment['dev_build'] = 'false'
 environment['override_checkout_dir'] = 'xptools'
 utils.setEnvironment(environment, this.&notify, this.steps)
+toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 
 shouldPublish = publish_as_version && publish_as_version.length() >= 5 && publish_as_version.length() <= 6
 
@@ -29,9 +30,9 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
-            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
-            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+            'Windows' : { if(utils.build_windows) { node('windows' + toolchain_version) { closure('Windows') } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { closure('macOS')   } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { closure('Linux')   } } }
     )
 }
 
@@ -59,12 +60,15 @@ def doCheckout(String platform) {
 
 def doBuildAndArchive(String platform) {
     dir(utils.getCheckoutDir(platform)) {
+        // Michael says the stock GCC 9 has issues building stuff compatible with 16.04 and 18.04; use GCC 7 instead
+        String setLinGcc = toolchain_version == 2020 && utils.isLinux(platform) ? "CC=gcc-7 CXX=g++-7" : ""
+
         if(utils.isNix(platform)) {
             dir('libs') {
                 if(utils.toRealBool(clean_libs)) {
-                    sh 'make clean'
+                    sh "${setLinGcc} make clean"
                 }
-                sh 'make'
+                sh "${setLinGcc} make"
             }
         }
 
@@ -80,14 +84,14 @@ def doBuildAndArchive(String platform) {
                 utils.chooseShellByPlatformMacWinLin([
                         "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
                         "${msBuild} ${projectFile} /t:Clean",
-                        'make clean'
+                        "${setLinGcc} make clean"
                 ], platform)
             }
 
             utils.chooseShellByPlatformMacWinLin([
                     "${xcodebuildBoilerplate} -archivePath WED.xcarchive  CODE_SIGN_STYLE=\"Manual\" CODE_SIGN_IDENTITY=\"Developer ID Application: Laminar Research (LPH4NFE92D)\" archive ${pipe_to_xcpretty}",
                     "${msBuild} /t:WorldEditor /m /p:Configuration=\"Release\" /p:Platform=\"x64\" ${projectFile}",
-                    "make -s -C . conf=release_opt -j\$(nproc) WED"
+                    "${setLinGcc} make -s -C . conf=release_opt -j\$(nproc) WED"
             ], platform)
 
             if(shouldPublish && utils.isWindows(platform)) {
