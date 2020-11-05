@@ -13,13 +13,15 @@ environment['build_linux'] = params.build_linux ? params.build_linux : (params.p
 environment['build_all_apps'] = 'true'
 environment['build_type'] = build_type
 environment['products_to_build'] = products_to_build
+wantShaders = products_to_build.contains('SHADERS')
+environment['build_shaders'] = wantShaders
 toolchain_version = params.toolchain == '2020' ? 2020 : 2016
+environment['toolchain_version'] = toolchain_version
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 alerted_via_slack = false
 doClean = utils.toRealBool(clean_build)
 forceBuild = utils.toRealBool(force_build)
-wantShaders = products_to_build.contains('SHADERS')
 
 assert params.sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our Ubuntu builders support UBsan... wait for the compiler upgrade!"
 
@@ -39,25 +41,28 @@ assert params.sanitizer != 'undefined-behavior', "Sorry, neither our Mac nor our
 // For failures in any other stage, the person to email is Tyler, the build farm maintainer.
 //--------------------------------------------------------------------------------------------------------------------------------
 try {
-    stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is in progress.") }
-    stage('Checkout')                      { runOn3Platforms(this.&doCheckout, wantShaders) }
-    stage('Build') {
-        if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
-            runOn3Platforms(this.&doBuild)
-        } else {
-            parallel (
-                    // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
-                    'Windows' : { if(wantShaders)         { node('windows' + toolchain_version) { buildAndArchiveShaders() } } },
-                    'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { timeout(60 * 2) { doBuild('macOS')   } } } },
-                    'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { timeout(60 * 2) { doBuild('Linux')   } } } }
-            )
+    stage('Respond')                       { utils.replyToTrigger("Build started.\n\nThe automated build of commit ${branch_name} is scheduled.") }
+
+    lock(extra: utils.resourcesToLock()) {
+        stage('Checkout')                      { runOn3Platforms(this.&doCheckout, wantShaders) }
+        stage('Build') {
+            if(utils.build_windows) { // shaders will get built on Windows as part of the normal build process
+                runOn3Platforms(this.&doBuild)
+            } else {
+                parallel (
+                        // gotta handle shaders specially; we can do this on Windows in parallel with the other platforms (win!)
+                        'Windows' : { if(wantShaders)         { node('windows' + toolchain_version) { buildAndArchiveShaders() } } },
+                        'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { timeout(60 * 2) { doBuild('macOS')   } } } },
+                        'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { timeout(60 * 2) { doBuild('Linux')   } } } }
+                )
+            }
         }
-    }
-    stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
-    stage('Archive')                       { runOn3Platforms(this.&doArchive) }
-    stage('Notify') {
-        if(!alerted_via_slack) { notifySuccess() }
-        jiraSendBuildInfo(branch: branch_name, site: 'x-plane.atlassian.net')
+        stage('Unit Test')                     { runOn3Platforms(this.&doUnitTest) }
+        stage('Archive')                       { runOn3Platforms(this.&doArchive) }
+        stage('Notify') {
+            if(!alerted_via_slack) { notifySuccess() }
+            jiraSendBuildInfo(branch: branch_name, site: 'x-plane.atlassian.net')
+        }
     }
 } finally {
     node('master') {

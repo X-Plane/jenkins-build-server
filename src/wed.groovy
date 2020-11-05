@@ -10,15 +10,18 @@ environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['dev_build'] = 'false'
 environment['override_checkout_dir'] = 'xptools'
-utils.setEnvironment(environment, this.&notify, this.steps)
 toolchain_version = params.toolchain == '2020' ? 2020 : 2016
+environment['toolchain_version'] = toolchain_version
+utils.setEnvironment(environment, this.&notify, this.steps)
 
 shouldPublish = publish_as_version && publish_as_version.length() >= 5 && publish_as_version.length() <= 6
 
 try {
-    stage('Checkout') { runOn3Platforms(this.&doCheckout) }
-    stage('Build & Archive') { runOn3Platforms(this.&doBuildAndArchive)    }
-    stage('Finalize Upload') { node('linux') { finalizeUpload('Linux') }   }
+    lock(extra: utils.resourcesToLock()) {
+        stage('Checkout') { runOn3Platforms(this.&doCheckout) }
+        stage('Build & Archive') { runOn3Platforms(this.&doBuildAndArchive) }
+    }
+    stage('Finalize Upload') { node('linux') { finalizeUpload('Linux') } }
 } finally {
     node('master') {
         String parseRulesUrl = 'https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt'

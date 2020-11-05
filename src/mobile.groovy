@@ -2,10 +2,7 @@ def environment = [:]
 environment['branch_name'] = branch_name
 environment['send_emails'] = send_emails
 environment['directory_suffix'] = directory_suffix
-environment['build_windows'] = 'false'
-environment['build_mac'] = 'false'
-environment['build_linux'] = 'false'
-environment['build_all_apps'] = 'true'
+environment['build_ios'] = true
 environment['build_type'] = 'release'
 environment['override_checkout_dir'] = 'iphone-' + directory_suffix
 utils.setEnvironment(environment, this.&notify, this.steps)

@@ -11,10 +11,10 @@ environment['build_linux'] = utils.isLinux(platform) ? 'true' : 'false'
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 
-stage('Checkout')     { node(nodeType) { doCheckout(platform) } }
-try {
-    stage('Test') {
-        node(nodeType) {
+node(nodeType) {
+    try {
+        stage('Checkout') { doCheckout(platform) }
+        stage('Test') {
             try {
                 testFunnel(platform)
             } catch(e) { // Give it a second try in case of temporary connectivity issues
@@ -22,19 +22,17 @@ try {
                 testFunnel(platform)
             }
         }
+    } catch(e) {
+        slackSend(
+                color: 'danger',
+                message: "<@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}|Build Info>")
+        if(tag.contains('Critical')) {
+            notifyPagerDuty("Web site test of ${tag} failed")
+        }
+        throw e
     }
-} catch(e) {
-    slackSend(
-            color: 'danger',
-            message: "<@UAG6R8LHJ>, the web site test of ${tag} failed | <${BUILD_URL}parsed_console/|Parsed Console Log> | <${BUILD_URL}|Build Info>")
-    if(tag.contains('Critical')) {
-        notifyPagerDuty("Web site test of ${tag} failed")
-    }
-    throw e
-}
-finally { // we want to archive regardless of whether the tests passed
-    stage('Archive')  { node(nodeType) { doArchive(platform) } }
-    node(nodeType) {
+    finally { // we want to archive regardless of whether the tests passed
+        stage('Archive')  { doArchive(platform) }
         def curl = utils.chooseByPlatformNixWin('curl', 'C:\\msys64\\usr\\bin\\curl.exe')
         utils.chooseShell("${curl} https://raw.githubusercontent.com/X-Plane/jenkins-build-server/master/log-parser-builds.txt -O", platform)
         step([$class: 'LogParserPublisher', failBuildOnError: false, parsingRulesPath: "${pwd()}/log-parser-builds.txt", useProjectRule: false])
