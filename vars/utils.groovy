@@ -16,7 +16,7 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     build_linux = environment.containsKey('build_linux') && toRealBool(environment['build_linux'])
     build_all_apps = environment.containsKey('build_all_apps') && toRealBool(environment['build_all_apps'])
     build_shaders = environment.containsKey('build_shaders') && toRealBool(environment['build_shaders'])
-    toolchain_version = environment.containsKey('toolchain_version') ? toolchain_version : 2016
+    toolchain_version = environment.containsKey('toolchain_version') ? environment['toolchain_version'] : 2016
     // Switch between compatibility with old style and new style
     if(environment.containsKey('dev_build')) {
         def release_build = toRealBool(environment['release_build'])
