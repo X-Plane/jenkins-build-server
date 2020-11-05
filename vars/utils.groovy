@@ -10,10 +10,13 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     pmt_subject = ''
     pmt_from = ''
     directory_suffix = environment['directory_suffix']
-    build_windows = toRealBool(environment['build_windows'])
-    build_mac = toRealBool(environment['build_mac'])
-    build_linux = toRealBool(environment['build_linux'])
-    build_all_apps = toRealBool(environment['build_all_apps'])
+    build_windows = environment.containsKey('build_windows') && toRealBool(environment['build_windows'])
+    build_mac = environment.containsKey('build_mac') && toRealBool(environment['build_mac'])
+    build_ios = environment.containsKey('build_ios') && toRealBool(environment['build_ios'])
+    build_linux = environment.containsKey('build_linux') && toRealBool(environment['build_linux'])
+    build_all_apps = environment.containsKey('build_all_apps') && toRealBool(environment['build_all_apps'])
+    build_shaders = environment.containsKey('build_shaders') && toRealBool(environment['build_shaders'])
+    toolchain_version = environment.containsKey('toolchain_version') ? toolchain_version : 2016
     // Switch between compatibility with old style and new style
     if(environment.containsKey('dev_build')) {
         def release_build = toRealBool(environment['release_build'])
@@ -42,6 +45,15 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
         folderCreateOperation = globalSteps ? globalSteps.&folderCreateOperation : null
         fileCopyOperation     = globalSteps ? globalSteps.&fileCopyOperation     : null
     } catch(e) { /* no file operations plugin installed */ }
+}
+
+List resourcesToLock() {
+    List toLock = []
+    if(build_windows || build_shaders) { toLock.push([label: 'windows' + toolchain_version]) }
+    if(build_mac                     ) { toLock.push([label: 'mac'     + toolchain_version]) }
+    if(build_linux                   ) { toLock.push([label: 'linux'   + toolchain_version]) }
+    if(build_ios                     ) { toLock.push([label: 'ios'                        ]) }
+    return toLock
 }
 
 def replyToTrigger(String msg, String errorMsg='') {
@@ -263,7 +275,7 @@ def evSignExecutable(String executable) {
 // Great question.
 // Because you also CAN'T CHANGE A VARIABLE'S TYPE AFTER IT'S BEEN CREATED.
 boolean toRealBool(fakeBool) {
-    return fakeBool == 'true'
+    return fakeBool == 'true' || fakeBool == true
 }
 
 
