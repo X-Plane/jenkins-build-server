@@ -1,7 +1,5 @@
 def setEnvironment(environment, notifyStep, globalSteps=null) {
     assert environment['branch_name'], "Missing expected build parameter: branch_name"
-    // Note: because these are strings ("true" or "false"), not actual bools, they'll always evaluate to true
-    assert environment['build_windows'] && environment['build_mac'] && environment['build_linux'], "Missing expected build parameters: platforms"
     notify = notifyStep
     branch_name = environment['branch_name']
     send_emails = toRealBool(environment['send_emails'])
