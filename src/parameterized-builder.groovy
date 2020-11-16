@@ -325,14 +325,18 @@ def buildAndArchiveShaders() {
         String shadersZip = 'shaders_bin.zip'
         String dropboxPath = getArchiveDirAndEnsureItExists('Windows')
         try {
-            retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -O1 --quiet' }
+            if(fileExists('scripts\\shaders\\build_shaders.bat')) {
+                bat 'scripts\\shaders\\build_shaders.bat'
+            } else {
+                retry { bat 'scripts\\shaders\\gfx-cc.exe Resources/shaders/master/input.json -o ./Resources/shaders/bin --fast -O1 --quiet' }
+            }
         } catch(e) {
             if(fileExists('gfx-cc.dmp')) {
                 archiveWithDropbox(['gfx-cc.dmp'], dropboxPath, false, utils)
             } else {
                 echo 'Failed to find gfx-cc.dmp'
             }
-            echo 'ERROR: gfx-cc.exe crashed repeatedly; giving up on building shaders'
+            echo 'ERROR: gfx-cc.exe crashed; giving up on building shaders'
             throw e
         }
         zip(zipFile: shadersZip, archive: false, dir: 'Resources/shaders/bin/')
