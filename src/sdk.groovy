@@ -12,7 +12,7 @@ environment['dev_build'] = 'false'
 toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 environment['toolchain_version'] = toolchain_version
 utils.setEnvironment(environment, this.&notify, this.steps)
-assert utils.build_mac == 'true' || build_type != 'build_dlls'
+assert utils.build_mac || build_type != 'build_dlls'
 
 try {
     stage('Checkout')                      { runOn3Platforms(this.&doCheckout) }
