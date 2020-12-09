@@ -5,10 +5,12 @@ environment['pmt_subject'] = ''
 environment['directory_suffix'] = ''
 environment['pmt_from'] = ''
 environment['release_build'] = 'true'
-environment['build_windows'] = build_windows
-environment['build_mac'] = build_mac
-environment['build_linux'] = build_linux
+environment['build_windows'] = params.platforms.contains('windows') ? 'true' : 'false'
+environment['build_mac'] = params.platforms.contains('mac') ? 'true' : 'false'
+environment['build_linux'] = params.platforms.contains('linux') ? 'true' : 'false'
 environment['dev_build'] = 'false'
+toolchain_version = params.toolchain == '2020' ? 2020 : 2016
+environment['toolchain_version'] = toolchain_version
 utils.setEnvironment(environment, this.&notify, this.steps)
 assert build_mac == 'true' || build_type != 'build_dlls'
 
@@ -18,8 +20,8 @@ try {
         stage('Build')                     { runOn3Platforms(this.&doBuild) }
         stage('Archive')                   { runOn3Platforms(this.&archiveBuild) }
     } else {
-        stage('Build')                     { node('mac') { packageRelease('macOS') } }
-        stage('Archive')                   { node('mac') { archiveRelease('macOS') } }
+        stage('Build')                     { node('mac' + toolchain_version) { packageRelease('macOS') } }
+        stage('Archive')                   { node('mac' + toolchain_version) { archiveRelease('macOS') } }
     }
     stage('Notify')                        { utils.replyToTrigger("SUCCESS!\n\nThe automated build of commit ${branch_name} succeeded.") }
 } finally {
@@ -34,9 +36,9 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel (
-            'Windows' : { if(utils.build_windows) { node('windows') { closure('Windows') } } },
-            'macOS'   : { if(utils.build_mac)     { node('mac')     { closure('macOS')   } } },
-            'Linux'   : { if(utils.build_linux)   { node('linux')   { closure('Linux')   } } }
+            'Windows' : { if(utils.build_windows) { node('windows' + toolchain_version) { closure('Windows') } } },
+            'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { closure('macOS')   } } },
+            'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { closure('Linux')   } } }
     )
 }
 
@@ -54,10 +56,11 @@ def doBuild(String platform) {
     dir(getSdkCheckoutDir(platform) + buildDir) {
         try {
             if(utils.isWindows(platform)) { // Windows needs *two* solutions cleaned & built
-                bat "\"${tool 'MSBuild'}\" XPLM.sln      /t:Clean"
-                bat "\"${tool 'MSBuild'}\" XPWidgets.sln /t:Clean"
-                bat "\"${tool 'MSBuild'}\" /t:XPLM      /m /p:Configuration=\"Release\" XPLM.sln"
-                bat "\"${tool 'MSBuild'}\" /t:XPWidgets /m /p:Configuration=\"Release\" XPWidgets.sln"
+                String msBuild = utils.isWindows(platform) ? (toolchain_version == 2020 ? "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe" : "${tool 'MSBuild'}") : ''
+                bat "\"${msBuild}\" XPLM.sln      /t:Clean"
+                bat "\"${msBuild}\" XPWidgets.sln /t:Clean"
+                bat "\"${msBuild}\" /t:XPLM      /m /p:Configuration=\"Release\" XPLM.sln"
+                bat "\"${msBuild}\" /t:XPWidgets /m /p:Configuration=\"Release\" XPWidgets.sln"
             } else if(utils.isMac(platform)) {
                 def xcodebuildBoilerplate = "set -o pipefail && xcodebuild -target \"Build All\" -config Release -project XPLM.xcodeproj"
                 def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
