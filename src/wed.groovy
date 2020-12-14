@@ -149,7 +149,7 @@ def doBuildAndArchive(String platform) {
 def finalizeUpload(String platform) {
     if(shouldPublish) { // we copied files to the live server
         sshagent(['tylers-ssh']) {
-            for(def p : ['macOS', 'Windows', 'Linux']) {
+            for(def p : utils.platforms()) {
                 def zipName = getPublishableZipName(p)
                 sh "ssh tyler@dev.x-plane.com chmod o+r /shared/download/tools/${zipName}.zip"
             }

@@ -297,6 +297,15 @@ def isMac(String platform) {
     return platform == 'macOS'
 }
 
+List<String> platforms() {
+    platforms = []
+    if(build_windows) { platforms.push('Windows') }
+    if(build_mac)     { platforms.push('macOS') }
+    if(build_linux)   { platforms.push('Linux') }
+    if(build_ios)     { platforms.push('iOS') }
+    return platforms
+}
+
 def chooseByPlatformNixWin(nixVersion, winVersion, String platform='') {
     if(platform) {
         return chooseByPlatformMacWinLin([nixVersion, winVersion, nixVersion], platform)
