@@ -9,12 +9,14 @@ environment['build_windows'] = build_windows
 environment['build_mac'] = build_mac
 environment['build_linux'] = build_linux
 environment['dev_build'] = 'false'
-environment['override_checkout_dir'] = 'xptools'
+repoSource = params.repo_source ? params.repo_source : 'public'
+environment['override_checkout_dir'] = repoSource == 'next' ? 'xptools-next' : 'xptools'
 toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 environment['toolchain_version'] = toolchain_version
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 shouldPublish = publish_as_version && publish_as_version.length() >= 5 && publish_as_version.length() <= 6
+assert repoSource == 'public' || !shouldPublish, "Can't publish from the non-public repo"
 
 try {
     lock(extra: utils.resourcesToLock()) {
@@ -51,7 +53,8 @@ def doCheckout(String platform) {
 
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
     try {
-        xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, 'https://github.com/X-Plane/xptools.git')
+        repo = repoSource == 'next' ? 'https://github.com/meikelm/xptools-next.git' : 'https://github.com/X-Plane/xptools.git'
+        xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, repo)
 
         dir(utils.getCheckoutDir(platform)) {
             utils.chooseShell('git submodule foreach --recursive git reset --hard', platform)
