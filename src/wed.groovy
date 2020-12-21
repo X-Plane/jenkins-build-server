@@ -15,7 +15,7 @@ toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 environment['toolchain_version'] = toolchain_version
 utils.setEnvironment(environment, this.&notify, this.steps)
 
-shouldPublish = publish_as_version && publish_as_version.length() >= 5 && publish_as_version.length() <= 6
+shouldPublish = params.publish_as_version && params.publish_as_version.length() >= 5 && params.publish_as_version.length() <= 6
 assert repoSource == 'public' || !shouldPublish, "Can't publish from the non-public repo"
 
 try {
@@ -166,7 +166,7 @@ String getWedExe(String platform) {
 
 String getPublishableZipName(String platform) {
     String shortPlatform = utils.chooseByPlatformMacWinLin(['mac', 'win', 'lin'], platform)
-    return "wed_${shortPlatform}_${publish_as_version}"
+    return "wed_${shortPlatform}_${params.publish_as_version}"
 }
 
 String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
