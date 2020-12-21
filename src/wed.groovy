@@ -34,118 +34,121 @@ try {
 
 def runOn3Platforms(Closure c) {
     def closure = c
-    parallel (
-            'Windows' : { if(utils.build_windows) { node('windows' + toolchain_version) { closure('Windows') } } },
-            'macOS'   : { if(utils.build_mac)     { node('mac' + toolchain_version)     { closure('macOS')   } } },
-            'Linux'   : { if(utils.build_linux)   { node('linux' + toolchain_version)   { closure('Linux')   } } }
+    parallel(
+            'Windows': { if(utils.build_windows) { node('windows' + toolchain_version) { closure('Windows') } } },
+            'macOS': { if(utils.build_mac) { node('mac' + toolchain_version) { closure('macOS') } } },
+            'Linux': { if(utils.build_linux) { node('linux' + toolchain_version) { closure('Linux') } } }
     )
 }
 
 def doCheckout(String platform) {
     clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
     if(utils.isWindows(platform)) {
-        dir(utils.getCheckoutDir(platform)) {
-            try {
-                bat(returnStdout: true, script: "rd /s /q msvc")
-            } catch(e) {}
+        try {
+            bat(returnStdout: true, script: "rd /s /q msvc")
+        } catch(e) {
         }
     }
 
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
     try {
         repo = repoSource == 'next' ? 'https://github.com/meikelm/xptools-next.git' : 'https://github.com/X-Plane/xptools.git'
-        xplaneCheckout(branch_name, utils.getCheckoutDir(platform), platform, repo)
-
-        dir(utils.getCheckoutDir(platform)) {
-            utils.chooseShell('git submodule foreach --recursive git reset --hard', platform)
-        }
+        checkout([$class                           : 'GitSCM', branches: [[name: '*/' + branch_name]],
+                  doGenerateSubmoduleConfigurations: false,
+                  extensions                       : [
+                          [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false],
+                          [$class: 'CheckoutOption', timeout: 60],
+                          [$class: 'CleanBeforeCheckout', deleteUntrackedNestedRepositories: true],
+                          [$class: 'CleanCheckout', deleteUntrackedNestedRepositories: true]
+                  ],
+                  submoduleCfg                     : [],
+                  userRemoteConfigs                : [[credentialsId: 'github', name: 'origin', url: repo]]])
     } catch(e) {
         notifyBrokenCheckout(utils.&sendEmail, 'WED', branch_name, platform, e)
     }
 }
 
 def doBuildAndArchive(String platform) {
-    dir(utils.getCheckoutDir(platform)) {
-        // Michael says the stock GCC 9 has issues building stuff compatible with 16.04 and 18.04; use GCC 7 instead
-        String setLinGcc = toolchain_version == 2020 && utils.isLinux(platform) ? "CC=gcc-7 CXX=g++-7" : ""
+    // Michael says the stock GCC 9 has issues building stuff compatible with 16.04 and 18.04; use GCC 7 instead
+    String setLinGcc = toolchain_version == 2020 && utils.isLinux(platform) ? "CC=gcc-7 CXX=g++-7" : ""
 
-        if(utils.isNix(platform)) {
-            dir('libs') {
-                if(utils.toRealBool(clean_libs)) {
-                    sh "${setLinGcc} make clean"
-                }
-                sh "${setLinGcc} make"
+    if(utils.isNix(platform)) {
+        dir('libs') {
+            if(utils.toRealBool(clean_libs)) {
+                sh "${setLinGcc} make clean"
             }
+            sh "${setLinGcc} make"
         }
+    }
 
-        String exe = getWedExe(platform)
-        String exePath = utils.addPrefix([exe], utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))[0]
+    String exe = getWedExe(platform)
+    String exePath = utils.addPrefix([exe], utils.chooseByPlatformMacWinLin(['', 'msvc\\WorldEditor\\Release\\', 'build/Linux/release_opt/'], platform))[0]
 
-        try {
-            String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
-            String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
-            String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
-            String msBuild = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"'
-            if(utils.toRealBool(clean_build)) {
-                utils.chooseShellByPlatformMacWinLin([
-                        "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
-                        "${msBuild} ${projectFile} /t:Clean",
-                        "${setLinGcc} make clean"
-                ], platform)
-            }
-
+    try {
+        String projectFile = utils.chooseByPlatformNixWin("SceneryTools.xcodeproj", "msvc\\XPTools.sln", platform)
+        String xcodebuildBoilerplate = "set -o pipefail && xcodebuild -scheme WED -config Release -project ${projectFile}"
+        String pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
+        String msBuild = '"C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\MSBuild\\Current\\Bin\\MSBuild.exe"'
+        if(utils.toRealBool(clean_build)) {
             utils.chooseShellByPlatformMacWinLin([
-                    "${xcodebuildBoilerplate} -archivePath WED.xcarchive  CODE_SIGN_STYLE=\"Manual\" CODE_SIGN_IDENTITY=\"Developer ID Application: Laminar Research (LPH4NFE92D)\" archive ${pipe_to_xcpretty}",
-                    "${msBuild} /t:WorldEditor /m /p:Configuration=\"Release\" /p:Platform=\"x64\" ${projectFile}",
-                    "${setLinGcc} make -s -C . conf=release_opt -j\$(nproc) WED"
+                    "${xcodebuildBoilerplate} clean ${pipe_to_xcpretty} && rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*",
+                    "${msBuild} ${projectFile} /t:Clean",
+                    "${setLinGcc} make clean"
             ], platform)
+        }
 
-            if(shouldPublish && utils.isWindows(platform)) {
-                withCredentials([string(credentialsId: 'windows-hardware-signing-token', variable: 'tokenPass')]) {
-                    utils.evSignExecutable(exePath)
-                }
+        utils.chooseShellByPlatformMacWinLin([
+                "${xcodebuildBoilerplate} -archivePath WED.xcarchive  CODE_SIGN_STYLE=\"Manual\" CODE_SIGN_IDENTITY=\"Developer ID Application: Laminar Research (LPH4NFE92D)\" archive ${pipe_to_xcpretty}",
+                "${msBuild} /t:WorldEditor /m /p:Configuration=\"Release\" /p:Platform=\"x64\" ${projectFile}",
+                "${setLinGcc} make -s -C . conf=release_opt -j\$(nproc) WED"
+        ], platform)
+
+        if(shouldPublish && utils.isWindows(platform)) {
+            withCredentials([string(credentialsId: 'windows-hardware-signing-token', variable: 'tokenPass')]) {
+                utils.evSignExecutable(exePath)
             }
-        } catch (e) {
-            notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)
         }
+    } catch(e) {
+        notifyDeadBuild(utils.&sendEmail, 'WED', branch_name, utils.getCommitId(platform), platform, e)
+    }
 
-        String readme = 'README.WorldEditor'
-        String targetZipName = getPublishableZipName(platform)
-        String targetZip = "${targetZipName}.zip"
+    String readme = 'README.WorldEditor'
+    String targetZipName = getPublishableZipName(platform)
+    String targetZip = "${targetZipName}.zip"
 
-        try {
-            // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
-            if(utils.isMac(platform)) {
-                sh "pushd WED.xcarchive/Products/Applications/ && zip -qr ../../../${targetZip} WED.app && popd"
-                sh "zip -qj ${targetZip} src/WEDCore/${readme}"
-            } else if(utils.isLinux(platform)) {
-                sh "zip -qrj ${targetZip} ${exePath} src/WEDCore/${readme}"
-            } else {
-                // Move the EXE to the root directory so that the final ZIP will be "flat"
-                try {
-                    bat "rd /s /q \"${targetZipName}\""
-                } catch(e) { }
-                utils.chooseShell("mkdir ${targetZipName}", platform)
-                utils.copyFilePatternToDest(exePath, "${targetZipName}\\${exe}")
-                utils.copyFilePatternToDest("src\\WEDCore\\${readme}", "${targetZipName}\\${readme}")
-                zip(zipFile: targetZip, archive: false, dir: targetZipName)
+    try {
+        // If we're on macOS, the "executable" is actually a directory within an xcarchive directory.. we need to ZIP it, then operate on the ZIP files
+        if(utils.isMac(platform)) {
+            sh "pushd WED.xcarchive/Products/Applications/ && zip -qr ../../../${targetZip} WED.app && popd"
+            sh "zip -qj ${targetZip} src/WEDCore/${readme}"
+        } else if(utils.isLinux(platform)) {
+            sh "zip -qrj ${targetZip} ${exePath} src/WEDCore/${readme}"
+        } else {
+            // Move the EXE to the root directory so that the final ZIP will be "flat"
+            try {
+                bat "rd /s /q \"${targetZipName}\""
+            } catch(e) {
             }
-            archiveWithDropbox([targetZip], getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils, false)
-        } catch (e) {
-            utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
-                    "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
-                    e.toString())
-            throw e
+            utils.chooseShell("mkdir ${targetZipName}", platform)
+            utils.copyFilePatternToDest(exePath, "${targetZipName}\\${exe}")
+            utils.copyFilePatternToDest("src\\WEDCore\\${readme}", "${targetZipName}\\${readme}")
+            zip(zipFile: targetZip, archive: false, dir: targetZipName)
         }
+        archiveWithDropbox([targetZip], getArchiveDirAndEnsureItExists(platform, 'WED'), true, utils, false)
+    } catch(e) {
+        utils.sendEmail("WED archive step failed on ${platform} [${branch_name}]",
+                "Archive step failed on ${platform}, branch ${branch_name}. This is probably due to missing the WED executable.",
+                e.toString())
+        throw e
+    }
 
-        if(shouldPublish) { // we want to copy it to the live server
-            sshPublisher(publishers: [
-                    sshPublisherDesc(
-                            configName: 'DevTools',
-                            transfers: [sshTransfer(sourceFiles: targetZip)],
-                    )
-            ])
-        }
+    if(shouldPublish) { // we want to copy it to the live server
+        sshPublisher(publishers: [
+                sshPublisherDesc(
+                        configName: 'DevTools',
+                        transfers: [sshTransfer(sourceFiles: targetZip)],
+                )
+        ])
     }
 }
 
@@ -166,10 +169,13 @@ String getWedExe(String platform) {
 
 String getPublishableZipName(String platform) {
     String shortPlatform = utils.chooseByPlatformMacWinLin(['mac', 'win', 'lin'], platform)
-    return "wed_${shortPlatform}_${params.publish_as_version}"
+    if(params.publish_as_version) {
+        return "wed_${shortPlatform}_${params.publish_as_version}"
+    }
+    return "wed_${shortPlatform}"
 }
 
-String getArchiveDirAndEnsureItExists(String platform='', String optionalSubdir='') {
+String getArchiveDirAndEnsureItExists(String platform = '', String optionalSubdir = '') {
     String out = utils.getArchiveDir(platform, optionalSubdir)
     fileOperations([folderCreateOperation(out)])
     return out
