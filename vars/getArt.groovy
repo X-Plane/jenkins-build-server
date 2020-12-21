@@ -10,6 +10,7 @@ def call(String checkoutDir) {
         try {
             String lastCheckedOutHashOfGetArt = readFile(hashPath).trim()
             needsUpdate = currentHash == lastCheckedOutHashOfGetArt
+            echo "Last checkout hash was ${lastCheckedOutHashOfGetArt}; current is ${currentHash}"
         } catch(e) { } // File not existing is fine, and normal-ish
 
         if(needsUpdate) {
@@ -24,6 +25,7 @@ def call(String checkoutDir) {
                         sh(returnStdout: true, script: "set +x find Resources -type d -exec \"svn cleanup\" \\;")
                         sh(returnStdout: true, script: 'scripts/get_art.sh --cleanup --clobber checkout tyler')
                         writeFile(file: hashPath, text: currentHash)
+                        echo "Checked out art with get_art.sh SHA1 of ${currentHash}"
                         return
                     } catch(e) { sleep(10) }
                 }
