@@ -13,7 +13,7 @@ def call(String checkoutDir) {
         } catch(e) { } // File not existing is fine, and normal-ish
 
         if(needsUpdate) {
-            fileOperations([fileDeleteOperation(includes: 'scripts/get_art.sh')])
+            fileOperations([fileDeleteOperation(includes: hashPath)])
 
             sshagent(['tylers-ssh']) {
                 echo "Pulling SVN art assets too for later auto-testing"
