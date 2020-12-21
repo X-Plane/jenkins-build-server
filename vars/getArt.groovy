@@ -9,7 +9,7 @@ def call(String checkoutDir) {
         boolean needsUpdate = true
         try {
             String lastCheckedOutHashOfGetArt = readFile(hashPath).trim()
-            needsUpdate = currentHash == lastCheckedOutHashOfGetArt
+            needsUpdate = currentHash != lastCheckedOutHashOfGetArt
             echo "Last checkout hash was ${lastCheckedOutHashOfGetArt}; current is ${currentHash}"
         } catch(e) { } // File not existing is fine, and normal-ish
 
