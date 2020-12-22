@@ -78,7 +78,7 @@ def doBuildAndArchive(String platform) {
             if(utils.toRealBool(clean_libs)) {
                 sh "${setLinGcc} make clean"
             }
-            sh "${setLinGcc} make"
+            sh "${setLinGcc} make -j\$(nproc)"
         }
     }
 
