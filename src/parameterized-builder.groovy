@@ -214,8 +214,13 @@ def doBuild(String platform) {
                 if(doClean) {
                     if(utils.isMac(platform)) {
                         sh "rm -Rf /Users/tyler/Library/Developer/Xcode/DerivedData/*"
-                        sh "xcodebuild -project ${projectFile} clean"
-                        sh "xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean"
+                        // Infuriatingly, Xcode returns an error if there's nothing to clean
+                        try {
+                            sh "xcodebuild -project ${projectFile} clean"
+                        } except(e) { }
+                        try {
+                            sh "xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean"
+                        } except(e) { }
                     } else {
                         utils.chooseShellByPlatformNixWin(
                                 'cd design_linux && make clean',
