@@ -217,10 +217,10 @@ def doBuild(String platform) {
                         // Infuriatingly, Xcode returns an error if there's nothing to clean
                         try {
                             sh "xcodebuild -project ${projectFile} clean"
-                        } except(e) { }
+                        } catch(e) { }
                         try {
                             sh "xcodebuild -scheme \"ALL_BUILD\" -config \"${config}\" -project ${projectFile} clean"
-                        } except(e) { }
+                        } catch(e) { }
                     } else {
                         utils.chooseShellByPlatformNixWin(
                                 'cd design_linux && make clean',
