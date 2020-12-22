@@ -42,7 +42,10 @@ def doAnalysis(String platform) {
     dir(utils.getCheckoutDir(platform)) {
         def pipe_to_xcpretty = env.NODE_LABELS.contains('xcpretty') ? '| xcpretty' : ''
         sh './cmake.sh'
-        sh "xcodebuild -scheme \"X-Plane Debug\" -project design_xcode/X-System.xcodeproj clean ${pipe_to_xcpretty}"
+        // Infuriatingly, Xcode returns an error if there's nothing to clean
+        try {
+            sh "xcodebuild -scheme \"X-Plane Debug\" -project design_xcode/X-System.xcodeproj clean ${pipe_to_xcpretty}"
+        } catch(e) { }
         // xcodebuild returns 1 in the event of any issues found... obviously that still means the *analysis* went correctly
         sh(returnStatus: true, script: "xcodebuild -scheme \"X-Plane Debug\" -project design_xcode/X-System.xcodeproj analyze ${pipe_to_xcpretty} > analysis.txt")
     }
