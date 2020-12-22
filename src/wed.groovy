@@ -44,12 +44,11 @@ def runOn3Platforms(Closure c) {
 }
 
 def doCheckout(String platform) {
-    clean([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], [], platform, utils)
+    utils.nukeIfExist([getWedExe(platform), '*.zip', '*.WorldEditor', '*.exe'], platform)
     if(utils.isWindows(platform)) {
         try {
             bat(returnStdout: true, script: "rd /s /q msvc")
-        } catch(e) {
-        }
+        } catch(e) { }
     }
 
     fileOperations([folderDeleteOperation(getPublishableZipName(platform))])
