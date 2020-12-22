@@ -15,6 +15,7 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
     build_all_apps = environment.containsKey('build_all_apps') && toRealBool(environment['build_all_apps'])
     build_shaders = environment.containsKey('build_shaders') && toRealBool(environment['build_shaders'])
     toolchain_version = environment.containsKey('toolchain_version') ? environment['toolchain_version'] : 2016
+    resource_suffix = environment.containsKey('resource_suffix') ? environment['resource_suffix'] : Integer.toString(toolchain_version)
     // Switch between compatibility with old style and new style
     if(environment.containsKey('dev_build')) {
         def release_build = toRealBool(environment['release_build'])
@@ -47,10 +48,10 @@ def setEnvironment(environment, notifyStep, globalSteps=null) {
 
 List resourcesToLock() {
     List toLock = []
-    if(build_windows || build_shaders) { toLock.push([label: 'windows' + toolchain_version]) }
-    if(build_mac                     ) { toLock.push([label: 'mac'     + toolchain_version]) }
-    if(build_linux                   ) { toLock.push([label: 'linux'   + toolchain_version]) }
-    if(build_ios                     ) { toLock.push([label: 'ios'                        ]) }
+    if(build_windows || build_shaders) { toLock.push([label: 'windows' + resource_suffix]) }
+    if(build_mac                     ) { toLock.push([label: 'mac'     + resource_suffix]) }
+    if(build_linux                   ) { toLock.push([label: 'linux'   + resource_suffix]) }
+    if(build_ios                     ) { toLock.push([label: 'ios'                      ]) }
     return toLock
 }
 
