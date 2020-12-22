@@ -13,7 +13,7 @@ repoSource = params.repo_source ? params.repo_source : 'public'
 environment['override_checkout_dir'] = repoSource == 'next' ? 'xptools-next' : 'xptools'
 toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 environment['toolchain_version'] = toolchain_version
-resourceSuffix = '-wed'
+resourceSuffix = "${toolchain_version}-wed"
 environment['resource_suffix'] = "${toolchain_version}-wed"
 utils.setEnvironment(environment, this.&notify, this.steps)
 
