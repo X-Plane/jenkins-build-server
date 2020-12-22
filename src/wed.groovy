@@ -13,6 +13,8 @@ repoSource = params.repo_source ? params.repo_source : 'public'
 environment['override_checkout_dir'] = repoSource == 'next' ? 'xptools-next' : 'xptools'
 toolchain_version = params.toolchain == '2020' ? 2020 : 2016
 environment['toolchain_version'] = toolchain_version
+resourceSuffix = '-wed'
+environment['resource_suffix'] = "${toolchain_version}-wed"
 utils.setEnvironment(environment, this.&notify, this.steps)
 
 shouldPublish = params.publish_as_version && params.publish_as_version.length() >= 5 && params.publish_as_version.length() <= 6
@@ -35,9 +37,9 @@ try {
 def runOn3Platforms(Closure c) {
     def closure = c
     parallel(
-            'Windows': { if(utils.build_windows) { node('windows' + toolchain_version) { closure('Windows') } } },
-            'macOS': { if(utils.build_mac) { node('mac' + toolchain_version + '-wed') { closure('macOS') } } },
-            'Linux': { if(utils.build_linux) { node('linux' + toolchain_version) { closure('Linux') } } }
+            'Windows': { if(utils.build_windows) { node('windows' + resourceSuffix) { closure('Windows') } } },
+            'macOS': {   if(utils.build_mac)     { node('mac'     + resourceSuffix) { closure('macOS')   } } },
+            'Linux': {   if(utils.build_linux)   { node('linux'   + resourceSuffix) { closure('Linux')   } } }
     )
 }
 
