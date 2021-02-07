@@ -153,6 +153,7 @@ def doCheckout(String platform) {
         List<String> to_nuke = getProducts(platform) + [testXmlTarget(platform)]
         if(utils.isMac(platform)) {
             to_nuke.push('*.app')
+            to_nuke.push('*.app.dSYM')
         }
         clean(to_nuke, null, platform, utils)
 
